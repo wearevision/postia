@@ -13,7 +13,13 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check": "biome check --write",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
+    "test:db": "vitest run --config vitest.integration.config.ts",
+    "invitar": "tsx --env-file=.env.local scripts/invitar.ts",
+    "prueba:linkedin": "tsx --env-file=.env.local scripts/prueba-linkedin.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -32,7 +38,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.5.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
@@ -47,7 +54,9 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/ui": "^4.1.5",
     "jsdom": "^29.1.1",
+    "msw": "^2.15.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^4.1.5"
   },

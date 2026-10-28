@@ -144,7 +144,7 @@ import { exigirEnv } from "@/lib/env"
 
 describe("exigirEnv", () => {
   test("returns the trimmed value when the variable is set", () => {
-    expect(exigirEnv("NEXT_PUBLIC_SUPABASE_URL", " http://127.0.0.1:54421 ")).toBe("http://127.0.0.1:54421")
+    expect(exigirEnv("NEXT_PUBLIC_SUPABASE_URL", " http://127.0.0.1:54621 ")).toBe("http://127.0.0.1:54621")
   })
 
   test("throws a configuration error naming the variable when it is missing or blank", () => {
@@ -340,7 +340,7 @@ git commit -m "chore: clear the template's Biome diagnostics and type-check in C
 - Create: `supabase/config.toml` (via CLI), `supabase/templates/codigo.html`, `supabase/migrations/20261028120000_marcas_y_miembros.sql`, `lib/supabase/database.ts`, `lib/supabase/admin.ts`, `vitest.integration.config.ts`, `tests/integration/entorno.ts`, `tests/integration/acceso.test.ts`, `scripts/supabase-env.sh`, `.env.example`
 - Modify: `package.json`, `.gitignore`, the three clients in `lib/supabase/` (add `<Database>`)
 
-- [ ] **Step 1: Init and isolate ports.** `supabase init` (answer no to editor settings). Conidolly's local stack uses 543xx, so PostIA moves to 544xx to run beside it. In `supabase/config.toml` set: `project_id = "postia"`; `[api] port = 54421`; `[db] port = 54422`, `shadow_port = 54420`; `[db.pooler] port = 54429`; `[studio] port = 54423`; `[inbucket] port = 54424` (Mailpit); `[analytics] port = 54427`. Then in `[auth]`:
+- [ ] **Step 1: Init and isolate ports.** `supabase init` (answer no to editor settings). Conidolly's local stack uses 544xx, (and wav-research-2 uses 545xx), so PostIA moves to 546xx to run beside it. In `supabase/config.toml` set: `project_id = "postia"`; `[api] port = 54621`; `[db] port = 54622`, `shadow_port = 54620`; `[db.pooler] port = 54629`; `[studio] port = 54623`; `[inbucket] port = 54624` (Mailpit); `[analytics] port = 54627`. Then in `[auth]`:
 
 ```toml
 site_url = "http://localhost:3000"
@@ -397,7 +397,7 @@ supabase status -o env | sed -n \
 
 ```bash
 # Local Supabase: bash scripts/supabase-env.sh
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54421
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54621
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 # LinkedIn app «Estudio WAV Perfil» (Share on LinkedIn + OpenID Connect). Federico pastes these himself.
@@ -1500,7 +1500,7 @@ main().catch((error: unknown) => {
 import { execFileSync } from "node:child_process"
 import { type APIRequestContext, expect, test } from "@playwright/test"
 
-const MAILPIT = "http://127.0.0.1:54424"
+const MAILPIT = "http://127.0.0.1:54624"
 
 async function codigoPara(request: APIRequestContext, correo: string): Promise<string> {
   for (let intento = 0; intento < 20; intento++) {
@@ -1571,7 +1571,7 @@ test("a person who was not invited gets the same answer and no email", async ({ 
 ```
 
 - [ ] **Step 5: Commit** — `git add -A && git commit -m "test: cover invite-only sign-in end to end on an iPhone profile"`
-- [ ] **Step 6: Invite Federico locally** — `pnpm invitar --correo <his email> --marca "Federico Elgueta" --voz yo` and `pnpm invitar --correo <his email> --marca "WAV We Are Vision" --voz nosotros`. He signs in at `http://localhost:3000` reading the code from Mailpit (`http://127.0.0.1:54424`).
+- [ ] **Step 6: Invite Federico locally** — `pnpm invitar --correo <his email> --marca "Federico Elgueta" --voz yo` and `pnpm invitar --correo <his email> --marca "WAV We Are Vision" --voz nosotros`. He signs in at `http://localhost:3000` reading the code from Mailpit (`http://127.0.0.1:54624`).
 
 ---
 
