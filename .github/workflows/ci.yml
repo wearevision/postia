@@ -72,3 +72,24 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - run: pnpm test:db
+
+  e2e:
+    name: E2E (iPhone profile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+      - run: bash scripts/supabase-env.sh > .env.local
+      - run: pnpm exec playwright install --with-deps webkit
+      - run: pnpm test:e2e

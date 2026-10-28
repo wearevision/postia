@@ -11,12 +11,7 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
+  projects: [{ name: "iphone", use: { ...devices["iPhone 14"] } }],
   webServer: {
     command: "pnpm dev",
     url: "http://localhost:3000",
