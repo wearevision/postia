@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/integration/**/*.test.ts"],
+    globalSetup: ["./tests/integration/limpieza.ts"],
     // One database: files run one after another.
     fileParallelism: false,
     testTimeout: 20_000,
