@@ -121,6 +121,92 @@ export type Database = {
           },
         ]
       }
+      eventos: {
+        Row: {
+          a: string
+          de: string | null
+          en: string
+          id: number
+          motivo: string | null
+          pieza_id: string
+          por: string | null
+        }
+        Insert: {
+          a: string
+          de?: string | null
+          en?: string
+          id?: never
+          motivo?: string | null
+          pieza_id: string
+          por?: string | null
+        }
+        Update: {
+          a?: string
+          de?: string | null
+          en?: string
+          id?: never
+          motivo?: string | null
+          pieza_id?: string
+          por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      firmas: {
+        Row: {
+          firmada_en: string
+          firmada_por: string
+          huella: string
+          id: string
+          pieza_id: string
+          programada_para: string
+          version_id: string
+          vigente: boolean
+        }
+        Insert: {
+          firmada_en?: string
+          firmada_por: string
+          huella: string
+          id?: string
+          pieza_id: string
+          programada_para: string
+          version_id: string
+          vigente?: boolean
+        }
+        Update: {
+          firmada_en?: string
+          firmada_por?: string
+          huella?: string
+          id?: string
+          pieza_id?: string
+          programada_para?: string
+          version_id?: string
+          vigente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firmas_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "firmas_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marcas: {
         Row: {
           creada_en: string
@@ -171,6 +257,108 @@ export type Database = {
           },
         ]
       }
+      piezas: {
+        Row: {
+          arrendada_hasta: string | null
+          creada_en: string
+          creada_por: string
+          cuenta_id: string
+          enlace: string | null
+          estado: string
+          formato: string
+          id: string
+          motivo: string | null
+          programada_para: string | null
+          ventana_minutos: number
+        }
+        Insert: {
+          arrendada_hasta?: string | null
+          creada_en?: string
+          creada_por: string
+          cuenta_id: string
+          enlace?: string | null
+          estado?: string
+          formato: string
+          id?: string
+          motivo?: string | null
+          programada_para?: string | null
+          ventana_minutos?: number
+        }
+        Update: {
+          arrendada_hasta?: string | null
+          creada_en?: string
+          creada_por?: string
+          cuenta_id?: string
+          enlace?: string | null
+          estado?: string
+          formato?: string
+          id?: string
+          motivo?: string | null
+          programada_para?: string | null
+          ventana_minutos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piezas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publicaciones: {
+        Row: {
+          enlace: string | null
+          enviado_en: string
+          firma_id: string | null
+          id: string
+          pieza_id: string
+          post_urn: string | null
+          version_id: string | null
+        }
+        Insert: {
+          enlace?: string | null
+          enviado_en?: string
+          firma_id?: string | null
+          id?: string
+          pieza_id: string
+          post_urn?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          enlace?: string | null
+          enviado_en?: string
+          firma_id?: string | null
+          id?: string
+          pieza_id?: string
+          post_urn?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publicaciones_firma_id_fkey"
+            columns: ["firma_id"]
+            isOneToOne: false
+            referencedRelation: "firmas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publicaciones_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: true
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publicaciones_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suscripciones_push: {
         Row: {
           auth: string
@@ -201,11 +389,62 @@ export type Database = {
         }
         Relationships: []
       }
+      versiones: {
+        Row: {
+          archivo_ruta: string | null
+          archivo_sha256: string | null
+          creada_en: string
+          creada_por: string | null
+          huella: string
+          id: string
+          numero: number
+          pieza_id: string
+          texto: string
+          titulo: string | null
+        }
+        Insert: {
+          archivo_ruta?: string | null
+          archivo_sha256?: string | null
+          creada_en?: string
+          creada_por?: string | null
+          huella: string
+          id?: string
+          numero: number
+          pieza_id: string
+          texto: string
+          titulo?: string | null
+        }
+        Update: {
+          archivo_ruta?: string | null
+          archivo_sha256?: string | null
+          creada_en?: string
+          creada_por?: string | null
+          huella?: string
+          id?: string
+          numero?: number
+          pieza_id?: string
+          texto?: string
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "versiones_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      cerrar_a_mano: {
+        Args: { p_enlace: string; p_pieza: string }
+        Returns: undefined
+      }
       conectar_linkedin: {
         Args: {
           p_cuenta: string
@@ -221,6 +460,17 @@ export type Database = {
         Args: { p_nombre: string; p_voz: string }
         Returns: string
       }
+      crear_pieza: {
+        Args: {
+          p_archivo_ruta?: string
+          p_archivo_sha256?: string
+          p_cuenta: string
+          p_formato: string
+          p_texto: string
+          p_titulo?: string
+        }
+        Returns: string
+      }
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {
@@ -229,10 +479,61 @@ export type Database = {
           token: string
         }[]
       }
+      descartar_pieza: {
+        Args: { p_motivo: string; p_pieza: string }
+        Returns: undefined
+      }
       desconectar_cuenta: { Args: { p_cuenta: string }; Returns: undefined }
+      desprogramar_pieza: { Args: { p_pieza: string }; Returns: undefined }
+      dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
+      firmar_pieza: {
+        Args: { p_huella: string; p_pieza: string; p_programada_para: string }
+        Returns: string
+      }
+      marca_de_pieza: { Args: { p_pieza: string }; Returns: string }
+      normalizar_texto: { Args: { p: string }; Returns: string }
+      nueva_version: {
+        Args: {
+          p_archivo_ruta?: string
+          p_archivo_sha256?: string
+          p_pieza: string
+          p_texto: string
+          p_titulo?: string
+        }
+        Returns: string
+      }
       tiene_acceso: { Args: never; Returns: boolean }
+      tomar_para_publicar: {
+        Args: never
+        Returns: {
+          arrendada_hasta: string | null
+          creada_en: string
+          creada_por: string
+          cuenta_id: string
+          enlace: string | null
+          estado: string
+          formato: string
+          id: string
+          motivo: string | null
+          programada_para: string | null
+          ventana_minutos: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "piezas"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      transiciones_de_pieza: {
+        Args: never
+        Returns: {
+          a: string[]
+          de: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
