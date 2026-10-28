@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { FormularioDePieza } from "@/app/(app)/piezas/nueva/formulario"
@@ -89,5 +90,15 @@ describe("FormularioDePieza", () => {
     await waitFor(() => expect(crear).toHaveBeenCalledTimes(2))
     expect(subir).toHaveBeenCalledTimes(1)
     expect(crear).toHaveBeenLastCalledWith(expect.objectContaining({ archivoRuta: RUTA }))
+  })
+
+  test("sends the sha-256 the browser computed from the chosen file", async () => {
+    const { crear } = montar()
+    elegirCarrusel("Título", pdf())
+    escribir("Texto")
+    crearPieza()
+    await waitFor(() => expect(crear).toHaveBeenCalledTimes(1))
+    const esperado = createHash("sha256").update("%PDF-1.4").digest("hex")
+    expect(crear).toHaveBeenLastCalledWith(expect.objectContaining({ archivoSha256: esperado }))
   })
 })

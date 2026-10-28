@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { describe, expect, test } from "vitest"
 import { cerrarAMano, crearPieza, descartar, desprogramar, dudosoAMano, firmarPieza } from "@/lib/piezas/acciones"
 import { sha256 } from "@/lib/piezas/huella"
@@ -34,6 +35,8 @@ async function huellaVigente(piezaId: string) {
   return data?.huella ?? ""
 }
 
+const SHA_DEL_PDF = createHash("sha256").update("%PDF-1.4\nhola").digest("hex")
+
 describe("piece actions", () => {
   test("creates a text piece and refuses an empty or too long text", async () => {
     const { db, userId } = await personaConSesion("acc")
@@ -60,10 +63,52 @@ describe("piece actions", () => {
       texto: "Texto",
       titulo: "Título",
       archivoRuta: ruta,
+      archivoSha256: SHA_DEL_PDF,
     })
     expect(r.ok).toBe(true)
     const { data } = await admin().from("versiones").select("archivo_sha256").eq("archivo_ruta", ruta).single()
     expect(data?.archivo_sha256).toBe(sha256(new TextEncoder().encode("%PDF-1.4\nhola")))
+  })
+
+  test("a carousel stores the hash the browser computed; the publisher is the one that compares it", async () => {
+    const { db, userId } = await personaConSesion("acc-hash-cliente")
+    const marca = await marcaConDueno(userId)
+    const cuenta = await cuentaDe(marca)
+    const ruta = await subirPdf(db, marca, "%PDF-1.4\nhola")
+    const otro = "a".repeat(64)
+    const r = await crearPieza(db, {
+      cuentaId: cuenta,
+      formato: "carrusel_pdf",
+      texto: "T",
+      titulo: "X",
+      archivoRuta: ruta,
+      archivoSha256: otro,
+    })
+    expect(r.ok).toBe(true)
+    const { data } = await admin().from("versiones").select("archivo_sha256").eq("archivo_ruta", ruta).single()
+    expect(data?.archivo_sha256).toBe(otro)
+  })
+
+  test("a carousel without a well-formed sha-256 is refused", async () => {
+    const { db, userId } = await personaConSesion("acc-sin-hash")
+    const marca = await marcaConDueno(userId)
+    const cuenta = await cuentaDe(marca)
+    const ruta = await subirPdf(db, marca, "%PDF-1.4\nhola")
+    for (const archivoSha256 of [undefined, "xyz", "A".repeat(64)]) {
+      expect(
+        await crearPieza(db, {
+          cuentaId: cuenta,
+          formato: "carrusel_pdf",
+          texto: "T",
+          titulo: "X",
+          archivoRuta: ruta,
+          archivoSha256,
+        }),
+      ).toEqual({
+        ok: false,
+        error: "Revisa los datos de la pieza.",
+      })
+    }
   })
 
   test("a carousel refuses a file that is not a PDF", async () => {
@@ -72,7 +117,14 @@ describe("piece actions", () => {
     const cuenta = await cuentaDe(marca)
     const ruta = await subirPdf(db, marca, "esto no es un pdf")
     expect(
-      await crearPieza(db, { cuentaId: cuenta, formato: "carrusel_pdf", texto: "T", titulo: "X", archivoRuta: ruta }),
+      await crearPieza(db, {
+        cuentaId: cuenta,
+        formato: "carrusel_pdf",
+        texto: "T",
+        titulo: "X",
+        archivoRuta: ruta,
+        archivoSha256: SHA_DEL_PDF,
+      }),
     ).toEqual({ ok: false, error: "Ese archivo no es un PDF o no se pudo leer." })
   })
 
@@ -181,7 +233,14 @@ describe("piece actions", () => {
     const cuenta = await cuentaDe(await marcaConDueno(userId))
     const ajena = `${crypto.randomUUID()}/${crypto.randomUUID()}.pdf`
     expect(
-      await crearPieza(db, { cuentaId: cuenta, formato: "carrusel_pdf", texto: "T", titulo: "X", archivoRuta: ajena }),
+      await crearPieza(db, {
+        cuentaId: cuenta,
+        formato: "carrusel_pdf",
+        texto: "T",
+        titulo: "X",
+        archivoRuta: ajena,
+        archivoSha256: SHA_DEL_PDF,
+      }),
     ).toEqual({ ok: false, error: "Ese archivo pertenece a otra marca." })
   })
 
@@ -196,6 +255,7 @@ describe("piece actions", () => {
         texto: "T",
         titulo: "X",
         archivoRuta: ruta,
+        archivoSha256: SHA_DEL_PDF,
       }),
     ).toEqual({ ok: false, error: "Solo el dueño de la marca puede crear piezas." })
   })

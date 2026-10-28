@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { sha256Hex } from "@/lib/piezas/hash-cliente"
 import { BYTES_MAXIMOS_DEL_CARRUSEL, CARACTERES_MAXIMOS_DEL_TEXTO } from "@/lib/piezas/limites"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/client"
@@ -84,7 +85,14 @@ export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegado
           if (!archivoRuta) return setError("No pude subir el PDF. Inténtalo de nuevo.")
           setSubido({ archivo, ruta: archivoRuta })
         }
-        resultado = await crear({ cuentaId, formato, texto, titulo, archivoRuta })
+        resultado = await crear({
+          cuentaId,
+          formato,
+          texto,
+          titulo,
+          archivoRuta,
+          archivoSha256: await sha256Hex(archivo),
+        })
       }
       if (resultado.ok) router.push(rutaDePieza(resultado.piezaId))
       else setError(resultado.error)

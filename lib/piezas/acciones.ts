@@ -1,6 +1,5 @@
 import { z } from "zod"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { hashDeFlujo } from "@/lib/piezas/archivo"
 import { normalizarTexto } from "@/lib/piezas/huella"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
@@ -54,6 +53,7 @@ const NuevaPieza = z.discriminatedUnion("formato", [
     texto: z.string(),
     titulo: z.string().trim().min(1).max(100),
     archivoRuta: z.string().regex(RUTA_DE_ARCHIVO),
+    archivoSha256: z.string().regex(/^[0-9a-f]{64}$/),
   }),
 ])
 
@@ -66,18 +66,25 @@ function errorDeTexto(texto: string): string | null {
 const PDF_INVALIDO = "Ese archivo no es un PDF o no se pudo leer."
 const PDF_GRANDE = `El PDF pesa más de ${BYTES_MAXIMOS_DEL_CARRUSEL / (1024 * 1024)} MB. Achícalo antes de subirlo.`
 
-/** The browser uploaded the file with the person's session; the server streams it back to hash it without buffering it (Worker memory). */
-async function hashDelArchivo(db: Db, ruta: string): Promise<Resultado<{ sha256: string }>> {
+/**
+ * The browser computes the sha-256 and sends it: hashing a multi-MB PDF here would exceed the Worker's CPU budget.
+ * Trusting it is safe because the publisher re-downloads the file and compares its sha-256 before anything goes out
+ * (lib/publicacion/publicar.ts), so a wrong hash can only block the owner's own piece. Here we only check size and the %PDF- header.
+ */
+async function revisarArchivo(db: Db, ruta: string): Promise<Resultado> {
   const { data: info, error: errorDeInfo } = await db.storage.from("piezas").info(ruta)
   if (errorDeInfo || !info) return { ok: false, error: PDF_INVALIDO }
   if ((info.size ?? 0) > BYTES_MAXIMOS_DEL_CARRUSEL) return { ok: false, error: PDF_GRANDE }
   const { data: firmada, error: errorDeUrl } = await db.storage.from("piezas").createSignedUrl(ruta, 60)
   if (errorDeUrl || !firmada) return { ok: false, error: PDF_INVALIDO }
-  const respuesta = await fetch(firmada.signedUrl)
+  const respuesta = await fetch(firmada.signedUrl, { headers: { Range: "bytes=0-4" } })
   if (!respuesta.ok || !respuesta.body) return { ok: false, error: PDF_INVALIDO }
-  const hash = await hashDeFlujo(respuesta.body, BYTES_MAXIMOS_DEL_CARRUSEL)
-  if (hash.ok) return { ok: true, sha256: hash.sha256 }
-  return { ok: false, error: hash.motivo === "demasiado_grande" ? PDF_GRANDE : PDF_INVALIDO }
+  // If a server ignored Range, the first chunk is still all we read.
+  const lector = respuesta.body.getReader()
+  const { value } = await lector.read()
+  await lector.cancel()
+  const cabecera = new TextDecoder().decode(value?.slice(0, 5))
+  return cabecera === "%PDF-" ? { ok: true } : { ok: false, error: PDF_INVALIDO }
 }
 
 export async function crearPieza(db: Db, entrada: unknown): Promise<Resultado<{ piezaId: string }>> {
@@ -101,13 +108,13 @@ export async function crearPieza(db: Db, entrada: unknown): Promise<Resultado<{ 
   if (RUTA_DE_ARCHIVO.exec(pieza.archivoRuta)?.[1] !== cuenta.marca_id) {
     return { ok: false, error: MENSAJES.archivo_de_otra_marca }
   }
-  const archivo = await hashDelArchivo(db, pieza.archivoRuta)
+  const archivo = await revisarArchivo(db, pieza.archivoRuta)
   if (!archivo.ok) return archivo
   const { data, error } = await db.rpc("crear_pieza", {
     ...base,
     p_titulo: pieza.titulo,
     p_archivo_ruta: pieza.archivoRuta,
-    p_archivo_sha256: archivo.sha256,
+    p_archivo_sha256: pieza.archivoSha256,
   })
   return error ? falla(error) : { ok: true, piezaId: data }
 }

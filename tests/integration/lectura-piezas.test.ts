@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { describe, expect, test } from "vitest"
 import { crearPieza, firmarPieza } from "@/lib/piezas/acciones"
 import { proponerFecha } from "@/lib/piezas/horarios"
@@ -49,6 +50,8 @@ async function mover(piezaId: string, ...estados: string[]) {
     if (error) throw error
   }
 }
+
+const SHA_DEL_PDF = createHash("sha256").update("%PDF-1.4\nhola").digest("hex")
 
 describe("tray", () => {
   test("groups a member's pieces by what they need and orders upcoming ones by date", async () => {
@@ -110,6 +113,7 @@ describe("detail", () => {
       texto: "Texto",
       titulo: "Título",
       archivoRuta: ruta,
+      archivoSha256: SHA_DEL_PDF,
     })
     if (!creada.ok) throw new Error(creada.error)
 
