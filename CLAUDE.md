@@ -86,6 +86,10 @@ Para bugs o tweaks rápidos: invocar `triage-lead` agent (global).
 - Horarios (D19), en hora de Chile: martes, miércoles y jueves; perfil de Federico a las 11:00 y página de WAV a las 15:00; Instagram (fase 2) a las 13:00. Nunca fines de semana. Se ajustan cuando haya métricas.
 - Todas las decisiones del plano están tomadas (26 de 26). Meta propuesta: 3 publicaciones por semana por cuenta durante 8 semanas, con menos de 30 minutos de Federico a la semana.
 
+## Documentación de LinkedIn
+
+- Antes de escribir o cambiar código que llame a la API de LinkedIn (OAuth, Posts, Documents, Images, analytics), consulta la documentación vigente con el MCP `microsoft-learn` (configurado en `.mcp.json`). Confirma la versión de la API (`LinkedIn-Version`), los permisos y los límites; no te fíes de lo que recuerdes.
+
 ## Hard rules de este proyecto
 
 - Puerta 1: no se diseña ni se gasta en nada pagado sin el texto firmado de esa cuenta. Si el diseño sale de una plantilla sin costo, la pieza final se muestra en la puerta 1 y texto, pieza y fecha se firman una sola vez (D25).
