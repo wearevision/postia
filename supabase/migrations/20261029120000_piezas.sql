@@ -51,12 +51,13 @@ create table public.firmas (
 );
 create unique index firmas_una_vigente on public.firmas (pieza_id) where vigente;
 
--- Written right before the irreversible POST: a second row for the same piece is impossible (send once).
+-- Written right before the irreversible POST. Each signature authorizes exactly one send (unique firma_id); a piece a
+-- person sent back and signed again gets a new signature, hence may have a new send.
 create table public.publicaciones (
   id uuid primary key default gen_random_uuid(),
-  pieza_id uuid not null unique references public.piezas (id) on delete cascade,
-  version_id uuid references public.versiones (id),
-  firma_id uuid references public.firmas (id),
+  pieza_id uuid not null references public.piezas (id) on delete cascade,
+  version_id uuid not null references public.versiones (id),
+  firma_id uuid not null unique references public.firmas (id),
   enviado_en timestamptz not null default now(),
   post_urn text check (post_urn ~ '^urn:li:(share|ugcPost):[0-9]+$'),
   enlace text
@@ -352,26 +353,81 @@ language sql security definer set search_path = '' as $$
       where estado = 'programada' and programada_para <= now()
         and (arrendada_hasta is null or arrendada_hasta < now())
       order by programada_para
-      limit 10
+      -- Serial work: a carousel takes ~90 s and the lease lasts 10 min, so a bigger batch would outlive its lease.
+      limit 5
       for update skip locked)
   returning p.*
 $$;
 
+-- Send once (service role only): the reservation is atomic with the checks that make a send legitimate.
+create function public.reservar_envio(p_pieza uuid, p_version uuid, p_firma uuid) returns text
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_pieza public.piezas;
+  v_ultima public.versiones;
+  v_firma public.firmas;
+begin
+  select * into v_pieza from public.piezas where id = p_pieza for update;
+  if not found then
+    raise exception using errcode = '22023', message = 'reserva_no_programada';
+  end if;
+  if exists (select 1 from public.publicaciones where firma_id = p_firma) then
+    return 'ya_enviado';
+  end if;
+  if v_pieza.estado <> 'programada' then
+    raise exception using errcode = '22023', message = 'reserva_no_programada';
+  end if;
+  select * into v_ultima from public.versiones where pieza_id = p_pieza order by numero desc limit 1;
+  if v_ultima.id is distinct from p_version then
+    raise exception using errcode = '22023', message = 'reserva_de_otra_version';
+  end if;
+  select * into v_firma from public.firmas where id = p_firma and pieza_id = p_pieza and vigente;
+  if not found or v_firma.huella is distinct from v_ultima.huella or v_firma.programada_para is distinct from v_pieza.programada_para then
+    raise exception using errcode = '22023', message = 'reserva_sin_firma';
+  end if;
+  if now() > v_pieza.programada_para + make_interval(mins => v_pieza.ventana_minutos) then
+    raise exception using errcode = '22023', message = 'reserva_fuera_de_ventana';
+  end if;
+  insert into public.publicaciones (pieza_id, version_id, firma_id) values (p_pieza, p_version, p_firma);
+  update public.piezas set estado = 'publicando' where id = p_pieza;
+  return 'reservado';
+end $$;
+
+-- Closes the send in one transaction: the post URN on its row and the piece published with its link.
+create function public.cerrar_envio(p_pieza uuid, p_urn text, p_enlace text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_estado text;
+begin
+  select estado into v_estado from public.piezas where id = p_pieza for update;
+  if v_estado is distinct from 'publicando' then
+    raise exception using errcode = '22023', message = 'cierre_sin_envio';
+  end if;
+  update public.publicaciones set post_urn = p_urn, enlace = p_enlace
+   where id = (select id from public.publicaciones where pieza_id = p_pieza and post_urn is null order by enviado_en desc limit 1);
+  if not found then
+    raise exception using errcode = '22023', message = 'cierre_sin_envio';
+  end if;
+  update public.piezas set estado = 'publicada', enlace = p_enlace, motivo = null where id = p_pieza;
+end $$;
+
 revoke execute on function public.crear_pieza(uuid, text, text, text, text, text), public.nueva_version(uuid, text, text, text, text),
   public.firmar_pieza(uuid, text, timestamptz), public.desprogramar_pieza(uuid), public.descartar_pieza(uuid, text),
   public.cerrar_a_mano(uuid, text), public.dudoso_a_mano(uuid), public.tomar_para_publicar(), public.marca_de_pieza(uuid),
-  public.transiciones_de_pieza(), public.normalizar_texto(text) from public, anon;
+  public.reservar_envio(uuid, uuid, uuid), public.cerrar_envio(uuid, text, text), public.transiciones_de_pieza(), public.normalizar_texto(text) from public, anon;
 grant execute on function public.crear_pieza(uuid, text, text, text, text, text), public.nueva_version(uuid, text, text, text, text),
   public.firmar_pieza(uuid, text, timestamptz), public.desprogramar_pieza(uuid), public.descartar_pieza(uuid, text),
   public.cerrar_a_mano(uuid, text), public.dudoso_a_mano(uuid), public.marca_de_pieza(uuid) to authenticated;
-revoke execute on function public.tomar_para_publicar() from authenticated;
-grant execute on function public.tomar_para_publicar(), public.transiciones_de_pieza() to service_role;
+revoke execute on function public.tomar_para_publicar(), public.reservar_envio(uuid, uuid, uuid), public.cerrar_envio(uuid, text, text)
+  from authenticated;
+grant execute on function public.tomar_para_publicar(), public.reservar_envio(uuid, uuid, uuid), public.cerrar_envio(uuid, text, text),
+  public.transiciones_de_pieza() to service_role;
 
 create index eventos_pieza on public.eventos (pieza_id);
 create index firmas_pieza on public.firmas (pieza_id);
 create index firmas_version on public.firmas (version_id);
+create index publicaciones_pieza on public.publicaciones (pieza_id);
 create index publicaciones_version on public.publicaciones (version_id);
-create index publicaciones_firma on public.publicaciones (firma_id);
 
 -- Trigger functions are never called by people.
 revoke execute on function public.poner_huella(), public.versiones_inmutables(), public.version_nueva_cae_firma(),

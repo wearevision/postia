@@ -311,42 +311,42 @@ export type Database = {
         Row: {
           enlace: string | null
           enviado_en: string
-          firma_id: string | null
+          firma_id: string
           id: string
           pieza_id: string
           post_urn: string | null
-          version_id: string | null
+          version_id: string
         }
         Insert: {
           enlace?: string | null
           enviado_en?: string
-          firma_id?: string | null
+          firma_id: string
           id?: string
           pieza_id: string
           post_urn?: string | null
-          version_id?: string | null
+          version_id: string
         }
         Update: {
           enlace?: string | null
           enviado_en?: string
-          firma_id?: string | null
+          firma_id?: string
           id?: string
           pieza_id?: string
           post_urn?: string | null
-          version_id?: string | null
+          version_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "publicaciones_firma_id_fkey"
             columns: ["firma_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "firmas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "publicaciones_pieza_id_fkey"
             columns: ["pieza_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "piezas"
             referencedColumns: ["id"]
           },
@@ -445,6 +445,10 @@ export type Database = {
         Args: { p_enlace: string; p_pieza: string }
         Returns: undefined
       }
+      cerrar_envio: {
+        Args: { p_enlace: string; p_pieza: string; p_urn: string }
+        Returns: undefined
+      }
       conectar_linkedin: {
         Args: {
           p_cuenta: string
@@ -502,6 +506,10 @@ export type Database = {
           p_texto: string
           p_titulo?: string
         }
+        Returns: string
+      }
+      reservar_envio: {
+        Args: { p_firma: string; p_pieza: string; p_version: string }
         Returns: string
       }
       tiene_acceso: { Args: never; Returns: boolean }

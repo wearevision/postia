@@ -146,13 +146,6 @@ describe("pieces", () => {
     expect(enSql).toEqual(enApp)
   })
 
-  test("a send is written once: the second reservation for a piece fails", async () => {
-    const { pieza } = await piezaPorAprobar()
-    const fila = { pieza_id: pieza, enviado_en: new Date().toISOString() }
-    expect((await admin().from("publicaciones").insert(fila)).error).toBeNull()
-    expect((await admin().from("publicaciones").insert(fila)).error?.code).toBe("23505")
-  })
-
   test("every state change leaves an event with who did it", async () => {
     const { db, pieza, userId } = await piezaPorAprobar()
     await db.rpc("firmar_pieza", {
