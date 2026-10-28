@@ -75,7 +75,8 @@ jobs:
 
   e2e:
     name: E2E (iPhone profile)
-    runs-on: ubuntu-latest
+    # Playwright ships no WebKit for ubuntu-latest (26.04) yet; pin the last supported image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
