@@ -353,7 +353,8 @@ language sql security definer set search_path = '' as $$
       where estado = 'programada' and programada_para <= now()
         and (arrendada_hasta is null or arrendada_hasta < now())
       order by programada_para
-      -- Serial work: ~90 s per carousel x 3 < 540 s (the run's maxDuration) < 600 s (this lease), so a batch never outlives its lease.
+      -- Serial work: ~90 s per carousel x 3 is an estimate against the 540 s maxDuration and the 600 s lease; the worst case can exceed it.
+      -- Safety does not rest on the arithmetic but on concurrencyLimit 1, the atomic reservation (reservar_envio) and the doubtful sweep.
       limit 3
       for update skip locked)
   returning p.*

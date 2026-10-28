@@ -19,7 +19,7 @@ const ESTADOS: Record<EstadoDePieza, string> = {
   descartada: "Descartada",
 }
 
-const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "programada", "a_mano", "envio_dudoso", "error"]
+const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "programada", "a_mano", "error"]
 
 export default async function Pieza({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
