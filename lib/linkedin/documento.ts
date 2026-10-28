@@ -1,10 +1,10 @@
-import type { EstadoDeDocumento } from "@/lib/linkedin/api"
+import type { EstadoDeDocumento, estadoDelDocumento } from "@/lib/linkedin/api"
 
 const SONDEOS_MAXIMOS = 20
 const ESPERA_ENTRE_SONDEOS_MS = 3_000
 
 export interface DepsDeEspera {
-  estadoDelDocumento: (entrada: { token: string; documento: string }) => Promise<EstadoDeDocumento>
+  estadoDelDocumento: typeof estadoDelDocumento
   esperar: (ms: number) => Promise<void>
 }
 
