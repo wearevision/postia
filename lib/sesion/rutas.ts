@@ -3,6 +3,11 @@ export const RUTA_DE_INGRESO = "/ingreso"
 export const RUTA_DE_SALIR = "/salir"
 export const RUTA_DE_MARCAS = "/marcas"
 export const RUTA_DE_AJUSTES = "/ajustes"
+export const RUTA_DE_NUEVA_PIEZA = "/piezas/nueva"
+
+export function rutaDePieza(id: string): string {
+  return `/piezas/${id}`
+}
 
 const PUBLICAS = new Set([RUTA_DE_INGRESO])
 

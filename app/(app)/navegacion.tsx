@@ -1,8 +1,9 @@
 import Link from "next/link"
-import { RUTA_DE_AJUSTES, RUTA_DE_INICIO, RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES, RUTA_DE_INICIO, RUTA_DE_MARCAS, RUTA_DE_NUEVA_PIEZA } from "@/lib/sesion/rutas"
 
 const ENLACES = [
   { href: RUTA_DE_INICIO, texto: "Inicio" },
+  { href: RUTA_DE_NUEVA_PIEZA, texto: "Nueva" },
   { href: RUTA_DE_MARCAS, texto: "Marcas" },
   { href: RUTA_DE_AJUSTES, texto: "Ajustes" },
 ]

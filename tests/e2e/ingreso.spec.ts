@@ -30,7 +30,7 @@ test("an invited person signs in with the six-digit code and lands on Inicio", a
   await page.getByLabel("Código de 6 números").fill(await codigoPara(request, correo))
   await page.getByRole("button", { name: "Entrar" }).click()
   await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible()
-  await expect(page.getByText("Marca E2E")).toBeVisible()
+  await expect(page.getByText("No hay nada pendiente.")).toBeVisible()
 })
 
 test("a person who was not invited gets the same answer and no email", async ({ page, request }) => {

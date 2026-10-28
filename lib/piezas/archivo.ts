@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
+import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 
-// Worker memory (128 MB) and a realistic carousel size; LinkedIn itself allows 100 MB.
-export const BYTES_MAXIMOS_DEL_CARRUSEL = 30 * 1024 * 1024
+export { BYTES_MAXIMOS_DEL_CARRUSEL }
 
 const FIRMA_PDF = "%PDF-"
 
