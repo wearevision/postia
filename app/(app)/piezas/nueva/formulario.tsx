@@ -1,11 +1,11 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
+import type { Resultado } from "@/lib/marcas/acciones"
 import { BYTES_MAXIMOS_DEL_CARRUSEL, CARACTERES_MAXIMOS_DEL_TEXTO } from "@/lib/piezas/limites"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/client"
-import { crearPiezaAccion } from "./acciones"
 
 export interface CuentaDelFormulario {
   id: string
@@ -14,63 +14,86 @@ export interface CuentaDelFormulario {
   marca: string
 }
 
+interface Props {
+  cuentas: CuentaDelFormulario[]
+  crear: (entrada: unknown) => Promise<Resultado<{ piezaId: string }>>
+  subir?: (marcaId: string, pdf: File) => Promise<string | null>
+}
+
 const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const OPCION = "flex min-h-11 items-center gap-2"
 const MB = 1024 * 1024
 
-export function FormularioDePieza({ cuentas }: { cuentas: CuentaDelFormulario[] }) {
+async function subirDesdeElNavegador(marcaId: string, pdf: File): Promise<string | null> {
+  const ruta = `${marcaId}/${crypto.randomUUID()}.pdf`
+  const { error } = await createClient().storage.from("piezas").upload(ruta, pdf, { contentType: "application/pdf" })
+  return error ? null : ruta
+}
+
+export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegador }: Props) {
   const router = useRouter()
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? "")
   const [formato, setFormato] = useState<"texto" | "carrusel_pdf">("texto")
   const [texto, setTexto] = useState("")
   const [titulo, setTitulo] = useState("")
   const [archivo, setArchivo] = useState<File | null>(null)
+  // A retry after the server refused must not upload the same file again.
+  const [subido, setSubido] = useState<{ archivo: File; ruta: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
+  const entradaDeArchivo = useRef<HTMLInputElement>(null)
   const largo = [...texto.replace(/\r\n/g, "\n")].length
 
   function elegirArchivo(elegido: File | null) {
     if (elegido && elegido.size > BYTES_MAXIMOS_DEL_CARRUSEL) {
       setArchivo(null)
+      if (entradaDeArchivo.current) entradaDeArchivo.current.value = ""
       return setError(`El PDF pesa más de ${BYTES_MAXIMOS_DEL_CARRUSEL / MB} MB. Achícalo antes de subirlo.`)
     }
     setError(null)
     setArchivo(elegido)
   }
 
-  async function subir(marcaId: string, pdf: File): Promise<string | null> {
-    const ruta = `${marcaId}/${crypto.randomUUID()}.pdf`
-    const { error: errorDeSubida } = await createClient()
-      .storage.from("piezas")
-      .upload(ruta, pdf, { contentType: "application/pdf" })
-    if (errorDeSubida) {
-      setError("No pude subir el PDF. Inténtalo de nuevo.")
-      return null
+  function errorDeLosDatos(): string | null {
+    if (!cuentas.some((c) => c.id === cuentaId)) return "Elige una cuenta."
+    if (!texto.trim()) return "Falta el texto."
+    if (largo > CARACTERES_MAXIMOS_DEL_TEXTO) {
+      return `El texto pasa los ${CARACTERES_MAXIMOS_DEL_TEXTO} caracteres de LinkedIn.`
     }
-    return ruta
+    if (formato === "carrusel_pdf" && !titulo.trim()) return "Falta el título del carrusel."
+    if (formato === "carrusel_pdf" && !archivo) return "Falta el PDF del carrusel."
+    return null
   }
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault()
+    const malo = errorDeLosDatos()
+    if (malo) return setError(malo)
     const cuenta = cuentas.find((c) => c.id === cuentaId)
-    if (!cuenta) return setError("Elige una cuenta.")
-    if (formato === "carrusel_pdf" && !archivo) return setError("Falta el PDF del carrusel.")
+    if (!cuenta) return
     setError(null)
     iniciar(async () => {
+      let resultado: Resultado<{ piezaId: string }>
       if (formato === "texto") {
-        const resultado = await crearPiezaAccion({ cuentaId, formato, texto })
-        return resultado.ok ? router.push(rutaDePieza(resultado.piezaId)) : setError(resultado.error)
+        resultado = await crear({ cuentaId, formato, texto })
+      } else {
+        if (!archivo) return
+        let archivoRuta = subido?.archivo === archivo ? subido.ruta : null
+        if (!archivoRuta) {
+          archivoRuta = await subir(cuenta.marcaId, archivo)
+          if (!archivoRuta) return setError("No pude subir el PDF. Inténtalo de nuevo.")
+          setSubido({ archivo, ruta: archivoRuta })
+        }
+        resultado = await crear({ cuentaId, formato, texto, titulo, archivoRuta })
       }
-      if (!archivo) return
-      const archivoRuta = await subir(cuenta.marcaId, archivo)
-      if (!archivoRuta) return
-      const resultado = await crearPiezaAccion({ cuentaId, formato, texto, titulo, archivoRuta })
-      return resultado.ok ? router.push(rutaDePieza(resultado.piezaId)) : setError(resultado.error)
+      if (resultado.ok) router.push(rutaDePieza(resultado.piezaId))
+      else setError(resultado.error)
     })
   }
 
   if (cuentas.length === 0) return <p className="text-apagado">Primero agrega una cuenta en Marcas.</p>
   return (
-    <form onSubmit={enviar} className="space-y-4">
+    <form onSubmit={enviar} noValidate className="space-y-4">
       <label className="block space-y-1">
         <span className="text-sm">Cuenta</span>
         <select value={cuentaId} onChange={(evento) => setCuentaId(evento.target.value)} className={CAMPO}>
@@ -83,17 +106,17 @@ export function FormularioDePieza({ cuentas }: { cuentas: CuentaDelFormulario[] 
       </label>
       <fieldset className="space-y-1">
         <legend className="text-sm">Formato</legend>
-        <label className="mr-4">
-          <input type="radio" name="formato" checked={formato === "texto"} onChange={() => setFormato("texto")} /> Post
-          de texto
+        <label className={OPCION}>
+          <input type="radio" name="formato" checked={formato === "texto"} onChange={() => setFormato("texto")} />
+          Post de texto
         </label>
-        <label>
+        <label className={OPCION}>
           <input
             type="radio"
             name="formato"
             checked={formato === "carrusel_pdf"}
             onChange={() => setFormato("carrusel_pdf")}
-          />{" "}
+          />
           Carrusel PDF
         </label>
       </fieldset>
@@ -102,6 +125,7 @@ export function FormularioDePieza({ cuentas }: { cuentas: CuentaDelFormulario[] 
           <label className="block space-y-1">
             <span className="text-sm">Título del carrusel</span>
             <input
+              required
               value={titulo}
               maxLength={100}
               onChange={(evento) => setTitulo(evento.target.value)}
@@ -111,6 +135,7 @@ export function FormularioDePieza({ cuentas }: { cuentas: CuentaDelFormulario[] 
           <label className="block space-y-1">
             <span className="text-sm">PDF (hasta {BYTES_MAXIMOS_DEL_CARRUSEL / MB} MB)</span>
             <input
+              ref={entradaDeArchivo}
               type="file"
               accept="application/pdf"
               onChange={(evento) => elegirArchivo(evento.target.files?.[0] ?? null)}
@@ -133,6 +158,7 @@ export function FormularioDePieza({ cuentas }: { cuentas: CuentaDelFormulario[] 
         />
         <output
           id="contador"
+          aria-live="off"
           className={`block text-right text-sm ${largo > CARACTERES_MAXIMOS_DEL_TEXTO ? "text-peligro" : "text-apagado"}`}
         >
           {largo} / {CARACTERES_MAXIMOS_DEL_TEXTO}

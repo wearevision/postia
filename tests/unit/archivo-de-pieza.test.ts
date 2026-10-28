@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
-import { BYTES_MAXIMOS_DEL_CARRUSEL, hashDeFlujo } from "@/lib/piezas/archivo"
+import { hashDeFlujo } from "@/lib/piezas/archivo"
 import { sha256 } from "@/lib/piezas/huella"
+import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 
 function flujo(...trozos: Uint8Array[]): ReadableStream<Uint8Array> {
   return new ReadableStream({

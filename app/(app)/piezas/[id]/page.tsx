@@ -39,7 +39,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       {estado !== "por_aprobar" && (
         <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{version.texto}</p>
       )}
-      {version.archivoUrl && (
+      {version.archivoUrl && estado !== "a_mano" && (
         <a href={version.archivoUrl} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
           Ver el PDF
         </a>
@@ -68,7 +68,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
         <PublicarAMano
           piezaId={pieza.id}
           texto={version.texto}
-          archivoUrl={version.archivoUrl}
+          archivoUrl={version.archivoDescarga}
           cerrar={cerrarAManoAccion}
         />
       )}

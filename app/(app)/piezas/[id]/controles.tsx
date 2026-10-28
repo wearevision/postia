@@ -74,6 +74,8 @@ export function Descartar({
       <label className="block space-y-1">
         <span className="text-sm">Motivo (opcional)</span>
         <input
+          // biome-ignore lint/a11y/noAutofocus: the person just tapped Descartar; the reason field is the next step.
+          autoFocus
           value={motivo}
           maxLength={500}
           onChange={(evento) => setMotivo(evento.target.value)}

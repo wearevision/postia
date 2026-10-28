@@ -1,7 +1,8 @@
 import { z } from "zod"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { BYTES_MAXIMOS_DEL_CARRUSEL, hashDeFlujo } from "@/lib/piezas/archivo"
+import { hashDeFlujo } from "@/lib/piezas/archivo"
 import { normalizarTexto } from "@/lib/piezas/huella"
+import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
 
 const MENSAJES: Record<string, string> = {

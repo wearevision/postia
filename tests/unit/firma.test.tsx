@@ -30,6 +30,14 @@ describe("FirmaDePieza", () => {
     expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeInTheDocument()
   })
 
+  test("keeps one date line that follows the field", () => {
+    montar()
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:30" } })
+    expect(screen.getByText("miércoles 4 de noviembre, 15:30")).toBeInTheDocument()
+    expect(screen.queryByText("martes 3 de noviembre, 11:00")).not.toBeInTheDocument()
+    expect(screen.getAllByText(/^Sale el/)).toHaveLength(1)
+  })
+
   test("signs with the ISO instant of the field read as Chile time", async () => {
     const firmar = montar()
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:30" } })

@@ -90,7 +90,13 @@ export interface DetalleDePieza {
   enlace: string | null
   programadaPara: string | null
   cuenta: { id: string; nombre: string; tipo: "persona" | "empresa"; ruta: "api" | "metricool" | "a_mano" }
-  version: { texto: string; titulo: string | null; huella: string; archivoUrl: string | null }
+  version: {
+    texto: string
+    titulo: string | null
+    huella: string
+    archivoUrl: string | null
+    archivoDescarga: string | null
+  }
   fechaPropuesta: string
 }
 
@@ -108,10 +114,17 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   const v = ultimaVersion(p.versiones)
   if (!v) return null
   let archivoUrl: string | null = null
+  let archivoDescarga: string | null = null
   if (v.archivo_ruta) {
-    const { data: firmada, error: errorDeUrl } = await db.storage.from("piezas").createSignedUrl(v.archivo_ruta, 600)
-    if (errorDeUrl) throw new Error(`No pude preparar el PDF: ${errorDeUrl.message}`, { cause: errorDeUrl })
-    archivoUrl = firmada.signedUrl
+    const bucket = db.storage.from("piezas")
+    const [vista, descarga] = await Promise.all([
+      bucket.createSignedUrl(v.archivo_ruta, 600),
+      bucket.createSignedUrl(v.archivo_ruta, 600, { download: true }),
+    ])
+    if (vista.error) throw new Error(`No pude preparar el PDF: ${vista.error.message}`, { cause: vista.error })
+    if (descarga.error) throw new Error(`No pude preparar el PDF: ${descarga.error.message}`, { cause: descarga.error })
+    archivoUrl = vista.data.signedUrl
+    archivoDescarga = descarga.data.signedUrl
   }
   const { data: ocupadas, error: errorDeOcupadas } = await db
     .from("piezas")
@@ -131,7 +144,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
     enlace: p.enlace,
     programadaPara: p.programada_para,
     cuenta: { id: p.cuentas.id, nombre: p.cuentas.nombre, tipo, ruta: leerRuta(p.cuentas.ruta) },
-    version: { texto: v.texto, titulo: v.titulo, huella: v.huella, archivoUrl },
+    version: { texto: v.texto, titulo: v.titulo, huella: v.huella, archivoUrl, archivoDescarga },
     fechaPropuesta: proponerFecha(tipo, horarios, ahora).toISOString(),
   }
 }

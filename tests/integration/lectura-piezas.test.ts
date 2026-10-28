@@ -129,6 +129,8 @@ describe("detail", () => {
     const respuesta = await fetch(d?.version.archivoUrl ?? "")
     expect(respuesta.ok).toBe(true)
     expect(await respuesta.text()).toBe("%PDF-1.4\nhola")
+    const descarga = await fetch(d?.version.archivoDescarga ?? "")
+    expect(descarga.headers.get("content-disposition")).toMatch(/attachment/)
   })
 
   test("a text piece has no file URL", async () => {

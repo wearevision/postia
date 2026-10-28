@@ -32,9 +32,6 @@ export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, fir
   return (
     <form onSubmit={enviar} className="space-y-4">
       <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{texto}</p>
-      <p>
-        Sale el <strong>{fechaLarga(fechaPropuesta)}</strong>
-      </p>
       <label className="block space-y-1">
         <span className="text-sm">Fecha y hora de publicación</span>
         <input
@@ -44,7 +41,12 @@ export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, fir
           className="w-full rounded-lg border border-borde bg-background px-3 py-3"
         />
       </label>
-      {instante && <p className="text-sm text-apagado">Hora de Chile. Quedaría para el {fechaLarga(instante)}.</p>}
+      {instante && (
+        <p>
+          Sale el <strong>{fechaLarga(instante)}</strong>
+          <span className="block text-sm text-apagado">Hora de Chile.</span>
+        </p>
+      )}
       <button
         type="submit"
         disabled={pendiente}

@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
+import { crearPiezaAccion } from "./acciones"
 import { FormularioDePieza } from "./formulario"
 
 export default async function NuevaPieza() {
-  const { data: cuentas, error } = await (await createClient())
+  const db = await createClient()
+  // Phase 1 has only owners (miembros.rol = 'dueno', D4), so every account RLS lets through belongs to an owned brand.
+  const { data: cuentas, error } = await db
     .from("cuentas")
     .select("id, nombre, marca_id, marcas(nombre)")
     .order("creada_en")
@@ -17,6 +20,7 @@ export default async function NuevaPieza() {
           nombre: c.nombre,
           marca: c.marcas?.nombre ?? "",
         }))}
+        crear={crearPiezaAccion}
       />
     </section>
   )

@@ -1,7 +1,4 @@
 import { createHash } from "node:crypto"
-import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
-
-export { BYTES_MAXIMOS_DEL_CARRUSEL }
 
 const FIRMA_PDF = "%PDF-"
 
