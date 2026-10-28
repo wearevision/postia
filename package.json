@@ -22,7 +22,8 @@
     "prueba:linkedin": "tsx --env-file=.env.local scripts/prueba-linkedin.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "desplegar": "opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "invitar:prod": "tsx --env-file=.env.produccion scripts/invitar.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
