@@ -21,7 +21,7 @@ export function AvisosDelCelular({ claveVapid, guardar, probar, puerto }: Props)
   const [pendiente, iniciar] = useTransition()
 
   useEffect(() => {
-    aparato.leer().then((datos) => setEstado(estadoDeAvisos({ ...datos, configurado: claveVapid !== null })))
+    aparato.leer(claveVapid).then((datos) => setEstado(estadoDeAvisos({ ...datos, configurado: claveVapid !== null })))
   }, [aparato, claveVapid])
 
   function activar() {
