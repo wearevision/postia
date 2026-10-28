@@ -107,7 +107,7 @@ Naming: Spanish domain identifiers, English comments and commits, Spanish UI.
 **Files:** none changed.
 
 - [ ] **Step 1: Ask Federico** (stop and wait): «¿Hago el commit inicial con el scaffold de wnew tal como está (sin cambios), y creo el repo privado `postia` en GitHub con `gh repo create --private`?» Two separate yes/no answers.
-- [x] **Step 2: If yes to the commit** (done on 2026-10-28, with the plano, the editorial data and this plan; the GitHub repo in Step 3 is still pending Federico's answer)
+- [x] **Step 2: If yes to the commit** (done on 2026-10-28, with the plano, the editorial data and this plan; the GitHub repo in Step 3 was created the same day)
 
 ```bash
 git add -A
@@ -115,7 +115,7 @@ git status --short   # confirm no .env* file is staged
 git commit -m "chore: scaffold postia from create-wav-app"
 ```
 
-- [ ] **Step 3: If yes to the repo** (the GitHub MCP failed to connect this session; use the CLI)
+- [x] **Step 3: If yes to the repo** (done on 2026-10-28: github.com/wearevision/postia, private) (the GitHub MCP failed to connect this session; use the CLI)
 
 ```bash
 gh repo create postia --private --source=. --remote=origin --push
