@@ -44,3 +44,6 @@ next-env.d.ts
 # playwright
 /playwright-report/
 /test-results/
+
+# phase 0 smoke output
+/.fase0/
