@@ -36,6 +36,9 @@ pnpm db:types         # regenera lib/supabase/database.types.ts
 pnpm test:db          # pruebas de RLS contra Supabase local
 pnpm invitar --correo <c> --marca <m> --voz yo|nosotros
 pnpm prueba:linkedin  # fase 0: publica solo si escribes PUBLICAR
+pnpm preview          # Worker en workerd local (8787)
+pnpm desplegar        # build OpenNext + deploy a postia.wearevision.cl (ver docs/despliegue.md)
+pnpm invitar:prod     # invita en producción (lee .env.produccion)
 ```
 
 ## Workflow
