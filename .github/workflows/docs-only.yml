@@ -1,0 +1,26 @@
+name: CI (docs-only)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - '.claude/**'
+      - 'MEMORY.md'
+      - 'CHANGELOG.md'
+      - '.gitignore'
+      - 'LICENSE'
+
+jobs:
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR contains only documentation changes; skipping tests."
+
+  build:
+    name: TypeScript & Build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR contains only documentation changes; skipping typecheck and build."

@@ -1,0 +1,2714 @@
+{
+  "source": "Copia corregida de wav-repository (data/cases/*/ficha.json), 28-10-2026. wav-repository no se modificó.",
+  "rules": [
+    "Un caso anterior a agosto de 2025 es trayectoria de Federico Elgueta: el sujeto es «Federico Elgueta», nunca «WAV».",
+    "Todos los clientes se pueden nombrar salvo los que tengan excepción (campo exception).",
+    "Nunca se publican precios ni presupuestos de un proyecto."
+  ],
+  "cases": [
+    {
+      "slug": "51-ice-auspicio-evento-y-activacion-bolivia-2020",
+      "client": "51 ICE",
+      "title": "AUSPICIO EVENTO Y ACTIVACIÓN BOLIVIA",
+      "year": 2020,
+      "country": "Bolivia",
+      "city": null,
+      "industry": "Bebidas / Licores",
+      "workTypes": [
+        "Activación de marca",
+        "Auspicio de evento",
+        "Producción de contenido audiovisual"
+      ],
+      "capabilities": [
+        "Diseño y producción de escenografía con pantalla LED",
+        "Contenido visual branded para mapping/pantalla (motion graphics)",
+        "Producción audiovisual de evento en vivo",
+        "Integración de producto en activación nocturna",
+        "Diseño de iluminación de ambiente para evento"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la activación de marca de 51 ICE en Bolivia (2020), integrando la identidad del producto en un evento nocturno de entretenimiento. La propuesta incluyó una escenografía central con pantalla LED de gran formato que proyectaba motion graphics con el branding de 51 ICE, acompañada de iluminación de espectáculo. El evento convocó a un público joven y festivo, y su equipo documentó la experiencia mediante producción audiovisual, capturando la energía del público y el producto en contexto de consumo.",
+      "role": "Federico Elgueta lideró la producción integral del auspicio y la activación, coordinando la ambientación escénica, el contenido visual de marca y la producción audiovisual del evento. La integración del producto 51 ICE en la narrativa visual del espectáculo sugiere también un rol de conceptualización creativa.",
+      "citableClaim": "Federico Elgueta convirtió el lanzamiento de 51 ICE en Bolivia en un espectáculo nocturno donde la marca no auspiciaba el evento — era el evento.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "altra-produccion-e-influencer-marketing-costa-rica-2023",
+      "client": "ALTRA",
+      "title": "PRODUCCIÓN E INFLUENCER MARKETING COSTA RICA",
+      "year": 2023,
+      "country": "Costa Rica",
+      "city": null,
+      "industry": "Deportes / Calzado deportivo",
+      "workTypes": [
+        "Producción de evento deportivo",
+        "Activación de marca",
+        "Influencer marketing",
+        "Branded content"
+      ],
+      "capabilities": [
+        "Producción integral de evento deportivo branded (carrera trail)",
+        "Señalización y ambientación de marca en exteriores (banners, feather flags, carpas, arco de salida/meta)",
+        "Gestión de protocolo de premiación (medallas, placards de posición, podio)",
+        "Kit de participante brandado (visera, chip de evento con hangtag)",
+        "Coordinación de influencers y embajadores de marca en campo",
+        "Operación logística multifase: pre-evento nocturno, largada al amanecer y premiación diurna"
+      ],
+      "summary": "Federico Elgueta lideró la producción del evento Altra 3 Horas Endurance Trail en Costa Rica (2023), una carrera de resistencia branded desde la madrugada hasta el mediodía. La producción cubrió ambientación completa del venue con señalética Altra (arco de meta, banners perimetrales, carpas y feather flags), operación de largada y meta, ceremonia de premiación con medallas y placards clasificatorios por categoría —individual masculino, femenino y parejas— y activación de influencers bajo la marca Xpedition. El evento integró patrocinadores como Gatorade y UltrAspire.",
+      "role": "Federico Elgueta lideró la producción integral del evento: conceptualizó y ejecutó la ambientación de marca, la logística operativa de la carrera y la estrategia de influencer marketing con atletas embajadores en campo. La presencia de equipos Xpedition branded y la coordinación de actividades desde el pre-evento nocturno hasta la premiación confirman un rol de producción de extremo a extremo.",
+      "citableClaim": "Federico Elgueta convirtió una carrera de trail en una experiencia de marca Altra de 3 horas que arrancó antes del amanecer y cerró con podio, medallas y comunidad corredora movilizada en Costa Rica.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "always-influencers-offline-to-online-2024",
+      "client": "ALWAYS",
+      "title": "INFLUENCERS OFFLINE TO ONLINE",
+      "year": 2024,
+      "country": "México",
+      "city": null,
+      "industry": "Cuidado Personal / Consumer Goods",
+      "workTypes": [
+        "Activación de marca",
+        "Influencer marketing",
+        "Producción de contenido digital",
+        "Evento offline-to-online"
+      ],
+      "capabilities": [
+        "Producción de activaciones con influencers",
+        "Estrategia offline-to-online",
+        "Producción audiovisual para redes sociales",
+        "Creación de contenido de marca"
+      ],
+      "summary": "Federico Elgueta lideró la producción de una activación de marca para Always en 2024 bajo el concepto \"Influencers Offline to Online\", conectando una experiencia presencial con la generación de contenido digital para redes sociales. El proyecto articuló un evento físico con influencers como detonador de conversación y alcance digital, integrando producción en campo con la creación de piezas audiovisuales para amplificación online.",
+      "role": "Federico Elgueta lideró la producción integral del proyecto, conceptualizando y ejecutando la activación presencial con influencers y su traducción a contenido digital. El equipo coordinó tanto la producción del evento físico como la captura audiovisual para su distribución en plataformas digitales.",
+      "citableClaim": "Federico Elgueta convirtió un momento de marca en movimiento digital, conectando la experiencia presencial de Always con influencers en contenido que vive y escala en redes.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "angloamerican-event-content-2017",
+      "client": "ANGLOAMERICAN",
+      "title": "EVENT CONTENT",
+      "year": 2017,
+      "country": "Chile",
+      "city": null,
+      "industry": "Minería",
+      "workTypes": [
+        "Producción de contenido",
+        "Evento corporativo"
+      ],
+      "capabilities": [
+        "Producción audiovisual para eventos corporativos",
+        "Cobertura y registro de evento en video"
+      ],
+      "summary": "Proyecto de contenido audiovisual para Anglo American, correspondiente al año 2017. El material disponible consiste en un único video (VID-20190919-WA0000.mp4), sin imágenes complementarias. Sin acceso al contenido del video ni contexto visual adicional, no es posible detallar la naturaleza específica del evento, la locación exacta ni los elementos de producción involucrados.",
+      "role": "Federico Elgueta lideró la producción de contenido audiovisual para un evento corporativo de Anglo American. El rol preciso —integral o técnico— no puede determinarse con la muestra disponible.",
+      "citableClaim": "Federico Elgueta capturó y produjo el contenido audiovisual que documentó un evento corporativo clave para Anglo American en 2017.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "angloamerican-transformacion-y-resultados-2029",
+      "client": "ANGLOAMERICAN",
+      "title": "TRANSFORMACIÓN Y RESULTADOS",
+      "year": 2021,
+      "country": "Chile",
+      "city": null,
+      "industry": "Minería / Recursos Naturales",
+      "workTypes": [
+        "Evento corporativo híbrido",
+        "Producción técnica audiovisual",
+        "Streaming en vivo",
+        "Diseño de escenografía con proyección inmersiva"
+      ],
+      "capabilities": [
+        "Escenografía curva con proyección 270° de gran formato",
+        "Diseño de iluminación espectacular para estudio broadcast",
+        "Producción multicámara con grúa robotizada",
+        "Control de transmisión en vivo con mesa de mezcla multipantalla",
+        "Integración de participantes remotos en señal en vivo",
+        "Dirección técnica de estudio broadcast"
+      ],
+      "summary": "Federico Elgueta lideró la producción de \"Transformación & Resultados\", un evento corporativo híbrido para Anglo American bajo formato de estudio broadcast. El espacio contó con una pantalla de proyección curva de gran formato, iluminación espectacular con haz dinámico, multicámara con grúa robotizada y una sala de control técnico de alto volumen. El evento integró en tiempo real a panelistas y ponentes remotos sobre la misma señal visual, combinando presencia física en escena con conexiones externas. La identidad gráfica G3 en rojo y blanco dominó toda la escenografía proyectada.",
+      "role": "Federico Elgueta lideró la producción técnica integral del estudio broadcast, desplegando escenografía, iluminación, sistema de proyección curva, multicámara y sala de control de transmisión. La escala del equipo técnico visible —mesa de audio profesional, múltiples estaciones de control de video y grúa robotizada— indica que su equipo ejecutó la totalidad de la infraestructura audiovisual y de transmisión del evento.",
+      "citableClaim": "Para Anglo American convertimos un estudio en un set de broadcast de alto impacto: proyección curva inmersiva, multicámara con grúa y sala de control de transmisión en vivo, todo en un solo despliegue técnico.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "bauza-activaciones-2018",
+      "client": "BAUZÁ",
+      "title": "ACTIVACIONES",
+      "year": 2018,
+      "country": "Chile",
+      "city": null,
+      "industry": "Bebidas / Licores",
+      "workTypes": [
+        "Activación de marca",
+        "Diseño y fabricación de mobiliario de punto de venta",
+        "Señalética luminosa"
+      ],
+      "capabilities": [
+        "Diseño y fabricación de mueble bar retroiluminado",
+        "Señalética LED de marca con tipografía volumétrica",
+        "Display de exhibición de producto con iluminación integrada",
+        "Estructura geométrica decorativa con paneles translúcidos",
+        "Branding físico para punto de venta o activación"
+      ],
+      "summary": "Para el lanzamiento o activación de Bauzá Ice en 2018, Federico Elgueta diseñó y fabricó un set de mobiliario de marca compuesto por un mueble bar/counter retroiluminado de geometría asimétrica y un panel exhibidor de botellas con estructura triangular en relieve sobre fondo luminoso. El conjunto se remata con un cartel LED con el logotipo \"BAUZÁ Ice\" en tipografía volumétrica azul y blanca. Las piezas fueron fotografiadas en fase de montaje o prueba en taller, mostrando la calidad de terminación e iluminación.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del diseño conceptual, fabricación y armado del mobiliario y señalética de marca para la activación. No se aprecia intervención de terceros en el desarrollo de las piezas.",
+      "citableClaim": "Federico Elgueta convirtió la identidad de Bauzá Ice en un set de activación con mueble bar asimétrico retroiluminado, exhibidor geométrico de producto y señalética LED volumétrica de alto impacto visual.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "bauza-activaciones-2019",
+      "client": "BAUZÁ",
+      "title": "ACTIVACIONES",
+      "year": 2019,
+      "country": "Chile",
+      "city": null,
+      "industry": "Licores / Bebidas Alcohólicas",
+      "workTypes": [
+        "Activación de marca",
+        "Stand ferial",
+        "Diseño y producción de mobiliario de marca",
+        "Sampling / degustación"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand con identidad de marca",
+        "Fabricación de mobiliario retroiluminado personalizado",
+        "Proyección de branding sobre superficie de barra",
+        "Sistema de transluminación con paneles LED intercambiables",
+        "Display de producto con estantería escalonada e iluminación integrada",
+        "Producción de múltiples formatos de stand (individual y gran formato)"
+      ],
+      "summary": "Federico Elgueta diseñó y produjo los stands de activación de Pisco Bauzá para feria(s) en Chile en 2019. El concepto visual se articuló en torno a la forma triangular, motivo central de la identidad de la marca, materializado en paneles retroiluminados azules y blancos, estanterías escalonadas en madera y una barra blanca con logotipo iluminado. Se produjeron al menos dos formatos de stand: uno compacto para degustación y uno de gran formato con barra extendida. Un detalle distintivo fue la proyección del logo Bauzá sobre la superficie de la barra de atención.",
+      "role": "Federico Elgueta lideró la producción integral: conceptualizó el lenguaje visual del stand a partir de la identidad de Bauzá y ejecutó la construcción completa del mobiliario, iluminación y montaje. La presencia de una imagen con el rótulo \"Transluminación\" sugiere desarrollo propio de la solución lumínica.",
+      "citableClaim": "Convertimos el triángulo de Bauzá en una arquitectura de marca inmersiva: stands retroiluminados que transformaron cada punto de degustación en una experiencia de producto memorable.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "belmont-stand-corrida-familiar-2019",
+      "client": "BELMONT",
+      "title": "STAND CORRIDA FAMILIAR",
+      "year": 2019,
+      "country": "Perú",
+      "city": null,
+      "industry": "Consumo masivo / Alimentos",
+      "workTypes": [
+        "Activación de marca",
+        "Stand BTL",
+        "Evento outdoor"
+      ],
+      "capabilities": [
+        "Diseño y montaje de stand de marca outdoor",
+        "Producción de backdrop con identidad visual de marca",
+        "Activación BTL en eventos deportivos masivos",
+        "Ambientación temática con mensaje de sostenibilidad"
+      ],
+      "summary": "En 2019, Federico Elgueta lideró la producción del stand de Belmont para una corrida familiar, un evento outdoor de participación masiva. El espacio contaba con un backdrop de gran formato con la identidad visual de la marca y un mensaje de sostenibilidad (\"Recicla plástico, cuida el corazón del planeta\"). Participantes en bicicleta interactuaron con el stand y recibieron merchandising de marca. La activación integró los valores ambientales de Belmont en un contexto deportivo y familiar.",
+      "role": "Federico Elgueta lideró la producción técnica y de montaje, ejecutando el stand físico con sus elementos visuales y de ambientación para el evento. La conceptualización de la campaña de sostenibilidad correspondería al cliente o su agencia creativa.",
+      "citableClaim": "Federico Elgueta llevó la marca Belmont al punto de encuentro deportivo más familiar del año, combinando identidad visual de impacto con un mensaje de sostenibilidad que conectó con cada participante.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "bioritmo-lanzamiento-gimnasio-panama-2024",
+      "client": "BIORITMO",
+      "title": "LANZAMIENTO GIMNASIO PANAMÁ",
+      "year": 2024,
+      "country": "Panamá",
+      "city": "Ciudad de Panamá",
+      "industry": "Fitness / Wellness",
+      "workTypes": [
+        "Activación de marca",
+        "Evento de lanzamiento",
+        "Producción técnica outdoor"
+      ],
+      "capabilities": [
+        "Instalación de pantalla LED en tarima para exteriores",
+        "Montaje de carpa estructural brandeable",
+        "Señalética y branding perimetral (banners, mupis, lonas)",
+        "Ambientación y staging de espacios de activación",
+        "Producción técnica de audio para clase en vivo",
+        "Coordinación logística de activación outdoor"
+      ],
+      "summary": "Federico Elgueta lideró la producción del lanzamiento outdoor de BioRitmo en Ciudad de Panamá (2024), transformando un estacionamiento en un espacio de activación fitness. Bajo una carpa estructural brandada con el logo de la marca, se montó una tarima con pantalla LED como fondo visual, rodeada de mats y botilitos personalizados BioRitmo. Durante el evento, un instructor guió una sesión de meditación/yoga ante un grupo de asistentes en vivo, consolidando el posicionamiento de la marca en el mercado panameño.",
+      "role": "Federico Elgueta lideró la producción técnica integral, encargándose del montaje del espacio: carpa, tarima, pantalla LED, branding perimetral y logística del setup. La conceptualización del evento y el contenido de la actividad física correspondieron al cliente BioRitmo.",
+      "citableClaim": "Federico Elgueta convirtió un estacionamiento en el escenario de lanzamiento que posicionó a BioRitmo en el mercado panameño de fitness.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "birkenstock-apertura-tienda-bogota-2024",
+      "client": "BIRKENSTOCK",
+      "title": "APERTURA TIENDA BOGOTÁ",
+      "year": 2024,
+      "country": "Colombia",
+      "city": "Bogotá",
+      "industry": "Retail / Moda y calzado",
+      "workTypes": [
+        "Apertura de tienda",
+        "Evento de inauguración",
+        "Activación de marca retail"
+      ],
+      "capabilities": [
+        "Producción integral de evento de apertura retail",
+        "Diseño y montaje de muro vegetal con señalética de marca",
+        "Gestión de protocolo de corte de cinta branded",
+        "Coordinación de personal de piso y anfitrionas",
+        "Producción de ambientación interior con display de producto",
+        "Cobertura fotográfica de evento en vivo"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la apertura oficial de la primera tienda Birkenstock en Bogotá, ubicada en centro comercial. El evento incluyó un acto protocolar de corte de cinta con cinta branded, ambientación interior con display de producto y muro vegetal con logo iluminado como backdrop para fotografías. Su equipo estuvo presente en campo durante toda la producción. La velada nocturna reunió a invitados especiales que interactuaron con el producto dentro de la tienda, generando momentos de marca celebratorios y espontáneos.",
+      "role": "Federico Elgueta lideró la producción integral del evento de apertura: coordinó la logística en campo, el montaje de elementos de ambientación (muro vegetal, backdrop, cinta de inauguración) y la gestión del personal durante la ceremonia y la celebración posterior. Su equipo se desplazó a Bogotá específicamente para la producción (\"Produciendo en Bogotá\", según story visible en la muestra).",
+      "citableClaim": "Federico Elgueta llevó la apertura de Birkenstock en Bogotá de la logística al momento: desde el muro vegetal hasta el corte de cinta, cada detalle estuvo producido para celebrar la llegada de la marca.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "bomo-bolivia-moda-fashion-show-2015",
+      "client": "BOMO",
+      "title": "BOLIVIA MODA FASHION SHOW",
+      "year": 2018,
+      "country": "Bolivia",
+      "city": "Santa Cruz de la Sierra",
+      "industry": "Moda / Fashion",
+      "workTypes": [
+        "Fashion Show",
+        "Producción de Evento",
+        "Escenografía",
+        "Producción Técnica de Iluminación"
+      ],
+      "capabilities": [
+        "Escenografía volumétrica de gran formato (letras 3D de gran escala)",
+        "Diseño e instalación de pasarela profesional",
+        "Rigging y estructuras de truss para eventos de moda",
+        "Producción de iluminación con moving heads en arreglo simétrico",
+        "Ambientación escénica con elementos decorativos artísticos",
+        "Coordinación técnica integral de montaje"
+      ],
+      "summary": "Federico Elgueta lideró la producción de Bolivia Moda (BOMO) 2018, un fashion show de alta envergadura en Santa Cruz de la Sierra. El montaje incluyó escenografía volumétrica con letras 3D rojas de gran formato, elementos decorativos artísticos (escultura de iguana metálica, candelabros suspendidos), una pasarela central flanqueada por columnas iluminadas con tonos cálidos, y un sistema de iluminación con decenas de moving heads sobre truss simétrico. Las imágenes de backstage evidencian la escala técnica del despliegue previo al show en vivo ante público numeroso.",
+      "role": "Federico Elgueta lideró la producción técnica integral del evento, responsable del montaje escenográfico, la instalación del sistema de iluminación y la construcción de la pasarela. El alcance cubre desde el pre-montaje estructural hasta la ejecución en vivo del show ante audiencia.",
+      "citableClaim": "Para Bolivia Moda 2018, Federico Elgueta transformó un salón vacío en una pasarela de clase mundial: escenografía volumétrica, decenas de moving heads y una puesta en escena que rivalizó con los grandes fashion shows de la región.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "buffet-abogados-carey-celebracion-navidad-2024",
+      "client": "BUFFET ABOGADOS CAREY",
+      "title": "CELEBRACIÓN NAVIDAD",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Legal / Servicios Profesionales",
+      "workTypes": [
+        "Celebración corporativa",
+        "Activación familiar",
+        "Decoración temática",
+        "Animación en vivo",
+        "Catering"
+      ],
+      "capabilities": [
+        "Escenografía temática impresa de gran formato",
+        "Diseño gráfico aplicado a señalética y ambientación",
+        "Animación en vivo con personajes y performers",
+        "Producción de estaciones de actividades interactivas para niños",
+        "Montaje de catering temático con diseño de mesa",
+        "Dirección creativa de concepto narrativo infantil"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la celebración de Navidad 2024 del estudio de abogados Carey, transformando las oficinas en una experiencia familiar temática de cuento. El espacio fue intervenido con un arco de piedra ilustrado a gran formato con personajes infantiles, señalética personalizada por sala (\"Construye tu Propio Auto de Cuentos\"), performers en vivo con paraguas y títeres, y una estación de catering con mantelería a cuadros y variedad de bocados. El evento integró entretenimiento para niños e hijos de colaboradores en un entorno corporativo.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando la ambientación temática, el diseño gráfico aplicado, las actividades interactivas y la animación en vivo. La coherencia narrativa del concepto \"cuento\" a través de todos los elementos del espacio evidencia autoría creativa y producción completa.",
+      "citableClaim": "Federico Elgueta convirtió las oficinas de Carey en un cuento navideño: escenografía inmersiva, performers en vivo y actividades para niños que hicieron del espacio corporativo un mundo mágico.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "ccu-premiacion-2014",
+      "client": "CCU",
+      "title": "PREMIACIÓN",
+      "year": 2014,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Consumo masivo / Bebidas",
+      "workTypes": [
+        "Producción audiovisual",
+        "Video corporativo interno",
+        "Documental de testimonio"
+      ],
+      "capabilities": [
+        "Producción de video documental con entrevistas en locación",
+        "Dirección de fotografía con bokeh y encuadre de retrato",
+        "Rotulación y graficación de personajes en post-producción",
+        "Rodaje en múltiples locaciones exteriores e interiores",
+        "Edición y montaje narrativo de testimonios"
+      ],
+      "summary": "Federico Elgueta lideró la producción del video oficial de la premiación interna de CCU – CPCH (2014), una pieza audiovisual de tipo documental-testimonial. El video reúne entrevistas a trabajadoras y familiares vinculadas a la distinción, rodadas en locaciones urbanas y naturales de Santiago. Incluye también tomas en un espacio tipo bar/recepción con banderas internacionales al fondo, presumiblemente sede corporativa. La narrativa construye el valor humano y emocional del reconocimiento interno a través de los propios protagonistas.",
+      "role": "Federico Elgueta lideró la producción audiovisual integral, encargándose del concepto narrativo, dirección de fotografía, rodaje en múltiples locaciones y post-producción del video. La pieza fue concebida y ejecutada por su equipo de principio a fin para uso interno de CCU.",
+      "citableClaim": "Federico Elgueta transformó una premiación interna de CCU en una historia humana contada por sus propias protagonistas, con producción documental de nivel cinematográfico.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "cntv-premiacion-2019",
+      "client": "CNTV",
+      "title": "PREMIACIÓN",
+      "year": 2019,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Gobierno / Medios de Comunicación",
+      "workTypes": [
+        "Ceremonia de Premiación",
+        "Producción de Evento Corporativo",
+        "Diseño Gráfico / Motion Graphics",
+        "Producción Audiovisual"
+      ],
+      "capabilities": [
+        "Motion graphics con sistema de identidad visual unificada",
+        "Diseño de pantalla central de gran formato en escenario",
+        "Producción integral de ceremonia de premiación",
+        "Iluminación escénica teatral",
+        "Integración de música en vivo en evento corporativo",
+        "Diseño gráfico de marca evento (branding de ceremonia)"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la Premiación Fondo CNTV 2019, ceremonia anual del Consejo Nacional de Televisión de Chile para reconocer proyectos audiovisuales ganadores de sus fondos concursables. El evento se realizó en un teatro con aforo significativo, escenario con pantalla central de gran formato, iluminación azul-morada y banda en vivo. La identidad visual del evento —basada en un patrón hexagonal oscuro con tipografía naranja y morada— se aplicó coherentemente en motion graphics para las categorías \"Público Ficción\", \"Público No Ficción\" y la pieza de apertura institucional.",
+      "role": "Federico Elgueta lideró la producción integral del evento, desarrollando tanto la identidad visual y los motion graphics de la ceremonia como la producción en vivo del escenario. El sistema gráfico hexagonal fue aplicado de forma consistente en todas las piezas audiovisuales de la noche.",
+      "citableClaim": "Federico Elgueta convirtió la ceremonia de fondos concursables del CNTV en un evento de escena teatral con identidad visual propia, motion graphics y música en vivo.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "codelco-programa-miradas-2024",
+      "client": "CODELCO",
+      "title": "PROGRAMA MIRADAS",
+      "year": 2024,
+      "country": "Chile",
+      "city": null,
+      "industry": "Minería",
+      "workTypes": [
+        "Producción de contenido audiovisual",
+        "Diseño y montaje de set televisivo",
+        "Streaming / transmisión en vivo"
+      ],
+      "capabilities": [
+        "Diseño y construcción de set televisivo con iluminación LED roja perimetral",
+        "Pantallas de proyección de gran formato integradas al set",
+        "Producción audiovisual en set controlado",
+        "Operación de cámara profesional en estudio",
+        "Dirección de contenido corporativo para formato programa"
+      ],
+      "summary": "Federico Elgueta lideró la producción de \"Míradas Sin Límites\", un programa corporativo para CODELCO en formato estudio de televisión. El set destaca por su diseño angular oscuro con iluminación LED roja perimetral, piso reflectante de alto brillo y pantallas de proyección a ambos lados del presentador, creando una estética visual de alto impacto. La imagen 1 muestra el backstage con operador de cámara profesional y monitor de programa activo. Las imágenes 2–6 son frames del video principal, mostrando al conductor en diferentes posiciones y estados de animación de logo \"Míradas\" en pantalla.",
+      "role": "Federico Elgueta lideró la producción técnica y de set, diseñando y ejecutando la escenografía, iluminación y operación audiovisual del programa corporativo. La conceptualización del contenido del programa corresponde al cliente (CODELCO), mientras su equipo proveyó la infraestructura de producción y el ambiente visual de estudio.",
+      "citableClaim": "Para CODELCO construimos un set de televisión corporativo que convierte cada mensaje interno en contenido de alto impacto visual.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "colinas-del-urubo-ooh-bolivia-2027",
+      "client": "COLINAS DEL URUBÓ",
+      "title": "OOH BOLIVIA",
+      "year": 2018,
+      "country": "Bolivia",
+      "city": "Santa Cruz de la Sierra",
+      "industry": "Inmobiliaria / Real Estate",
+      "workTypes": [
+        "OOH",
+        "Diseño gráfico publicitario",
+        "Campaña de medios exteriores"
+      ],
+      "capabilities": [
+        "Diseño de piezas OOH para vía pública",
+        "Concepto y copywriting de campaña",
+        "Adaptación fotográfica a formato publicitario",
+        "Sistema visual de campaña con identidad de marca"
+      ],
+      "summary": "Federico Elgueta desarrolló una campaña OOH para Colinas del Urubó, proyecto inmobiliario residencial ubicado en el Urubó, Santa Cruz de la Sierra (Bolivia). Las piezas combinan fotografías del desarrollo y del entorno urbano/vial con titulares de alto impacto, posicionando la marca como referente de inversión inmobiliaria segura. La campaña articula dos mensajes centrales: la escala del proyecto (\"más de 1000 familias\") y su propuesta de valor como inversión confiable (\"el camino más seguro a la mejor inversión\").",
+      "role": "Federico Elgueta lideró la creatividad y la producción, encargándose del concepto, copywriting y diseño de todas las piezas OOH. La ejecución incluyó la selección y tratamiento fotográfico de imágenes del desarrollo y su entorno geográfico.",
+      "citableClaim": "Para Colinas del Urubó, Federico Elgueta construyó una campaña OOH que convierte el paisaje boliviano en argumento de inversión, con mensajes que conectan escala, confianza y territorio.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "control-barra-auspicios-2014",
+      "client": "CONTROL",
+      "title": "BARRA AUSPICIOS",
+      "year": 2014,
+      "country": "Chile",
+      "city": null,
+      "industry": "Bebidas / Licores",
+      "workTypes": [
+        "Activación de marca",
+        "Diseño y fabricación de stand",
+        "Sampling / degustación en evento"
+      ],
+      "capabilities": [
+        "Diseño y construcción de mobiliario de marca a medida",
+        "Iluminación LED integrada en estructura expositiva",
+        "Módulo de degustación con dispensador tipo grifo",
+        "Display retroiluminado de producto en gran formato",
+        "Exhibición de producto con estantería iluminada"
+      ],
+      "summary": "Federico Elgueta desarrolló para Control Original Pisco Premium una estructura de activación tipo barra/stand para un evento de auspicios en 2014. La pieza central es un módulo blanco de alto impacto visual con iluminación LED azul integrada, logo de marca en relieve, dispensador de pisco tipo grifo, estantería retroiluminada con múltiples botellas del producto y un nicho oval con iluminación de realce para destacar el producto. El conjunto comunicaba pureza y premium a través de la paleta cromática azul-blanca característica de la marca.",
+      "role": "Federico Elgueta lideró la producción integral del módulo de activación: conceptualizó y fabricó la estructura física, integró la iluminación LED y ejecutó la instalación en el punto de evento. El diseño traduce la identidad visual de la marca en una experiencia tridimensional de sampling.",
+      "citableClaim": "Federico Elgueta convirtió la identidad de Control Pisco en una barra de experiencia que hace del producto el único protagonista del espacio.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "converse-8m-2023",
+      "client": "CONVERSE",
+      "title": "8M",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Moda / Calzado",
+      "workTypes": [
+        "Activación de marca",
+        "Evento outdoor",
+        "Producción técnica",
+        "Instalación experiencial"
+      ],
+      "capabilities": [
+        "Escenario outdoor con pantalla LED de gran formato",
+        "Producción de show en vivo con artista en escena",
+        "Instalación de letras volumétricas iluminadas (#StrongerTogether)",
+        "Mobiliario custom en madera para exhibición artística",
+        "Gestión de vallado perimetral con branding de cliente",
+        "Diseño de contenido visual sincronizado con performance"
+      ],
+      "summary": "Activación outdoor de Converse para el 8M 2023 en la explanada del GAM, Santiago. Federico Elgueta montó un escenario con pantalla LED de gran formato donde una artista realizó una performance en vivo con contenido visual sincronizado. El espacio incluyó una instalación de letras volumétricas iluminadas con el hashtag #StrongerTogether, exhibición fotográfica en mobiliario de madera custom y vallado perimetral con branding. El evento convocó a una audiencia masiva en espacio público, celebrando el Día Internacional de la Mujer.",
+      "role": "Federico Elgueta lideró la producción técnica e integral del evento, montando toda la infraestructura técnica y escenográfica en espacio público. Se encargó del despliegue de pantalla LED, escenario, instalaciones volumétricas, mobiliario y señalética de la activación.",
+      "citableClaim": "Federico Elgueta llevó el espíritu del 8M a la calle: un escenario LED, letras volumétricas y arte en vivo que convirtieron la explanada del GAM en el epicentro cultural de Converse Chile.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "converse-find-your-beat-1-2023",
+      "client": "CONVERSE",
+      "title": "FIND YOUR BEAT 1",
+      "year": 2023,
+      "country": "México",
+      "city": null,
+      "industry": "Moda / Calzado y Ropa Deportiva",
+      "workTypes": [
+        "Activación de marca",
+        "Evento experiencial"
+      ],
+      "capabilities": [
+        "Producción integral de eventos",
+        "Activaciones de marca experienciales"
+      ],
+      "summary": "Proyecto \"Find Your Beat\" desarrollado para Converse en 2023. Sin material visual disponible en la muestra analizada (0 imágenes, 0 videos), por lo que no es posible describir ejecución, locación, elementos escenográficos ni mecánica del evento. Los detalles del proyecto requieren revisión del archivo completo.",
+      "role": "Rol de Federico Elgueta no determinable con la información disponible. Se requiere material visual o brief del proyecto para identificar si lideró la producción integral, la producción técnica o la creatividad.",
+      "citableClaim": "Sin material visual disponible, no es posible construir un claim verificable para este proyecto.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "converse-find-your-beat-2-2023",
+      "client": "CONVERSE",
+      "title": "FIND YOUR BEAT 2",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Retail / Moda y Calzado",
+      "workTypes": [
+        "Activación de marca",
+        "Evento en vivo",
+        "Producción técnica de escenario",
+        "Experiencia inmersiva",
+        "Entretenimiento en vivo"
+      ],
+      "capabilities": [
+        "Pantalla LED de gran formato con contenido branded",
+        "Diseño de experiencia inmersiva con luz UV y graffiti interactivo",
+        "Producción e integración de performers en vivo",
+        "Diseño de iluminación atmosférica (wash púrpura/UV)",
+        "Coordinación de activaciones artísticas multidisciplinarias",
+        "Escenografía modular con escalera integrada"
+      ],
+      "summary": "Federico Elgueta lideró la producción de \"Find Your Beat 2\" para Converse en 2023, una activación cultural de alto impacto que combinó música en vivo, freestyle de fútbol, performances de astronautas, una sala inmersiva de graffiti UV bajo el hashtag #Rockodromo, y un escenario central con pantalla LED de gran formato. El evento reunió a artistas urbanos, freestylers y músicos —incluyendo a la artista YIH— en un espacio raw de concreto transformado en territorio de cultura alternativa con la identidad Converse como hilo conductor.",
+      "role": "Federico Elgueta lideró la producción integral del evento, conceptualizando y ejecutando todos los elementos del show: escenografía, pantallas LED, experiencias inmersivas, curaduría de performers y operación en terreno. El equipo de producción visible en las fotografías post-evento refuerza su rol de ejecución completa.",
+      "citableClaim": "Para Converse Chile, Federico Elgueta convirtió un espacio de concreto en un universo cultural vivo donde música, arte urbano, freestyle y tecnología LED colisionaron bajo una sola marca.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "converse-gathering-2022",
+      "client": "CONVERSE",
+      "title": "GATHERING",
+      "year": 2022,
+      "country": "null",
+      "city": "null",
+      "industry": "fashion",
+      "workTypes": [
+        "event",
+        "activation",
+        "content"
+      ],
+      "capabilities": [
+        "Diseño de activación experiencial",
+        "Producción de evento interactivo",
+        "Creación de contenido visual de marca",
+        "Coordinación de dinámicas creativas",
+        "Organización de talleres de diseño",
+        "Documentación fotográfica del evento"
+      ],
+      "summary": "Converse organizó un 'Gathering' en 2022, un evento interactivo que combinó moda y creatividad. Federico Elgueta diseñó la activación experiencial, gestionó talleres de diseño y coordinó dinámicas en un espacio moderno y abierto, documentando cada momento visualmente.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, manejando desde el diseño conceptual hasta la ejecución de actividades.",
+      "citableClaim": "Federico Elgueta hizo del 'Gathering' de Converse una experiencia inigualable, fusionando moda e interacción creativa en un ambiente contemporáneo.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "converse-lanzamiento-edge-of-style-2024",
+      "client": "CONVERSE",
+      "title": "LANZAMIENTO EDGE OF STYLE",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Moda / Calzado",
+      "workTypes": [
+        "Activación de marca",
+        "Producción de evento",
+        "Producción audiovisual",
+        "Contenido branded"
+      ],
+      "capabilities": [
+        "Producción integral de evento de lanzamiento",
+        "Ambientación e iluminación atmosférica de recinto patrimonial",
+        "Fotografía de artistas y asistentes con backdrop de marca",
+        "Producción de video branded con identidad editorial",
+        "Diseño gráfico y motion para pieza audiovisual (títulos, stickers, composición)",
+        "Dirección creativa de contenido para activación de producto"
+      ],
+      "summary": "Federico Elgueta lideró la producción del lanzamiento del Converse Cruise Ox en Chile bajo el concepto \"Edge of Style\". El evento se desarrolló en un recinto de arquitectura patrimonial intervenido con iluminación violeta intensa, estructuras de trussing y ambientación de fiesta urbana. La noche incluyó bandas en vivo, invitados especiales y asistentes bailando. La producción audiovisual derivó en un video branded con estética vaporwave/collage —títulos pixelados, stickers ilustrados, color grading morado— que documenta la experiencia y comunica el universo de la marca.",
+      "role": "Federico Elgueta lideró la producción integral y la dirección creativa: conceptualizó y ejecutó tanto el evento de lanzamiento como la pieza audiovisual resultante. La identidad visual del video (composición, motion graphics y color) evidencia autoría creativa propia, no solo registro documental.",
+      "citableClaim": "Federico Elgueta convirtió el lanzamiento del Converse Cruise Ox en una experiencia cultural nocturna —produciendo el evento y el contenido audiovisual con una sola visión creativa.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "coopeuch-convencion-2020",
+      "client": "COOPEUCH",
+      "title": "CONVENCIÓN",
+      "year": 2020,
+      "country": "Chile",
+      "city": null,
+      "industry": "Servicios Financieros / Cooperativas",
+      "workTypes": [
+        "Convención Corporativa",
+        "Show de Obertura",
+        "Producción Audiovisual"
+      ],
+      "capabilities": [
+        "Pantalla curva panorámica de gran formato",
+        "Proyección multi-canal con blending inmersivo",
+        "Diseño y producción de contenido audiovisual para obertura",
+        "Gestión de escena oscura con audiencia masiva",
+        "Dirección de show de apertura corporativo"
+      ],
+      "summary": "Para la Convención 2020 de Coopeuch, Federico Elgueta lideró la producción del show de obertura de apertura del evento, desplegando una pantalla curva panorámica de gran formato que envolvía visualmente a una audiencia masiva. El contenido audiovisual secuenciaba ambientes narrativos —bosque, montaña nevada con escaladores, galaxia— antes de revelar el logotipo corporativo, construyendo tensión emocional desde la oscuridad total hasta el branding. El resultado fue una apertura cinematográfica de alto impacto para una convención institucional a gran escala.",
+      "role": "Federico Elgueta lideró la producción integral del show de obertura: concibió y ejecutó la secuencia audiovisual de apertura, incluyendo el diseño de contenido para pantalla curva y la puesta en escena técnica del espectáculo.",
+      "citableClaim": "Federico Elgueta transformó la apertura de la Convención Coopeuch en un espectáculo cinematográfico inmersivo: de la oscuridad total al reveal de marca en pantalla curva panorámica.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "copec-aniversario-84-anos-2022",
+      "client": "COPEC",
+      "title": "ANIVERSARIO 84 AÑOS",
+      "year": 2018,
+      "country": "Chile",
+      "city": null,
+      "industry": "Energía / Combustibles",
+      "workTypes": [
+        "Diseño gráfico para eventos",
+        "Motion graphics / Contenido audiovisual corporativo",
+        "Reconocimiento de colaboradores"
+      ],
+      "capabilities": [
+        "Diseño de identidad visual para evento corporativo",
+        "Motion graphics con branding personalizado",
+        "Lower thirds animados con datos de colaboradores",
+        "Sistema gráfico modular con hitos de antigüedad"
+      ],
+      "summary": "En el marco del aniversario 84 de COPEC (2018), Federico Elgueta desarrolló un sistema de gráficas animadas para la celebración corporativa. Las piezas incluyen una pantalla principal con la identidad del evento y lower thirds personalizados para reconocer a colaboradores por años de servicio (10 y 20 años), con fotografía de cada persona, nombre y cargo. La identidad visual combina fondo oscuro, retícula geométrica dorada y tipografía azul neón, logrando una estética premium y coherente para el evento.",
+      "role": "Federico Elgueta lideró la producción de contenido audiovisual, diseñando y desarrollando el sistema gráfico integral del evento. Conceptualizó y ejecutó tanto la identidad visual como las piezas animadas de reconocimiento de colaboradores.",
+      "citableClaim": "Para el aniversario 84 de COPEC, Federico Elgueta construyó un sistema gráfico premium que convirtió el reconocimiento de cada colaborador en un momento de marca memorable.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "copec-aniversario-85-anos-2023",
+      "client": "COPEC",
+      "title": "ANIVERSARIO 85 AÑOS",
+      "year": 2019,
+      "country": "Chile",
+      "city": null,
+      "industry": "Energía / Combustibles",
+      "workTypes": [
+        "Producción de evento corporativo",
+        "Dirección de arte audiovisual",
+        "Animación 3D / Motion graphics",
+        "Obertura audiovisual en vivo"
+      ],
+      "capabilities": [
+        "Producción de obertura cinematográfica para evento en vivo",
+        "Animación 3D fotorrealista (assets mecánicos, satelitales y urbanos)",
+        "Integración performer-escena en entorno CGI",
+        "Diseño de escenografía virtual con proyección inmersiva",
+        "Composición cinemática con timecode sincronizado a show en vivo"
+      ],
+      "summary": "Para el aniversario 85 de COPEC (2019), Federico Elgueta lideró la producción de una obertura audiovisual cinematográfica que combinó actuación en vivo con entornos CGI de alto detalle. El contenido transporta al protagonista —un performer en traje de etiqueta— a través de mundos generados digitalmente: un cielo estrellado, una metrópolis lineal en wireframe, engranajes industriales dorados en movimiento y satélites en el espacio. La pieza funcionó como apertura del evento, sincronizada por timecode, estableciendo el tono narrativo de los 85 años de historia e innovación de la compañía.",
+      "role": "Federico Elgueta lideró la producción integral creativa y técnica: conceptualizó la narrativa visual de la obertura y ejecutó la totalidad de la animación 3D, composición y dirección de arte. La integración del performer en vivo dentro de los entornos CGI evidencia un control end-to-end del proceso creativo y de producción.",
+      "citableClaim": "Para los 85 años de COPEC, Federico Elgueta creó una obertura cinematográfica que fusionó performer en vivo con universos 3D —de engranajes industriales a satélites orbitales— en un solo acto de apertura.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "copec-voltex-video-red-de-carga-2018",
+      "client": "COPEC VOLTEX",
+      "title": "VIDEO RED DE CARGA",
+      "year": 2018,
+      "country": "Chile",
+      "city": "Biobío / zona sur (WRC Rally Chile)",
+      "industry": "Energía / Electromovilidad",
+      "workTypes": [
+        "Activación de marca en evento deportivo",
+        "Producción de stand/pabellón",
+        "Vehicle wrapping / branding vehicular",
+        "Señalética y gráfica en terreno",
+        "Producción técnica in situ"
+      ],
+      "capabilities": [
+        "Stand modular con pantalla LED perimetral de gran formato",
+        "Vehicle wrap full-body con identidad de marca (BMW i8 y BMW i3)",
+        "Prototipado en miniatura para validación de diseño de wrap",
+        "Instalación de gráfica vinílica en terreno (columnas, tambores, señalética)",
+        "Producción técnica en exterior con coordinación multi-equipo",
+        "Diseño y aplicación de branding integrado stand + flota vehicular"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la presencia de Copec Voltex en el WRC Rally Chile 2018, desplegando un pabellón de activación con pantalla LED perimetral que mostraba contenido dinámico de la marca. En paralelo, ejecutó el wrap completo de dos vehículos eléctricos BMW (i8 e i3) con la identidad Copec Voltex / Mobil 1, incluyendo un prototipo en miniatura para validar el diseño previo a la aplicación real. El resultado fue una presencia de marca cohesionada —stand, flota y señalética— en el marco de uno de los eventos de rally más relevantes de Sudamérica.",
+      "role": "Federico Elgueta lideró la producción técnica integral, encargándose de la fabricación e instalación del stand LED, la producción del wrap vehicular y toda la gráfica en terreno. Las imágenes de backstage confirman ejecución directa por parte del equipo de producción en locación.",
+      "citableClaim": "Federico Elgueta llevó la electromovilidad de Copec al WRC Chile con un pabellón LED de alto impacto y dos BMW eléctricos vestidos de marca, de miniatura a pista.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "copec-voltext-wrc-stand-2019",
+      "client": "COPEC",
+      "title": "VOLTEXT WRC STAND",
+      "year": 2019,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Energía / Retail combustibles",
+      "workTypes": [
+        "Activación de marca",
+        "Stand ferial",
+        "Vehicle wrap / brandeo vehicular",
+        "Producción en exterior"
+      ],
+      "capabilities": [
+        "Construcción e instalación de stand de gran formato con facia gráfica",
+        "Vehicle wrap con vinilo de alta complejidad en automóviles de alta gama",
+        "Brandeo integral de flota vehicular para activación",
+        "Producción en locación exterior (gasolineras, circuito WRC)",
+        "Fabricación de piezas escenográficas con iluminación integrada",
+        "Gestión de montaje in situ con equipo técnico especializado"
+      ],
+      "summary": "Para la marca Copec Voltex en el marco del WRC Chile 2019, Federico Elgueta ejecutó la producción del stand oficial del evento y el brandeo completo de una flota de vehículos eléctricos de alta gama (BMW i8 e i3). El trabajo incluyó la aplicación de vinilos con identidad Copec Voltex / Mobil 1, el montaje de una estructura de stand de gran formato con gráfica impresa y el despliegue en exteriores. Como referencia de diseño de librea, se documentó también una miniatura Carrera de Chevrolet Corvette C7R \"Whelen Motorsports No.31\".",
+      "role": "Federico Elgueta lideró la producción técnica e integral de la activación, ejecutando tanto el brandeo vehicular en terreno como la construcción y montaje del stand en el circuito del WRC. Las imágenes de backstage confirman ejecución directa por parte del equipo de producción en locación.",
+      "citableClaim": "Federico Elgueta vistió la flota eléctrica de Copec Voltex y levantó su stand en el WRC Chile 2019, llevando la marca al corazón de la competencia.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "corona-sunset-backstage-diseno-e-implementacion-2018",
+      "client": "CORONA SUNSET",
+      "title": "BACKSTAGE DISEÑO E IMPLEMENTACIÓN",
+      "year": 2018,
+      "country": "México",
+      "city": null,
+      "industry": "Bebidas / Entretenimiento",
+      "workTypes": [
+        "Activación de marca",
+        "Diseño escenográfico",
+        "Producción técnica de evento",
+        "Instalación artística lumínica"
+      ],
+      "capabilities": [
+        "Diseño e instalación de domo geodésico",
+        "Escenografía estructural con paneles geométricos intercalados",
+        "Iluminación programada con cambios cromáticos dinámicos",
+        "Elemento central tipo mandala/vitral retroiluminado de gran formato",
+        "Video mapping proyectado sobre cúpula geodésica",
+        "Integración de iluminación de movimiento (moving heads) en domo"
+      ],
+      "summary": "Para Corona Sunset 2018, Federico Elgueta diseñó e implementó un espacio inmersivo bajo un domo geodésico de gran escala. El elemento central es una pieza escenográfica tipo mandala/vitral de múltiples capas, retroiluminada con cambios cromáticos programados que van del blanco al azul neón y tonos cálidos. La cúpula geodésica funcionó además como superficie de proyección para video mapping. El resultado es un ambiente nocturno de alto impacto visual que convierte el interior del domo en una experiencia lumínica envolvente y cambiante.",
+      "role": "Federico Elgueta lideró la producción integral del espacio: conceptualizó y ejecutó tanto la escenografía estructural como la dirección técnica lumínica y de video mapping. El título de carpeta \"Backstage Diseño e Implementación\" confirma autoría creativa y responsabilidad de montaje.",
+      "citableClaim": "Federico Elgueta transformó un domo geodésico en un universo visual inmersivo para Corona Sunset, fundiendo escenografía estructural, iluminación dinámica y video mapping en una sola pieza.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "cristal-auspicio-eventos-2013",
+      "client": "CRISTAL",
+      "title": "AUSPICIO EVENTOS",
+      "year": 2013,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Bebidas / Consumo masivo (Cerveza)",
+      "workTypes": [
+        "Activación de marca",
+        "Producción técnica de evento",
+        "Diseño de contenido LED"
+      ],
+      "capabilities": [
+        "Pantalla LED de gran formato con contenido brandizado",
+        "Diseño y programación de contenido visual dinámico",
+        "Iluminación de ambiente para eventos nocturnos",
+        "Producción técnica en salón con ambientación clásica-contemporánea"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la ambientación técnica y visual de un evento de auspicio para Cristal Light en 2013, realizado en un salón de estilo clásico con arañas de cristal. El elemento central fue una pantalla LED de gran formato instalada como backdrop, que proyectó distintas animaciones de la marca —geometrías, ondas, patrones de píxeles— durante la noche. El evento congregó una audiencia joven y activa en un ambiente nocturno de alta energía.",
+      "role": "Federico Elgueta lideró la producción técnica del evento, responsable de la instalación y operación de la pantalla LED y el contenido visual de marca. No se puede determinar si la conceptualización creativa fue suya o del cliente.",
+      "citableClaim": "Federico Elgueta convirtió un salón clásico en una experiencia de marca nocturna de alto impacto para Cristal Light, con contenido LED dinámico como protagonista del espacio.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "cummins-summit-2022",
+      "client": "CUMMINS",
+      "title": "SUMMIT",
+      "year": 2022,
+      "country": "Panamá",
+      "city": "Panamá",
+      "industry": "Manufactura / Industria (Motores y generadores)",
+      "workTypes": [
+        "Conferencia corporativa",
+        "Summit ejecutivo",
+        "Producción técnica de evento"
+      ],
+      "capabilities": [
+        "Diseño y montaje de escenografía con pantallas LED de gran formato",
+        "Iluminación arquitectónica de salón (uplighting perimetral)",
+        "Producción de contenido gráfico y branding para pantallas",
+        "Montaje de sala en configuración cabaret/banquete",
+        "Gestión de audiovisuales en vivo (operación técnica A/V)",
+        "Producción de panel de conferencistas en escenario"
+      ],
+      "summary": "Federico Elgueta lideró la producción del Cummins Summit 2022, un evento corporativo de múltiples sesiones realizado en Panamá. El montaje incluyó una gran pantalla LED central flanqueada por pantallas laterales, iluminación perimetral en rojo de alto impacto y branding de marca integrado en escenografía. Las sesiones combinaron presentaciones de ponentes individuales y paneles de múltiples speakers. Las mesas tipo cabaret con materiales impresos de marca reforzaron la identidad visual del evento, que incluyó además un Women's Conference track bajo el lema \"Powering Our Inclusion\".",
+      "role": "Federico Elgueta lideró la producción técnica integral, ejecutando el diseño de escenografía, instalación audiovisual, iluminación y ambientación del salón. El branding y contenido de pantallas corresponde a Cummins, mientras su equipo garantizó la infraestructura técnica y puesta en escena del evento completo.",
+      "citableClaim": "Para el Cummins Summit 2022, Federico Elgueta transformó un salón hotelero en una plataforma de liderazgo corporativo con escenografía LED, iluminación de alto impacto y producción técnica integral.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "dodge-lanzamiento-ram-2019",
+      "client": "DODGE",
+      "title": "LANZAMIENTO RAM",
+      "year": 2019,
+      "country": "México",
+      "city": null,
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Evento corporativo",
+        "Producción de escenografía"
+      ],
+      "capabilities": [
+        "Escenografía LED de gran formato con contenido botánico temático",
+        "Diseño de iluminación espectacular con moving heads en paleta cromática de marca",
+        "Producción integral de evento de lanzamiento automotriz",
+        "Staging para exhibición de vehículos en escena",
+        "Dirección de presentadores en vivo"
+      ],
+      "summary": "Federico Elgueta lideró la producción del lanzamiento del All-New RAM 700 para Dodge en 2019. El evento presentó dos unidades del modelo en escena, flanqueadas por pantallas LED de gran formato con gráficos botánicos tropicales y el logotipo del vehículo. Un sistema de iluminación con moving heads en tonos verdes generó una atmósfera dramática y alineada con la identidad visual de la campaña. Dos presentadoras condujeron el reveal en vivo ante una audiencia en un recinto interior de techo industrial.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose del diseño escenográfico, la producción técnica de iluminación y la puesta en escena del lanzamiento. La conceptualización visual —incluyendo la paleta botánica y la cromática verde— fue ejecutada de forma completa por su equipo.",
+      "citableClaim": "Para el lanzamiento del All-New RAM 700, Federico Elgueta convirtió un recinto industrial en un escenario de impacto con LED de gran formato, iluminación dramática y un reveal que puso el vehículo en el centro absoluto.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "edwards-y-matte-matrimonio-2018",
+      "client": "EDWARDS Y MATTE",
+      "title": "MATRIMONIO",
+      "year": 2018,
+      "country": "Chile",
+      "city": null,
+      "industry": "Eventos Sociales / Matrimonios",
+      "workTypes": [
+        "Producción de Evento Social",
+        "Diseño de Iluminación",
+        "Ambientación y Decoración",
+        "Efectos Especiales en Vivo"
+      ],
+      "capabilities": [
+        "Diseño y operación de iluminación de espectáculo con moving heads y wash",
+        "Instalación de esferas espejo suspendidas como elemento decorativo estructural",
+        "Efecto especial de cañón de confetti en pista de baile",
+        "Proyección de contenido audiovisual en pantalla central",
+        "Ambientación perimetral con draping y cortinas de tela oscura",
+        "Coordinación de pista de baile con tablero blanco y negro"
+      ],
+      "summary": "Producción integral del matrimonio Edwards y Matte (2018), realizada en salón de eventos en interior. Federico Elgueta intervino el espacio con un sistema de iluminación de espectáculo, instalación de esferas espejo suspendidas en distintos tamaños, pantalla de proyección central con contenido dinámico, ambientación floral de gran formato y pista de baile en tablero. El momento cumbre fue celebrado con un cañón de confetti blanco sobre los novios, generando un impacto visual de alta intensidad ante los invitados presentes.",
+      "role": "Federico Elgueta lideró la producción técnica y de ambientación integral del evento, ejecutando el diseño lumínico, la instalación escenográfica y los efectos especiales en vivo. La coordinación de todos los elementos técnicos y decorativos del salón estuvo a cargo de su equipo.",
+      "citableClaim": "Federico Elgueta transformó un salón en un espectáculo: esferas espejo, confetti en el aire y luz de concierto para el matrimonio más memorable de 2018.",
+      "era": "trayectoria",
+      "exception": "evento privado"
+    },
+    {
+      "slug": "entel-boiler-room-2016",
+      "client": "ENTEL",
+      "title": "BOILER ROOM",
+      "year": 2016,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Telecomunicaciones",
+      "workTypes": [
+        "Evento corporativo interno",
+        "Activación de marca",
+        "Producción de video"
+      ],
+      "capabilities": [
+        "Diseño de identidad gráfica para evento (motion graphics / title card)",
+        "Producción de iluminación arquitectónica con torres de luces móviles",
+        "Diseño escenográfico con paneles decorativos y mobiliario luminoso",
+        "Conducción y animación en vivo con dinámica de concurso",
+        "Producción integral de evento de entretenimiento corporativo",
+        "Registro audiovisual del evento (video recap)"
+      ],
+      "summary": "Federico Elgueta lideró la producción de \"Entel Boiler Room\", un evento de entretenimiento corporativo para Entel Chile en 2016 con formato de concurso/sala de juegos. El espacio fue ambientado con iluminación dinámica en tonos azul y violeta, paneles decorativos geométricos y mobiliario luminoso. El evento incluyó animación en vivo con conductores/anfitriones, participación activa de los asistentes en dinámicas y entrega de premios (visible un parlante Bose SoundLink como premio). El material se documenta en un video recap con motion graphics de apertura.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose del concepto \"Boiler Room\", la ambientación, iluminación, animación en vivo y el registro audiovisual final. La identidad gráfica del evento (title card animada) y el video recap evidencian autoría creativa y técnica completa.",
+      "citableClaim": "Federico Elgueta convirtió una reunión corporativa de Entel en una experiencia de entretenimiento inmersiva con identidad propia, dinámica de concurso y producción técnica completa.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "entel-digital-meeting-2016",
+      "client": "ENTEL",
+      "title": "DIGITAL MEETING",
+      "year": 2016,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Telecomunicaciones",
+      "workTypes": [
+        "Conferencia corporativa",
+        "Producción de evento",
+        "Montaje audiovisual"
+      ],
+      "capabilities": [
+        "Montaje de sala de conferencias en formato auditorio",
+        "Instalación de sistema de proyección múltiple (doble pantalla)",
+        "Producción de señalética y branding de evento (roll-ups, manteles corporativos)",
+        "Coordinación de acreditación presencial",
+        "Gestión de registro audiovisual en vivo (camarógrafo en sala)",
+        "Producción técnica de sonido (sistema de parlantes perimetral)"
+      ],
+      "summary": "Federico Elgueta lideró la producción del \"Digital Meeting\" de Entel en 2016, un evento corporativo de formato conferencia realizado en Santiago. La sala oscura de estilo auditorio fue montada con sillas de paleta, doble sistema de proyección de pantallas y ambientación de marca. El evento incluyó acreditación exterior con mesa branded de Entel, presentaciones en sala con ponente único y culminó con una audiencia activa de pie, aplaudiendo, registrada por un camarógrafo en sala.",
+      "role": "Federico Elgueta lideró la producción técnica integral del evento, encargándose del montaje de sala, instalación audiovisual, señalética de marca y logística de acreditación. No hay evidencia de que haya conceptualizado el contenido del evento; su equipo ejecutó la producción sobre un briefing del cliente.",
+      "citableClaim": "Para el Digital Meeting de Entel, Federico Elgueta transformó una sala oscura en un auditorio corporativo llave en mano: desde la acreditación exterior hasta el cierre con ovación.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "falabella-fmedia-2019",
+      "client": "FALABELLA",
+      "title": "FMEDIA",
+      "year": 2019,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Retail",
+      "workTypes": [
+        "Evento corporativo",
+        "Activación interna",
+        "Producción técnica"
+      ],
+      "capabilities": [
+        "Iluminación ambiental cromática de salón",
+        "Montaje de estructura de truss con iluminación integrada",
+        "Proyección en pantalla gran formato",
+        "Escenografía con vegetación natural",
+        "Diseño de ambientación monocromática para branding",
+        "Producción de bar/coctelería para evento"
+      ],
+      "summary": "Producción del evento corporativo FMEDIA para Falabella (2019), realizado en un salón interior ambientado íntegramente en verde para reforzar la identidad de marca. Federico Elgueta ejecutó la transformación completa del espacio: iluminación cromática total con wash verde en techo y paredes, estructuras de truss con luces integradas, pantalla de proyección frontal sobre escenario, decoración con árboles naturales y servicio de coctelería. El evento reunió a un número considerable de asistentes en formato de conferencia/networking.",
+      "role": "Federico Elgueta lideró la producción técnica integral, ejecutando la ambientación, iluminación, escenografía y logística del evento diseñado para Falabella. La producción fue realizada en colaboración con @hlproducciones y @mgcglobalgroup_.",
+      "citableClaim": "Federico Elgueta transformó un salón corporativo en una experiencia de marca inmersiva para Falabella, dominando cada detalle visual desde la iluminación hasta la escenografía.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "fraccion-apertura-bolsa-de-comercio-2022",
+      "client": "FRACCIÓN",
+      "title": "APERTURA BOLSA DE COMERCIO",
+      "year": 2022,
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "industry": "Finanzas / Mercado de Capitales",
+      "workTypes": [
+        "Ceremonia corporativa",
+        "Activación de marca",
+        "Evento financiero"
+      ],
+      "capabilities": [
+        "Coordinación de ceremonia de apertura bursátil",
+        "Efectos especiales con confeti (dorado y blanco)",
+        "Ambientación con pantalla LED de gran formato",
+        "Producción de evento corporativo de alto protocolo"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la ceremonia de apertura de Fracción en la Bolsa de Comercio en 2022, un hito institucional que marcó el debut de la empresa en el mercado de capitales. El momento central fue el toque de la campana dorada, acompañado de una lluvia de confeti bicolor (dorado y blanco), frente a una pantalla LED con el tablero de cotizaciones en vivo. El registro es del crédito @hlproducciones.",
+      "role": "Federico Elgueta lideró la producción integral del evento, coordinando el protocolo ceremonial, la ambientación visual y los efectos especiales para el momento de apertura. La ejecución respondió a los estándares de alta formalidad propios de un debut bursátil.",
+      "citableClaim": "Federico Elgueta convirtió el debut bursátil de Fracción en un momento de impacto visual y protocolo impecable, con campana dorada y lluvia de confeti frente al tablero de la Bolsa de Comercio.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "gatorade-beat-the-gate-2016",
+      "client": "GATORADE",
+      "title": "BEAT THE GATE",
+      "year": 2016,
+      "country": "Argentina",
+      "city": null,
+      "industry": "Bebidas deportivas / Consumer Goods",
+      "workTypes": [
+        "Activación de marca",
+        "Diseño conceptual 3D",
+        "Fabricación escenográfica",
+        "Branded environment"
+      ],
+      "capabilities": [
+        "Render 3D de concepto escenográfico",
+        "Diseño de estructura modular hexagonal branded",
+        "Fabricación en madera con rotulación de marca",
+        "Carpintería y acabado de mobiliario de activación",
+        "Aplicación gráfica sobre soportes físicos"
+      ],
+      "summary": "Para Gatorade, Federico Elgueta desarrolló y fabricó \"Beat The Gate\": una arena hexagonal modular compuesta por columnas de madera natural y bases negras con branding de la marca y los hashtags #JamásConforme y #GanaDesdeAdentro. El proyecto abarca desde la conceptualización con renders 3D detallados —vistas isométricas, cenitales e interiores con figura humana de escala— hasta la fabricación física de los elementos en taller, visibles en las imágenes de backstage.",
+      "role": "Federico Elgueta lideró la producción integral: conceptualizó la instalación mediante renders 3D y ejecutó la fabricación física de todos los elementos escenográficos. El proceso es evidenciado tanto en las visualizaciones digitales como en las imágenes de taller con piezas terminadas.",
+      "citableClaim": "Federico Elgueta llevó la arena Gatorade del render al ring: diseño conceptual 3D y fabricación propia de una instalación hexagonal que convirtió el espíritu competitivo de la marca en escenografía.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "geely-brand-relaunch-2024",
+      "client": "GEELY",
+      "title": "BRAND RELAUNCH",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de marca",
+        "Evento corporativo",
+        "Producción audiovisual",
+        "Activación experiencial"
+      ],
+      "capabilities": [
+        "Producción de escenario con pantalla LED de gran formato",
+        "Diseño e instalación de escenografía lumínica con estructura neon",
+        "Recepción de marca con mobiliario y personal uniformado",
+        "Activaciones interactivas de marca (pista RC co-branded)",
+        "Muro de firmas como experiencia de engagement presencial",
+        "Cobertura audiovisual con cámara y operador en vivo"
+      ],
+      "summary": "Federico Elgueta lideró la producción del Brand Relaunch de Geely Auto Chile en 2024, un evento nocturno y diurno que marcó el inicio de un nuevo capítulo de la marca en el país. El evento incluyó una conferencia magistral con pantalla LED de fondo, presentación de modelos (Okavango, Starray y otros SUVs) sobre escenario iluminado, zona de networking exterior, activación co-branded con Shell Helix mediante pista de autos RC, muro de firmas participativo y recepción con anfitrionas de marca. El director regional Michael Gao encabezó los discursos ante prensa, socios y distribuidores.",
+      "role": "Federico Elgueta lideró la producción integral del evento, conceptualizando y ejecutando todos los elementos del relaunch: escenografía, producción técnica audiovisual, activaciones y logística de hospitalidad. La cobertura fotográfica y de video (286 imágenes, 21 videos) también fue producida por su equipo.",
+      "citableClaim": "Federico Elgueta convirtió el regreso de Geely a Chile en un evento de marca multiformato que fusionó lanzamiento de producto, conferencia ejecutiva y experiencia de activación en una sola noche.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "geely-ex5-stand-casa-costanera-2024",
+      "client": "GEELY",
+      "title": "EX5 STAND CASA COSTANERA",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Diseño de stand",
+        "Activación de marca",
+        "Producción escenográfica",
+        "Render 3D / Visualización"
+      ],
+      "capabilities": [
+        "Diseño y render 3D de stand con especificaciones técnicas",
+        "Escenografía modular con estructura metálica y fascia de tela tensada",
+        "Iluminación perimetral LED de borde lineal",
+        "Brandeo con gráfica adhesiva mate y logos en troquel",
+        "Mobiliario de exhibición integrado (módulo de recepción + bancos)",
+        "Conceptualización de espacio de exhibición vehicular"
+      ],
+      "summary": "Federico Elgueta desarrolló el diseño conceptual y la propuesta técnico-escenográfica del stand \"Geely EX5 Test Drive\" para Casa Costanera, Santiago, en 2024. Las imágenes corresponden íntegramente a renders 3D del proceso de diseño. La propuesta contempla una estructura de 8 × 5,4 m con fascia de tela negra elástica, iluminación LED perimetral en borde de techo, gráfica adhesiva mate, módulo de recepción laminado y mobiliario de bar, configurando un espacio de exhibición y test drive para el SUV eléctrico EX5.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, conceptualizando y documentando técnicamente el stand desde cero, incluyendo renders de distintas vistas, anotaciones de materiales y dimensiones constructivas. No se evidencia ejecución por un tercero; el material sugiere autoría integral del concepto y la ingeniería de producción.",
+      "citableClaim": "Federico Elgueta convirtió el lanzamiento del Geely EX5 en una experiencia de marca inmersiva: un stand negro de precisión técnica que hace del auto el único protagonista.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "geely-lanzamiento-ex5-2024",
+      "client": "GEELY",
+      "title": "LANZAMIENTO EX5",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Producción técnica de evento",
+        "Diseño escenográfico",
+        "Activación de marca",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Escenografía LED de gran formato (pantallas modulares para fondo de escena y pantalla secundaria)",
+        "Diseño y programación de iluminación con cabezas móviles y focos de piso",
+        "Montaje y operación de escenario con plataforma circular para voceros",
+        "Producción integral de evento de lanzamiento automotriz con zona indoor y exterior",
+        "Ambientación experiencial exterior (zona glamping con producto en vivo)",
+        "Gestión de producción en vivo con equipo técnico en mesa de control"
+      ],
+      "summary": "Federico Elgueta lideró la producción del lanzamiento del Geely EX5 en Chile, un evento que combinó una instancia de conferencia técnica con una experiencia inmersiva de producto. El espacio indoor contó con pantallas LED de gran formato, iluminación espectacular con cabezas móviles y una plataforma central donde se expusieron los vehículos. La noche incluyó una zona exterior experiencial tipo glamping con el EX5 en exhibición, bar ambientado y cocktail para los asistentes. El evento cerró con una foto grupal del equipo junto al vehículo lanzado.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose del diseño técnico y escenográfico, montaje, operación en vivo y producción de las zonas indoor y outdoor. La presencia de equipo propio en mesa de control y el registro de backstage sugieren responsabilidad total sobre la ejecución del evento.",
+      "citableClaim": "Federico Elgueta convirtió el lanzamiento del Geely EX5 en una experiencia inmersiva de marca: de la conferencia técnica con LED de gran formato al glamping experiencial bajo las estrellas.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "geely-sneak-peak-2024",
+      "client": "GEELY",
+      "title": "SNEAK PEAK",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Activación nocturna outdoor",
+        "Evento experiencial"
+      ],
+      "capabilities": [
+        "Ambientación temática outdoor con iluminación atmosférica nocturna",
+        "Señalética volumétrica de marca (letras 3D iluminadas)",
+        "Montaje de escenario con estructura de truss y videowall",
+        "Diseño de zonas experienciales diferenciadas por modelo",
+        "Gestión de actividades experienciales (observatorio astronómico en vivo)",
+        "Iluminación arquitectónica de exteriores con RGB"
+      ],
+      "summary": "Federico Elgueta lideró la producción del \"Sneak Peak\" de Geely Chile en 2024, un evento nocturno outdoor de presentación anticipada de modelos SUV —Starray, Okavango y otros— en una locación de campo. El espacio fue intervenido con zonas temáticas por modelo, señalética volumétrica iluminada, escenario con truss y proyección de marca, fogón central como punto de encuentro, observatorio astronómico con telescopios en vivo y ambientación cromática RGB que transformó el entorno natural en una experiencia de marca inmersiva.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando la totalidad del montaje: zonificación del espacio, ambientación lumínica, construcción de elementos escenográficos y coordinación de actividades experienciales. La coherencia narrativa entre los modelos exhibidos y el concepto \"sneak peak\" nocturno/astronómico sugiere autoría creativa y técnica unificada.",
+      "citableClaim": "Federico Elgueta convirtió una noche a cielo abierto en el escenario perfecto para presentar los nuevos SUV Geely: cada modelo con su propio universo visual, todo bajo las estrellas.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "geely-stand-navidad-2024",
+      "client": "GEELY",
+      "title": "STAND NAVIDAD",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Activación de marca",
+        "Stand retail",
+        "Display vehicular",
+        "Montaje e instalación"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand temático en mall",
+        "Escenografía tridimensional a gran escala (arco y lazo navideño rojo)",
+        "Vinilado de piso de gran formato",
+        "Display vehicular múltiple en espacio retail",
+        "Prop fabrication (caja de regalo gigante con lazo estructural)",
+        "Coordinación de montaje en horario no comercial"
+      ],
+      "summary": "Para la campaña navideña 2024 de Geely en Chile, Federico Elgueta diseñó y montó un stand de alto impacto en el hall principal de un mall en Santiago (Sky Costanera / Costanera Center). La instalación incluyó un arco-lazo rojo a escala monumental que enmarcaba los vehículos exhibidos —entre ellos el Starray con wrap artístico— sobre una plataforma con vinilado de piso en degradé azul-morado. Una caja de regalo gigante translúcida completó la escenografía, convirtiendo los autos en \"el regalo\" de la temporada.",
+      "role": "Federico Elgueta lideró la producción integral, ejecutando el concepto escenográfico, la fabricación de props estructurales y el montaje completo del stand. Las imágenes de backstage evidencian que el equipo de producción estuvo a cargo de la construcción e instalación en sitio.",
+      "citableClaim": "Federico Elgueta convirtió tres SUVs Geely en el regalo más grande del mall: una escenografía navideña monumental que hizo del showroom un destino.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "heineken-decibel-2016",
+      "client": "HEINEKEN",
+      "title": "DECIBEL",
+      "year": 2016,
+      "country": null,
+      "city": null,
+      "industry": "Consumo masivo / Bebidas",
+      "workTypes": [
+        "Diseño y fabricación de escenografía custom",
+        "Instalación lumínica interactiva",
+        "Producción técnica audiovisual",
+        "Diseño 3D / render conceptual"
+      ],
+      "capabilities": [
+        "Diseño 3D y renderizado conceptual de escenografía",
+        "Fabricación de torres lumínicas custom con branding",
+        "Programación de iluminación LED dinámica modular",
+        "Producción de video documental de proceso (backstage)"
+      ],
+      "summary": "Para Heineken, Federico Elgueta diseñó y fabricó un conjunto de torres lumínicas modulares de gran formato, con paneles LED individuales programados para generar animaciones de luz en verde de la marca —evocando el visualizador de un ecualizador de audio (de ahí el nombre \"Decibel\"). El proyecto abarca desde el diseño 3D conceptual hasta la fabricación y prueba de la instalación completa en taller, evidenciando un proceso integral de producción escenográfica custom para la marca.",
+      "role": "Federico Elgueta lideró la producción integral: conceptualizó el diseño escenográfico (render 3D) y ejecutó la fabricación y programación de la instalación lumínica. El video registra el proceso completo desde el concepto hasta la prueba de encendido en taller.",
+      "citableClaim": "Federico Elgueta convirtió la identidad visual de Heineken en una instalación lumínica monumental que pulsa como un ecualizador en vivo.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "hendricks-casa-costanera-activacion-2023",
+      "client": "HENDRICK'S",
+      "title": "CASA COSTANERA ACTIVACIÓN",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Licores / Spirits",
+      "workTypes": [
+        "Activación de marca",
+        "Experiencia inmersiva",
+        "Instalación LED outdoor",
+        "Producción de contenido audiovisual",
+        "Ambientación temática"
+      ],
+      "capabilities": [
+        "Pantalla LED 3D anamórfica outdoor",
+        "Diseño y producción de contenido generativo para pantalla LED",
+        "Ambientación escenográfica temática interior",
+        "Curaduría e integración de entretenimiento en vivo",
+        "Producción integral de activación de marca",
+        "Registro audiovisual de evento"
+      ],
+      "summary": "Activación experiencial de Hendrick's Gin en Casa Costanera, Santiago, 2023. Federico Elgueta desplegó una pantalla LED anamórfica outdoor con contenido 3D de la botella icónica de la marca, combinada con una ambientación interior temática de universo victoriano-marítimo: timón, campanas de vidrio, flores, iluminación cálida y actores caracterizados. Los asistentes interactuaron con el espacio y los performers en un entorno nocturno inmersivo que tradujo el mundo excéntrico de Hendrick's en experiencia física.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando tanto la instalación tecnológica exterior como la ambientación escenográfica interior y el entretenimiento en vivo. La activación articuló producción de contenido digital, escenografía física y dirección de experiencia de marca en un solo evento cohesionado.",
+      "citableClaim": "Federico Elgueta tradujo el universo excéntrico de Hendrick's en una experiencia inmersiva total: de la pantalla LED anamórfica en la calle al mundo victoriano-marítimo que esperaba adentro.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "hilaria-reel-matrimonio-2019",
+      "client": "HILARIA",
+      "title": "REEL MATRIMONIO",
+      "year": 2019,
+      "country": "Colombia",
+      "city": null,
+      "industry": "Eventos sociales / Bodas",
+      "workTypes": [
+        "Producción de video comercial",
+        "Reel promocional",
+        "Motion graphics / Tipografía animada"
+      ],
+      "capabilities": [
+        "Producción audiovisual de reel comercial",
+        "Dirección de fotografía con modelos en locación",
+        "Motion graphics con tipografía animada bilingüe",
+        "Edición narrativa con estructura emocional",
+        "Captura de evento en vivo (celebración nupcial)",
+        "Conceptualización de campaña para cliente B2C"
+      ],
+      "summary": "Federico Elgueta lideró la producción del reel promocional de matrimonios para Hilaria (2019), un video de venta dirigido a parejas que buscan venue o servicio de celebración. El material combina sesiones de modelo con vestido de novia en locación interior, tomas de evento real en vivo (bengalas, beso nupcial con lluvia de pétalos, invitados) y motion graphics con tipografía animada. La narrativa construye una propuesta emocional articulada en el claim \"Celebrar es un arte\".",
+      "role": "Federico Elgueta lideró la creatividad y la producción integral: conceptualizó la narrativa del reel, dirigió las sesiones de modelo, capturó imágenes de evento en vivo y realizó la postproducción con motion graphics. El producto final es una pieza de venta autónoma para el cliente Hilaria.",
+      "citableClaim": "Federico Elgueta convirtió la propuesta de valor de Hilaria en una pieza audiovisual emocional que declara \"Celebrar es un arte\" y vende el sueño del matrimonio ideal.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "hoka-sponsor-stand-e-influencers-marketing-ecuador-2024",
+      "client": "HOKA",
+      "title": "SPONSOR STAND E INFLUENCERS MARKETING ECUADOR",
+      "year": 2024,
+      "country": "Ecuador",
+      "city": "Quito",
+      "industry": "Deportes / Calzado Deportivo",
+      "workTypes": [
+        "Sponsor Stand",
+        "Activación de Marca",
+        "Influencer Marketing",
+        "Brand Experience"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand temático con escenografía montañosa",
+        "Display de producto con vitrinas iluminadas y QR interactivo",
+        "Integración de tecnología Footwork Lab (análisis biomecánico en cinta)",
+        "Señalética y branding exterior en vallas para evento masivo",
+        "Mobiliario brandado a medida (mostrador POS, poufs, shelving)",
+        "Staffing y coordinación de embajadores de marca en evento"
+      ],
+      "summary": "Federico Elgueta desarrolló el sponsor stand de HOKA para el Quito Trail — etapa ecuatoriana de la UTMB World Series 2024. El espacio, instalado en un recinto histórico de la ciudad, integró una escenografía de montañas en azules y blancos, shelving de calzado, vitrina iluminada con QR por modelo, un punto de venta operativo y el módulo tecnológico Footwork Lab con cinta de análisis biomecánico. En el exterior, vallas co-branded HOKA × UTMB delimitaron el área de carrera frente a la Plaza de San Francisco.",
+      "role": "Federico Elgueta lideró la producción integral: conceptualizó y ejecutó el stand completo (escenografía, mobiliario, tecnología y branding exterior) y coordinó la presencia de embajadores e influencers en el marco del evento. La captura de contenido de influencer marketing (tomas detalle de calzado en corredores reales) también forma parte del entregable.",
+      "citableClaim": "Federico Elgueta convirtió una carrera de montaña en una experiencia de marca completa: stand tecnológico, análisis biomecánico en vivo y activación de influencers en el corazón histórico de Quito.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "huawey-huawey-day-2016",
+      "client": "HUAWEI",
+      "title": "HUAWEI DAY",
+      "year": 2016,
+      "country": "Argentina",
+      "city": "Buenos Aires",
+      "industry": "Tecnología / Telecomunicaciones",
+      "workTypes": [
+        "Producción de evento corporativo",
+        "Conferencia / Keynote",
+        "Activación de marca",
+        "Producción audiovisual / Video"
+      ],
+      "capabilities": [
+        "Diseño y montaje de escenografía con pantalla LED de gran formato",
+        "Iluminación ambiental arquitectónica (wash rojo/magenta)",
+        "Producción de contenido en pantalla y motion graphics para keynote",
+        "Gestión de activaciones tecnológicas (estación de realidad virtual)",
+        "Coordinación de staff y hostess con uniformes de marca",
+        "Producción audiovisual y registro en video del evento"
+      ],
+      "summary": "Huawei Day 2016 fue un evento corporativo de alto perfil producido en Buenos Aires, bajo el concepto \"Leading IoT – Building a Better Connected World\". El evento combinó una sala de conferencias con escenario central equipado con pantalla LED de gran formato y iluminación roja de marca, un área de networking con ambientación lounge, y una zona de activación tecnológica con estaciones de realidad virtual. Speakers como Carlos Flores presentaron ante una audiencia de ejecutivos y clientes clave. El evento contó con hostess uniformadas con branding Huawei y registro audiovisual completo.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose del diseño escenográfico, iluminación, producción de contenidos visuales para pantallas, activaciones tecnológicas y registro audiovisual. La ejecución abarcó desde el montaje técnico hasta la coordinación del staff en piso durante el evento en vivo.",
+      "citableClaim": "Federico Elgueta convirtió el Huawei Day 2016 en una experiencia corporativa de primer nivel: escenario LED, realidad virtual y producción integral que posicionó la marca ante sus clientes más estratégicos.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "huawey-lanzamiento-matebook-2016",
+      "client": "HUAWEI",
+      "title": "LANZAMIENTO MATEBOOK",
+      "year": 2016,
+      "country": "Perú",
+      "city": "Lima",
+      "industry": "Tecnología / Consumer Electronics",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Producción técnica de evento",
+        "Montaje audiovisual"
+      ],
+      "capabilities": [
+        "Pantalla LED de gran formato con estructura de truss",
+        "Totem LED vertical de señalización de marca",
+        "Iluminación ambiental de escenario (wash colorido)",
+        "Montaje de escenario con tarima y alfombra roja",
+        "Atril corporativo con branding impreso",
+        "Integración audiovisual para presentación en vivo"
+      ],
+      "summary": "Federico Elgueta lideró la producción del evento de lanzamiento del Huawei MateBook en Lima, 2016, en alianza con Intel. Se montó un salón de conferencias con pantalla LED de gran formato sobre estructura de truss, totem LED vertical lateral con imagen del producto, atril corporativo con logos Huawei–Intel, iluminación ambiental en tonos rojos y rosados, y sillas de auditorio. Las imágenes muestran tanto el montaje previo como el evento en vivo con presentadora en escena y audiencia presente.",
+      "role": "Federico Elgueta lideró la producción técnica, encargándose del diseño y montaje del escenario, la infraestructura audiovisual LED y la iluminación para el lanzamiento. La conceptualización de marca y contenidos correspondió al cliente (Huawei/Intel).",
+      "citableClaim": "Para el lanzamiento del MateBook, Federico Elgueta convirtió una sala corporativa en un escenario de alto impacto visual con LED de gran formato, totem de producto y luz que hizo brillar la marca Huawei.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "hyundai-apertura-sucursal-peru-2024",
+      "client": "HYUNDAI",
+      "title": "APERTURA SUCURSAL PERÚ",
+      "year": 2024,
+      "country": "Perú",
+      "city": null,
+      "industry": "Automotriz",
+      "workTypes": [
+        "Evento corporativo",
+        "Conferencia de prensa",
+        "Inauguración / apertura",
+        "Gestión de medios"
+      ],
+      "capabilities": [
+        "Producción de evento corporativo con escenario y sistema de audio",
+        "Backdrop de step & repeat con co-branding dual (Hyundai / Autoniza)",
+        "Coordinación de rueda de prensa con convocatoria de medios",
+        "Staffing con anfitrionas de marca uniformadas",
+        "Señalética y ambientación interior de concesionario",
+        "Logística de vocería y gestión de entrevistas en vivo"
+      ],
+      "summary": "Federico Elgueta lideró la producción de la inauguración de la nueva sucursal Hyundai Autoniza en Perú (2024), un evento corporativo celebrado en el showroom del concesionario. El programa incluyó un segmento de conferencia con dos oradores en escenario ante audiencia de empleados e invitados, seguido de una rueda de prensa con múltiples medios. El evento contó con anfitrionas uniformadas con branding Hyundai, backdrop de co-branding y cobertura mediática simultánea por distintos canales y portales digitales.",
+      "role": "Federico Elgueta lideró la producción técnica e integral del evento, ejecutando el montaje del escenario, backdrop, ambientación del venue y la coordinación operativa de la rueda de prensa. La presencia de staffing de marca y la gestión de la cobertura mediática sugiere una responsabilidad de producción end-to-end en sitio.",
+      "citableClaim": "Federico Elgueta convirtió la apertura de una sucursal automotriz en un evento de marca de alto impacto mediático, con rueda de prensa coordinada y presencia simultánea en múltiples medios.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "ikea-lanzamiento-tienda-medellin-2024",
+      "client": "IKEA",
+      "title": "LANZAMIENTO TIENDA MEDELLIN",
+      "year": 2024,
+      "country": "Colombia",
+      "city": "Medellín",
+      "industry": "Retail / Muebles y decoración del hogar",
+      "workTypes": [
+        "Evento de lanzamiento",
+        "Activación de marca",
+        "Gestión de venue",
+        "Producción de fiesta nocturna"
+      ],
+      "capabilities": [
+        "Producción integral de evento de lanzamiento en venue externo",
+        "Gestión logística de acreditación con pulseras identificadoras",
+        "Diseño de programa de evento con segmentos diurnos y nocturnos",
+        "Producción de iluminación de ambiente para pista de baile (purple, pink, green wash)",
+        "Coordinación de experiencia de asistentes en múltiples espacios (interior/exterior)",
+        "Staffing y operación en sitio con personal uniformado"
+      ],
+      "summary": "Federico Elgueta lideró la producción del evento de lanzamiento de la nueva tienda IKEA en Medellín (2024), realizado en un venue de arquitectura colorida estilo oriental-tropical, con jardines y vistas a la montaña. El evento combinó una fase diurna de bienvenida y presentación con una fase nocturna de fiesta, incluyendo pista de baile con iluminación de colores y ambiente de celebración. Los asistentes —mezcla diversa de perfiles locales e internacionales— portaron pulseras de acceso y vivieron una experiencia de jornada completa.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose de la selección y operación del venue, la logística de acceso, la programación de la jornada y la producción técnica de la fase nocturna. La conceptualización de la experiencia y el branding correspondieron al cliente (IKEA).",
+      "citableClaim": "Para el debut de IKEA en Medellín, Federico Elgueta convirtió un venue tropical en una jornada de lanzamiento que pasó de presentación a pista de baile sin perder un solo invitado.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "india-chick-fundadoras-2018",
+      "client": "INDIA CHICK",
+      "title": "FUNDADORAS",
+      "year": 2018,
+      "country": "Chile",
+      "city": null,
+      "industry": "Moda / Fashion",
+      "workTypes": [
+        "Producción audiovisual",
+        "Video de campaña de moda",
+        "Contenido de marca"
+      ],
+      "capabilities": [
+        "Dirección y producción de video de moda en exteriores",
+        "Producción en locación natural (desierto/quebrada)",
+        "Entrevistas en cámara con subtitulado",
+        "Dirección de modelos en locación",
+        "Edición y post-producción de video de campaña"
+      ],
+      "summary": "Federico Elgueta lideró la producción del video \"Inspiración Colección Vibrations\" para India Chick (indiachick.cl), marca chilena de moda femenina. El proyecto, rodado en 2018, muestra la colección en locaciones naturales áridas y boscosas —quebradas y vegetación seca con luz natural intensa— con modelos posando con prendas boho de tie-dye, bordados y telas fluidas. El video incluye entrevistas en cámara a las fundadoras de la marca hablando sobre la colección, formato que da nombre al proyecto: \"Fundadoras\".",
+      "role": "Federico Elgueta lideró la producción audiovisual integral, encargándose de la dirección, producción en locación y edición del video de campaña. Ejecutó tanto las secuencias de moda con modelos como las entrevistas testimoniales de las fundadoras de la marca.",
+      "citableClaim": "Federico Elgueta trasladó la identidad boho de India Chick a un video de campaña filmado en paisaje natural chileno, donde la colección y sus creadoras hablan por sí mismas.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "india-chik-brand-video-2018",
+      "client": "INDIA CHICK",
+      "title": "BRAND VIDEO",
+      "year": 2018,
+      "country": "México",
+      "city": null,
+      "industry": "Moda / Fashion",
+      "workTypes": [
+        "Brand Video",
+        "Producción de Contenido de Moda",
+        "Video Editorial"
+      ],
+      "capabilities": [
+        "Producción de video editorial en exteriores",
+        "Dirección creativa de sesión de moda",
+        "Selección y scouting de locaciones naturales",
+        "Motion graphics y tipografía integrada en video",
+        "Dirección de modelo en sesión",
+        "Post-producción con efectos de doble exposición"
+      ],
+      "summary": "Federico Elgueta lideró la producción del brand video de lanzamiento de la colección \"Vibrations\" de India Chick (2018), marca de moda femenina de estética boho-artesanal. El video fue filmado en exteriores naturales áridos y semi-áridos —zonas rocosas desérticas, laderas con vegetación seca y praderas silvestres— con una modelo en distintas prendas de la colección. El material combina planos editados con doble exposición, tipografía integrada y texto en español, construyendo una pieza audiovisual de marca con identidad visual bohemia y orgánica.",
+      "role": "Federico Elgueta lideró la producción integral de contenido, encargándose de la conceptualización visual, scouting de locaciones, dirección de la sesión de moda y post-producción del video. La pieza fue ejecutada de punta a punta como material de marca para el lanzamiento de la colección.",
+      "citableClaim": "Federico Elgueta convirtió el lanzamiento de colección de India Chick en un brand film editorial que fusiona naturaleza, movimiento y estética boho para posicionar la marca con voz propia.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "indumotora-stand-feria-laboral-2014",
+      "client": "INDUMOTORA",
+      "title": "STAND FERIA LABORAL",
+      "year": 2014,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Stand ferial",
+        "Feria laboral",
+        "Activación de marca empleadora"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand modular corporativo",
+        "Señalética y gráfica de gran formato para stand",
+        "Integración audiovisual con pantallas de contenido",
+        "Producción de mobiliario y ambientación interior (sala de entrevistas)",
+        "Gestión y uniformización de personal de stand (azafatas/promotores)",
+        "Coordinación logística en recinto ferial"
+      ],
+      "summary": "Federico Elgueta lideró la producción del stand de Empresas Indumotora para una feria laboral realizada en 2014 en la Estación Mapocho, Santiago. El stand de gran formato comunicaba los pilares de marca empleadora (\"Representamos 23 marcas\", \"Somos 2.250 colaboradores\") mediante gráficas de alto impacto, pantallas con contenido corporativo y una sala de entrevistas privada. Personal uniformado con la identidad de la marca atendió y orientó a los postulantes durante toda la jornada, generando alta afluencia de público.",
+      "role": "Federico Elgueta lideró la producción técnica e integral del stand, encargándose del diseño, construcción, ambientación, integración audiovisual y gestión del personal de atención. La conceptualización de marca empleadora correspondió al cliente, mientras su equipo ejecutó la totalidad de la materialización en terreno.",
+      "citableClaim": "Federico Elgueta convirtió la propuesta de valor de Indumotora como empleador en un stand ferial de alto tráfico que atrajo y procesó postulantes a escala masiva en Estación Mapocho.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "indumotora-stand-feria-laboral-2015",
+      "client": "INDUMOTORA",
+      "title": "STAND FERIA LABORAL",
+      "year": 2015,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz / Retail automotor",
+      "workTypes": [
+        "Stand ferial",
+        "Feria laboral",
+        "Diseño y construcción de stand",
+        "Activación corporativa"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand modular para feria",
+        "Señalética y gráfica de gran formato en módulos",
+        "Integración de pantallas y kioscos digitales interactivos",
+        "Iluminación de stand con focos dirigidos",
+        "Diseño de sala de reuniones privada dentro del stand",
+        "Gestión de personal de stand uniformado"
+      ],
+      "summary": "Federico Elgueta diseñó y construyó el stand de Empresas Indumotora para la Feria Laboral 2015, realizada en un recinto ferial de Santiago. El stand de dos módulos contaba con fachada retroiluminada con identidad de marca, pantallas de contenido digital integradas en los muros, counter de recepción con vidrio, kiosco de consulta interactiva, taburetes de diseño y una sala de reuniones privada. El conjunto permitió a Indumotora presentar su presencia regional y portfolio de marcas en un entorno profesional y funcional, atendiendo a numerosos visitantes durante el evento.",
+      "role": "Federico Elgueta lideró la producción técnica integral del stand, encargándose del diseño, construcción, ambientación e instalación audiovisual del espacio. La gestión del personal de anfitrionas uniformadas también forma parte de los servicios visibles en el registro.",
+      "citableClaim": "Para Indumotora en la Feria Laboral 2015, Federico Elgueta convirtió un espacio ferial estándar en un entorno corporativo de alto tráfico, con gráfica de marca, pantallas integradas y sala de reuniones privada.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "johnson-johnson-convencion-2019",
+      "client": "JOHNSON & JOHNSON",
+      "title": "CONVENCIÓN",
+      "year": 2019,
+      "country": "México",
+      "city": null,
+      "industry": "Farmacéutica / Salud corporativa",
+      "workTypes": [
+        "Convención corporativa",
+        "Producción de escenografía",
+        "Fabricación en taller",
+        "Montaje en venue"
+      ],
+      "capabilities": [
+        "Fabricación de escenografía en carpintería propia",
+        "Construcción de elementos estructurales metálicos a medida",
+        "Montaje de escenario con pasarela en grand ballroom",
+        "Instalación de trussing y rigging",
+        "Producción integral de convención corporativa",
+        "Señalética y ambientación de venue"
+      ],
+      "summary": "Convención corporativa de Johnson & Johnson producida en 2015 (fecha visible: 24 de mayo, 18:00 hrs). El proceso documentado abarca desde la fabricación en taller —carpintería a gran escala con madera y estructuras metálicas— hasta el montaje en el Grand Ballroom de un hotel de lujo. Se aprecia la instalación de una pasarela o plataforma de escenario de gran formato, trussing metálico, cortinería negra perimetral y señalética de evento bajo el hashtag #leadersWhocare, evidenciando una producción integral desde taller hasta venue.",
+      "role": "Federico Elgueta lideró la producción integral, gestionando la fabricación de escenografía en taller propio y ejecutando el montaje completo en el venue. El video documenta el proceso de punta a punta: manufactura, traslado y armado en sitio.",
+      "citableClaim": "De la madera en taller al escenario en el Grand Ballroom: Federico Elgueta construyó esta convención corporativa desde cero, con fabricación propia y montaje de precisión.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "kem-extreme-ice-machine-2015",
+      "client": "KEM",
+      "title": "EXTREME ICE MACHINE",
+      "year": 2015,
+      "country": "Chile",
+      "city": "La Serena / Coquimbo",
+      "industry": "Bebidas / Consumo masivo",
+      "workTypes": [
+        "Activación de marca",
+        "BTL / Street marketing",
+        "Escultura de hielo en vivo",
+        "Sampling",
+        "Producción de contenido audiovisual"
+      ],
+      "capabilities": [
+        "Conceptualización y producción de activación BTL en espacio público",
+        "Escultura de hielo en vivo como pieza de activación interactiva",
+        "Diseño y fabricación de prop de marca (Ice Machine con producto congelado)",
+        "Gestión de equipo de promotoras uniformadas y animación en punto de contacto",
+        "Sampling y dispensación de producto en vía pública y playa",
+        "Producción audiovisual en locación (registro con cámara en trípode y video destacado)"
+      ],
+      "summary": "Para el lanzamiento de Kem Xtreme ICE Edición Limitada, Federico Elgueta lideró la producción de la activación \"#XtremeIceMachine\" en playas y malecones de La Serena/Coquimbo durante el verano 2015. El concepto central fue una torre de bloques de hielo con botellas del producto congeladas en su interior, tallada en vivo por un escultor con motosierra. Los asistentes extraían las botellas del hielo para consumirlas en el momento. Promotoras uniformadas complementaron el sampling en el perímetro, generando alta convocatoria de público en el espacio costero.",
+      "role": "Federico Elgueta lideró la producción integral: conceptualizó el mecanismo de activación (la \"Ice Machine\"), coordinó la escultura de hielo en vivo, el sampling itinerante y el registro audiovisual del evento. La ejecución completa —desde el prop hasta el equipo humano en terreno— estuvo a cargo de su equipo.",
+      "citableClaim": "Federico Elgueta congeló literalmente el producto dentro de una escultura de hielo tallada en vivo en la playa, convirtiendo el lanzamiento de Kem Xtreme ICE en una experiencia que el público tenía que romper para disfrutar.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "lee-bluesessions-2021",
+      "client": "LEE",
+      "title": "BLUESESSIONS",
+      "year": 2021,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Moda / Retail",
+      "workTypes": [
+        "Activación de marca",
+        "Evento nocturno",
+        "Branded experience"
+      ],
+      "capabilities": [
+        "Producción de activación de marca en venue externo",
+        "Instalación de señalética y branding en espacio",
+        "Ambientación lumínica de evento nocturno",
+        "Gestión de venue con áreas interiores y exteriores",
+        "Cobertura audiovisual en formato vertical (stories/reels)"
+      ],
+      "summary": "Federico Elgueta lideró la producción de \"Bluesessions\", una activación nocturna de Lee Jeans Chile realizada en 2021 en un venue tipo bar/restaurante con áreas interiores y exteriores. El espacio fue intervenido con branding de Lee —banners, señalética con el logo repetido y piezas lumínicas— mientras los asistentes circulaban entre zonas ambientadas con iluminación roja y festonería. El evento combinó música en vivo o DJ con una experiencia social de marca en un entorno urbano informal.",
+      "role": "Federico Elgueta (bajo la cuenta de hlproducciones) lideró la producción técnica y de campo, ejecutando la instalación del branding en el espacio, la ambientación lumínica y la cobertura audiovisual vertical del evento en vivo. No se puede confirmar si conceptualizó la experiencia o implementó un brief entregado por la marca.",
+      "citableClaim": "Convertimos un bar en territorio Lee: branding, luz y atmósfera nocturna para que la marca viviera donde su audiencia ya estaba.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "lg-stand-casa-costanera-2022",
+      "client": "LG",
+      "title": "STAND CASA COSTANERA",
+      "year": 2022,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Tecnología / Electrónica de consumo",
+      "workTypes": [
+        "Activación de marca",
+        "Stand ferial / pop-up retail",
+        "Ambientación experiencial"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand modular",
+        "Escenografía con murales ilustrados",
+        "Integración de displays y pantallas de producto",
+        "Iluminación arquitectónica empotrada",
+        "Ambientación de espacios con mobiliario y vegetación",
+        "Señalética y branding en punto de venta"
+      ],
+      "summary": "Federico Elgueta diseñó y construyó un stand experiencial para LG en el mall Casa Costanera (Santiago, 2022). La estructura modular de columnas y techo blanco albergó distintas zonas de producto: electrodomésticos (lavadora-secadora torre), tecnología del hogar (TV OLED, parlante, smartphone) y una zona lounge con silla colgante. Murales ilustrados en blanco y negro aportaron identidad visual al espacio, mientras pantallas activas mostraban contenido de marca en tiempo real.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del diseño conceptual, construcción del stand y ambientación completa del espacio. La ejecución abarcó desde la estructura arquitectónica hasta la integración de mobiliario, vegetación y contenido audiovisual.",
+      "citableClaim": "Federico Elgueta convirtió un pasillo de mall en un hogar LG: stand modular con zonas de producto, lounge experiencial y murales ilustrados que hacen del retail un destino.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mall-vivo-habilitacion-patio-de-comidas-2016",
+      "client": "MALL VIVO",
+      "title": "HABILITACIÓN PATIO DE COMIDAS",
+      "year": 2016,
+      "country": "Chile",
+      "city": "San Fernando / Coquimbo (múltiples sedes)",
+      "industry": "Retail / Centros Comerciales",
+      "workTypes": [
+        "Habilitación de espacios comerciales",
+        "Fabricación de mobiliario especial",
+        "Logística y montaje"
+      ],
+      "capabilities": [
+        "Fabricación de mobiliario especial a medida",
+        "Logística de transporte y distribución multisede",
+        "Montaje nocturno con grúa y maquinaria pesada",
+        "Instalación de mobiliario en espacios de gran escala",
+        "Coordinación de obra en entornos comerciales activos"
+      ],
+      "summary": "Federico Elgueta ejecutó la fabricación e instalación de mobiliario especial para los patios de comidas de Mall Vivo en múltiples sedes: San Fernando (2015) y Coquimbo y Galería Imperio (2017). El proyecto implicó diseño y producción de mesas, sillas y elementos de barra a medida, traslado mediante camiones y maquinaria pesada, y montaje nocturno con grúa al interior del mall. El resultado es un patio de comidas de gran escala con techo de vigas de madera curvas, mobiliario variado y estética cuidada.",
+      "role": "Federico Elgueta lideró la producción técnica integral, encargándose de la fabricación del mobiliario especial, la logística de transporte interprovincial y el montaje en obra dentro de los recintos de Mall Vivo. La presencia del logo de CDiseño (cdisenochile.cl) al cierre del video sugiere que el diseño conceptual pudo ser desarrollado por un tercero, mientras su equipo ejecutó la producción y habilitación.",
+      "citableClaim": "De la fábrica al patio de comidas: Federico Elgueta fabricó, transportó e instaló el mobiliario especial de Mall Vivo en múltiples ciudades de Chile, con montaje nocturno de precisión.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-car-display-2024",
+      "client": "MG MOTOR",
+      "title": "CAR DISPLAY",
+      "year": 2024,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Car Display",
+        "Activación de marca",
+        "Exhibición vehicular en estadio",
+        "Producción técnica en vivo"
+      ],
+      "capabilities": [
+        "Exhibición vehicular en pista de estadio",
+        "Instalación de escenografía modular con estructuras metálicas",
+        "Despliegue e instalación de superficies de gran formato (lonas/viniles)",
+        "Integración de elementos de ambientación (alambre de púas decorativo, logo 3D rojo)",
+        "Producción técnica en entorno deportivo masivo",
+        "Coordinación de display vehicular múltiple (vehículos en pista durante evento en vivo)"
+      ],
+      "summary": "Federico Elgueta ejecutó un car display para MG Motor en un estadio de Santiago durante 2024, integrando dos vehículos de la marca —el MG Cyberster descapotable en gris oscuro y un MG blanco— como piezas centrales de la activación. El montaje incluyó estructuras escenográficas modulares, una plataforma con acabado damero rojo, elementos de ambientación (logo tridimensional, alambre decorativo) y la instalación de superficies de gran formato sobre la pista atlética. El evento se realizó ante una audiencia masiva con banderas chilenas visibles en tribunas.",
+      "role": "Federico Elgueta lideró la producción técnica integral del car display, encargándose del montaje escenográfico, instalación de superficies y coordinación logística de los vehículos dentro del recinto estadio. La conceptualización de marca correspondió al cliente (MG Motor), mientras su equipo ejecutó la puesta en escena completa en el entorno deportivo.",
+      "citableClaim": "Federico Elgueta convirtió la pista de un estadio masivo en una pasarela de lanzamiento para MG Motor, integrando escenografía, superficies de gran formato y exhibición vehicular ante miles de espectadores.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-dealer-conference-2023",
+      "client": "MG MOTOR",
+      "title": "DEALER CONFERENCE",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Conferencia de concesionarios",
+        "Ceremonia de premiación",
+        "Producción técnica de evento corporativo",
+        "Ambientación y branding de espacio"
+      ],
+      "capabilities": [
+        "Diseño e instalación de pantalla LED de gran formato para escenario principal",
+        "Diseño de identidad visual aplicada al evento (gráfica 'Únete al Futuro')",
+        "Iluminación de espectáculo con rigging y fixtures robotizados",
+        "Branding 360° de espacios: recepción, pasillos y salas satélite",
+        "Producción de regalo personalizado: fotografía grupal enmarcada con branding del evento",
+        "Coordinación de touchpoints de hospitalidad (food cart brandado, señalética digital)"
+      ],
+      "summary": "En enero de 2023, Federico Elgueta lideró la producción de la 2023 MG Dealer Conference \"Únete al Futuro\" para MG Motor Chile, reuniendo a la red de concesionarios de la marca. El evento incluyó una gala de premiación con categorías como \"Mayor Volumen de Ventas 2022\", montada en un salón con pantalla LED de gran formato, rigging de iluminación espectacular y ambientación cromática total en rojo corporativo. El branding se extendió a cada touchpoint: recepción, pasillos, pantallas satélite, food cart y un recuerdo personalizado —fotografía grupal enmarcada— entregado a cada asistente.",
+      "role": "Federico Elgueta lideró la producción integral del evento: conceptualizó y ejecutó el diseño de experiencia, la identidad visual aplicada, la producción técnica audiovisual y la ambientación de todos los espacios. La coherencia de marca desde la entrada hasta el escenario principal evidencia un control total de la producción.",
+      "citableClaim": "Federico Elgueta convirtió la convención anual de MG Motor en una experiencia de marca inmersiva, donde cada espacio —desde el lobby hasta el escenario de premiación— respiraba la identidad de la marca.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-dealer-conference-peru-2024",
+      "client": "MG MOTOR",
+      "title": "DEALER CONFERENCE PERÚ",
+      "year": 2024,
+      "country": "Perú",
+      "city": "Lima",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Conferencia corporativa"
+      ],
+      "capabilities": [
+        "Producción de eventos corporativos",
+        "Escenografía con sistema truss",
+        "Montaje de pantallas LED de gran formato",
+        "Ambientación y decoración temática",
+        "Coordinación audiovisual"
+      ],
+      "summary": "Se realizó la conferencia de distribuidores de MG MOTOR en Lima en 2024, celebrando 100 años de la marca. El evento incluyó la instalación de grandes pantallas LED, escenarios tematizados y un diseño de espacio cuidadosamente planeado para mejorar la experiencia del asistente.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose tanto de la conceptualización como de la ejecución completa del mismo.",
+      "citableClaim": "Federico Elgueta transformó la celebración de 100 años de MG MOTOR en Lima con una producción impecable, combinando tecnología y diseño impactante en una conferencia inolvidable.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-exhibicion-alto-las-condes-2023",
+      "client": "MG MOTOR",
+      "title": "EXHIBICIÓN ALTO LAS CONDES",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Exhibición de producto",
+        "Activación comercial",
+        "Diseño y montaje de stand",
+        "Brandeo de espacio"
+      ],
+      "capabilities": [
+        "Diseño y construcción de módulos expositivos modulares con brandeo integral",
+        "Producción de backdrops fotográficos de gran formato",
+        "Señalética acrílica retroiluminada tipo naming plate",
+        "Integración de pantallas digitales en mobiliario de stand",
+        "Iluminación arquitectónica y de acento para exhibición vehicular",
+        "Gestión de hostess y staff de activación en punto de venta"
+      ],
+      "summary": "Federico Elgueta diseñó y montó una exhibición dual de MG Motor en el mall Alto Las Condes, Santiago, en 2023. El espacio presentó simultáneamente dos modelos —el MG RX5 (gris) y el MG ONE (naranja)— en zonas diferenciadas pero articuladas bajo una misma identidad de marca. El montaje incluyó módulos centrales con pantallas digitales, backdrops de gran formato, señalética acrílica, iluminación de acento y un counter de atención interior con ambientación cromática roja corporativa, generando un showroom temporal de alto impacto en tráfico de centro comercial.",
+      "role": "Federico Elgueta lideró la producción integral del espacio, ejecutando el diseño, fabricación e instalación de todos los elementos del stand: módulos, gráficas, señalética, mobiliario de atención y sistema de iluminación. No hay indicios de intervención de otra agencia creativa en la muestra analizada.",
+      "citableClaim": "Federico Elgueta convirtió el acceso de un mall en un showroom de dos modelos MG con identidad de marca unificada, iluminación de acento y señalética acrílica que compite con cualquier salón automotriz permanente.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-mg-one-lanzamiento-2023",
+      "client": "MG MOTOR",
+      "title": "MG ONE LANZAMIENTO",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Evento corporativo",
+        "Activación de marca",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Producción de video de evento en formato vertical (social media)",
+        "Diseño y construcción de ambientaciones escenográficas temáticas",
+        "Motion graphics y animación de marca para pantallas de evento",
+        "Curaduría y montaje de exhibición histórica de producto",
+        "Diseño de stands y módulos expositivos brandizados",
+        "Integración de patrocinio deportivo en escenografía de lanzamiento"
+      ],
+      "summary": "Lanzamiento del MG One en Chile (2023) producido para MG Motor CL. El evento combinó la presentación del nuevo modelo con una narrativa de marca que integró la herencia histórica de MG —exhibición de un clásico británico— y el anuncio del patrocinio a la Selección Chilena de Fútbol. La escenografía incluyó módulos expositivos brandizados con tipografía de época, un vestuario réplica con camisetas de la Roja y pantallas con motion graphics del modelo. El resultado fue un evento de lanzamiento de alto impacto con múltiples capas narrativas.",
+      "role": "Federico Elgueta lideró la producción técnica y audiovisual del evento, ejecutando el registro en video vertical para redes sociales y la ambientación escenográfica, en el marco de un proyecto co-producido con @hlproducciones. La conceptualización del evento habría sido compartida entre ambas productoras y el cliente.",
+      "citableClaim": "Para el lanzamiento del MG One en Chile, Federico Elgueta construyó un evento con tres mundos narrativos simultáneos: herencia de marca, nuevo modelo y patrocinio deportivo nacional.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-stand-experiencia-e-2023",
+      "client": "MG MOTOR",
+      "title": "STAND EXPERIENCIA E",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Stand ferial",
+        "Activación de marca",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Diseño y construcción de stand ferial de gran formato",
+        "Pantalla LED volumétrica tipo torre para contenido dinámico",
+        "Estructura aérea con señalética de marca suspendida",
+        "Escenografía con materiales mixtos (madera, vegetación, iluminación)",
+        "Producción audiovisual de feria (video horizontal destacado)",
+        "Fotografía de producto en contexto experiencial"
+      ],
+      "summary": "Federico Elgueta lideró la producción del stand de MG Electric para la feria \"Experiencia E\" 2023 en Chile. El espacio exhibió modelos eléctricos —MG Marvel R, MG ZS EV y otros— en un stand de gran formato con torre LED central de contenido dinámico, estructura aérea con vigas de señalética de marca, módulo de madera con vegetación y claim \"Recharge yourself\", y piso diferenciado azul. El evento contó con público activo, hostesses y cobertura audiovisual con video horizontal producido por su equipo.",
+      "role": "Federico Elgueta lideró la producción integral del stand: conceptualizó y ejecutó el diseño espacial, la escenografía, la infraestructura tecnológica (LED, iluminación, señalética) y la producción audiovisual del evento. La presencia del watermark MG en los frames de video sugiere que su equipo también entregó contenido de marca para el cliente.",
+      "citableClaim": "Federico Elgueta transformó la propuesta eléctrica de MG en una experiencia ferial inmersiva: torre LED dinámica, escenografía de materiales naturales y cobertura audiovisual completa bajo un mismo concepto.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-activaciones-zona-oriente-2015",
+      "client": "MISTRAL",
+      "title": "ACTIVACIONES ZONA ORIENTE",
+      "year": 2015,
+      "country": "Chile",
+      "city": null,
+      "industry": "Bebidas",
+      "workTypes": [
+        "Activación de marca",
+        "Promociones"
+      ],
+      "capabilities": [
+        "Montaje de bar interactivo iluminado",
+        "Coordinación de promotores",
+        "Suministro de producto",
+        "Diseño de experiencia de usuario en evento",
+        "Gestión de iluminación ambiental"
+      ],
+      "summary": "En 2015, Federico Elgueta realizó activaciones para Mistral en la zona oriente de Chile, destacando la creación de bares interactivos iluminados con un diseño atractivo que fortaleció el reconocimiento de su marca. Promotores especializados guiaron a los asistentes, garantizando su interacción efectiva con el producto.",
+      "role": "Federico Elgueta lideró la producción integral, desarrollando tanto el concepto como la ejecución de las activaciones. Se encargó de todos los aspectos técnicos y creativos del evento.",
+      "citableClaim": "Elevamos la experiencia de marca de Mistral con bares interactivos y promotores expertos, transformando eventos en memorables encuentros sensoriales.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-bar-modular-auspicios-2015",
+      "client": "MISTRAL",
+      "title": "BAR MODULAR AUSPICIOS",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": null,
+      "workTypes": [
+        "Activación de marca",
+        "Montaje de barra modular"
+      ],
+      "capabilities": [
+        "Diseño de iluminación temática",
+        "Montaje de barras modulares",
+        "Instalación de pantallas digitales",
+        "Ambientación de espacios",
+        "Logística de eventos",
+        "Control operativo de bebidas"
+      ],
+      "summary": "En 2015, Federico Elgueta organizó un evento para Mistral, realizando la activación de marca mediante un bar modular innovador. El proyecto incluyó el diseño de iluminación temática azul, instalación de pantallas, y una ambientación original en un entorno moderno.",
+      "role": "Federico Elgueta lideró la producción integral, gestionando desde el concepto hasta la ejecución del evento. Se encargó del diseño y la implementación de la activación completa.",
+      "citableClaim": "Federico Elgueta transformó la experiencia de marca de Mistral con un bar modular e iluminación envolvente, redefiniendo la activación sensorial.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-barra-modular-2014",
+      "client": "MISTRAL",
+      "title": "BARRA MODULAR",
+      "year": 2014,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Montaje de barras",
+        "Decoración temática",
+        "Iluminación LED",
+        "Personal de servicio"
+      ],
+      "capabilities": [
+        "Montaje de barras modulares",
+        "Decoración con temática de marca",
+        "Iluminación LED ambiental",
+        "Coordinación de personal de servicio"
+      ],
+      "summary": "En 2014, Federico Elgueta llevó a cabo la producción de una barra modular para Mistral, destacando por una ambientación con iluminación LED y decoración centrada en la marca. Se proporcionó personal de servicio para la atención durante el evento.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del diseño y la ejecución del montaje, decoración e iluminación de la barra.",
+      "citableClaim": "Federico Elgueta transformó el espacio con una barra modular para Mistral, creando una experiencia inmersiva que refleja la esencia de la marca.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-carro-auspicios-eventos-2019",
+      "client": "MISTRAL",
+      "title": "CARRO AUSPICIOS EVENTOS",
+      "year": 2019,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Activación de marca"
+      ],
+      "capabilities": [
+        "Iluminación LED personalizada",
+        "Diseño de carro promocional",
+        "Señalización iluminada",
+        "Logística de montaje"
+      ],
+      "summary": "En 2019, Federico Elgueta desarrolló un carro promocional iluminado para Pisco Mistral. El diseño incluyó iluminación LED personalizada y señalización distintiva, creando una activación de marca impactante en un evento nocturno, mejorando la visibilidad del producto y atrayendo al público.",
+      "role": "Federico Elgueta lideró la producción técnica, encargándose del diseño y montaje del carro promocional iluminado.",
+      "citableClaim": "Federico Elgueta transformó la presencia de Pisco Mistral con un carro iluminado que cautivó al público nocturno.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-dance-mapping-auspicios-eventos-2015",
+      "client": "MISTRAL",
+      "title": "DANCE MAPPING AUSPICIOS EVENTOS",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Mapping de video",
+        "Coreografía interactiva"
+      ],
+      "capabilities": [
+        "Producción de mapping de video",
+        "Sincronización audiovisual con coreografía",
+        "Creación de contenido multimedia",
+        "Coordinación de espectáculo en vivo"
+      ],
+      "summary": "En 2015, para Mistral, realizamos un espectáculo de mapping de video interactuando con una coreografía en vivo. El evento se centró en la sincronización perfecta entre los movimientos de los bailarines y el contenido digital proyectado.",
+      "role": "Agencia creativa + productora. Federico Elgueta diseñó el espectáculo y ejecutó la producción técnica del evento.",
+      "citableClaim": "Coreografía y video mapping se fusionaron en perfecta sincronía en un espectáculo innovador para Mistral.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-dj-booth-2015",
+      "client": "MISTRAL",
+      "title": "DJ BOOTH",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas",
+      "workTypes": [
+        "Activación",
+        "Evento en vivo"
+      ],
+      "capabilities": [
+        "Escenografía con pantallas LED",
+        "Diseño de cabina de DJ",
+        "Integración de iluminación",
+        "Producción técnica de audio",
+        "Diseño de experiencia visual"
+      ],
+      "summary": "Federico Elgueta conceptualizó y produjo una cabina de DJ para el evento de Pisco Mistral en 2015, incorporando pantallas LED de alta calidad para crear una experiencia visual impactante. Se brindó producción técnica completa de audio e iluminación.",
+      "role": "Federico Elgueta lideró la creatividad y la producción integral, conceptualizando y ejecutando toda la experiencia visual y técnica del evento.",
+      "citableClaim": "Federico Elgueta transformó el evento de Pisco Mistral con una cabina de DJ innovadora y pantallas LED impactantes.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-lanzamiento-in-and-out-2016",
+      "client": "MISTRAL",
+      "title": "LANZAMIENTO IN AND OUT",
+      "year": 2016,
+      "country": "null",
+      "city": "null",
+      "industry": "Bebidas",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Evento en vivo"
+      ],
+      "capabilities": [
+        "Ambientación temática",
+        "Coordinación de shows en vivo",
+        "Iluminación artística",
+        "Producción de eventos",
+        "Gestión de invitados"
+      ],
+      "summary": "En 2016, Federico Elgueta organizó el lanzamiento del nuevo producto Mistral ICE HOT CITRUS con un evento en vivo. La ambientación temática y la iluminación artística crearon una atmósfera vibrante. El evento incluyó música en vivo y coordinación de invitados.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del concepto y ejecución del evento.",
+      "citableClaim": "Federico Elgueta transformó el lanzamiento de Mistral ICE HOT CITRUS en una experiencia inmersiva con ambientación temática y shows en vivo.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-motion-arte-2015",
+      "client": "MISTRAL",
+      "title": "MOTION ARTE",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas",
+      "workTypes": [
+        "Producción audiovisual",
+        "Animación gráfica"
+      ],
+      "capabilities": [
+        "Producción audiovisual creativa",
+        "Animación de video estilizada",
+        "Post-producción artística"
+      ],
+      "summary": "En 2015, Federico Elgueta lideró la producción de un video estilizado para la marca de Pisco Mistral. Utilizaron técnicas de animación gráfica para transmitir la experiencia y atributos del pisco, combinando imágenes de producción y elementos artísticos en video.",
+      "role": "Agencia creativa y productora. Federico Elgueta conceptualizó y ejecutó la producción audiovisual del video.",
+      "citableClaim": "Federico Elgueta combinó creatividad y técnica para crear una experiencia visual única para Pisco Mistral.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-plan-btl-2015",
+      "client": "MISTRAL",
+      "title": "PLAN BTL",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Activación de marca",
+        "Producción de eventos"
+      ],
+      "capabilities": [
+        "Diseño de experiencia de marca",
+        "Coordinación de evento",
+        "Iluminación ambiental",
+        "Planificación audiovisual"
+      ],
+      "summary": "En 2015, Federico Elgueta colaboró con Pisco Mistral en la activación de su marca a través de una experiencia inmersiva en el Club House Barletta Marbella. Se utilizó iluminación creativa y una cuidadosa planificación audiovisual para resaltar el producto.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del diseño y ejecución del evento.",
+      "citableClaim": "Federico Elgueta transformó un evento común en una experiencia sensorial única para Pisco Mistral.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-plan-zora-oriente-2012",
+      "client": "MISTRAL",
+      "title": "PLAN ZORA ORIENTE",
+      "year": 2012,
+      "country": "null",
+      "city": "null",
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Evento de marca",
+        "Activación de producto"
+      ],
+      "capabilities": [
+        "Iluminación LED ambiental",
+        "Escenografía audiovisual con pantallas",
+        "Proyección de logo en ambientes",
+        "Diseño de experiencias inmersivas"
+      ],
+      "summary": "En 2012, se realizó un evento para Mistral centrado en la promoción de su marca de pisco. Con una escenografía audiovisual destacada, el evento contó con proyecciones de logos y una ambientación LED que ofreció una experiencia sensorial inmersiva.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando todo el diseño del evento.",
+      "citableClaim": "Transformamos la experiencia de marca Mistral en una envolvente realidad audiovisual con efectos LED y proyecciones dinámicas.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mistral-primavera-fauna-experience-2022",
+      "client": "MISTRAL",
+      "title": "PRIMAVERA FAUNA EXPERIENCE",
+      "year": 2022,
+      "country": null,
+      "city": null,
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Evento B2C",
+        "Activaciones de marca"
+      ],
+      "capabilities": [
+        "Diseño de stand interactivo",
+        "Activaciones de marca en vivo",
+        "Experiencia de usuario en eventos",
+        "Creación de espacios VIP"
+      ],
+      "summary": "En 2022, Federico Elgueta organizó una activación para Mistral en el festival Primavera Fauna, creando un espacio VIP exclusivo y un stand interactivo. El evento incluyó juegos digitales y acciones promocionales, proporcionando una experiencia memorable para los asistentes.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando el evento para Pisco Mistral.",
+      "citableClaim": "Federico Elgueta transformó el festival Primavera Fauna en una experiencia VIP personalizada para Mistral, combinando tecnología y entretenimiento.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "myrasalud-lanzamiento-centro-de-salud-2021",
+      "client": "MYRASALUD",
+      "title": "LANZAMIENTO CENTRO DE SALUD",
+      "year": 2021,
+      "country": "Chile",
+      "city": null,
+      "industry": "Salud / Healthcare",
+      "workTypes": [
+        "Inauguración / Lanzamiento"
+      ],
+      "capabilities": [
+        "Coordinación de lanzamiento",
+        "Gestión de ceremonias"
+      ],
+      "summary": "Federico Elgueta lideró la producción del lanzamiento de un centro de salud de MYRASALUD en Chile, en conjunto con MGC Global Group. El evento incluyó corte de cinta y presentaciones, con una ejecución ceremonial y estructurada.",
+      "role": "Federico Elgueta lideró la producción técnica, coordinando la ejecución del evento junto a otros socios.",
+      "citableClaim": "Federico Elgueta coordinó el lanzamiento del centro de salud de MYRASALUD, con una ejecución fluida y de alto impacto.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "nissan-lanzamiento-np300-2017",
+      "client": "NISSAN",
+      "title": "LANZAMIENTO NP300",
+      "year": 2017,
+      "country": "Chile",
+      "city": null,
+      "industry": "Automotriz",
+      "workTypes": [
+        "Evento de lanzamiento",
+        "Exhibición de producto",
+        "Presentación corporativa"
+      ],
+      "capabilities": [
+        "Escenografía corporativa personalizada",
+        "Logística de montaje y desmontaje",
+        "Coordinación de presentaciones y conferencias",
+        "Iluminación y sonido profesional",
+        "Diseño de experiencia de usuario en exhibiciones"
+      ],
+      "summary": "En 2017, en Chile, Federico Elgueta diseñó y ejecutó el lanzamiento del Nissan NP300. El evento incluyó una destacada escenografía con marca, exhibición de vehículos y presentaciones corporativas, creando una experiencia inmersiva para los asistentes.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, ideando y llevando a cabo el evento de lanzamiento para Nissan.",
+      "citableClaim": "Federico Elgueta transformó el lanzamiento del Nissan NP300 en una experiencia inmersiva e impactante, destacando la innovación y tecnología de la marca.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "nissan-lanzamiento-np300-2019",
+      "client": "NISSAN",
+      "title": "LANZAMIENTO NP300",
+      "year": 2019,
+      "country": "Chile",
+      "city": null,
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Evento corporativo"
+      ],
+      "capabilities": [
+        "Escenografía LED envolvente",
+        "Producción audiovisual de alta gama",
+        "Integración de marca en escenarios",
+        "Uso de tecnología para impacto visual"
+      ],
+      "summary": "En 2019, Federico Elgueta llevó a cabo el lanzamiento del modelo NP300 de Nissan en Chile. Se utilizó una escenografía de alta tecnología con pantallas LED envolventes que realzaron la presentación del vehículo, integrando la marca de manera prominente y asegurando un impacto visual significativo.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando el evento. Se encargó de la producción técnica y creativa, asegurando una integración perfecta de tecnología y diseño.",
+      "citableClaim": "Federico Elgueta transformó la presentación del Nissan NP300 en Chile, utilizando tecnología LED y producción creativa para un impacto inolvidable.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "ocean-spray-ttl-cosecha-2023",
+      "client": "OCEAN SPRAY",
+      "title": "TTL COSECHA",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Lanco",
+      "industry": "Agriculture",
+      "workTypes": [
+        "Event",
+        "Brand Activation"
+      ],
+      "capabilities": [
+        "Producción de evento agrícola",
+        "Cobertura mediática en terreno",
+        "Gestión de invitados y experiencia",
+        "Manejo audiovisual de alta calidad"
+      ],
+      "summary": "En Lanco, Chile, se realizó una activación de marca para Ocean Spray durante la cosecha de arándanos rojos en 2023. El evento incluyó experiencias interactivas, cobertura mediática, entrevistas y gestión integral de la producción para destacar el proceso de cosecha húmeda.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del concepto y ejecución del evento con cobertura mediática incluida.",
+      "citableClaim": "Federico Elgueta llevó la cosecha de Ocean Spray en Chile a otro nivel, combinando experiencia interactiva con cobertura mediática de calidad.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "omega-navidad-2024",
+      "client": "OMEGA",
+      "title": "NAVIDAD",
+      "year": 2024,
+      "country": null,
+      "city": null,
+      "industry": "Luxury Watches",
+      "workTypes": [
+        "Evento corporativo",
+        "Activación de marca"
+      ],
+      "capabilities": [
+        "Montaje de escenario temático",
+        "Decoración personalizada",
+        "Mobiliario de diseño",
+        "Gestion integral de ambientación"
+      ],
+      "summary": "El evento de Navidad de OMEGA se centró en la presentación de su colección de relojes en un ambiente elegantemente decorado. Se incluyó un gran árbol de Navidad, decoraciones personalizadas y áreas de descanso con mobiliario de diseño.",
+      "role": "Federico Elgueta lideró la producción integral, manejando tanto el concepto como la ejecución del evento.",
+      "citableClaim": "Transformamos la experiencia navideña de OMEGA en un evento inolvidable con diseño elegante y decoración a medida.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "paris-motion-duendes-magicos-2019",
+      "client": "PARÍS",
+      "title": "MOTION DUENDES MÁGICOS",
+      "year": 2019,
+      "country": "Chile",
+      "city": null,
+      "industry": "Retail",
+      "workTypes": [
+        "Animación digital"
+      ],
+      "capabilities": [
+        "Animación de personajes 3D",
+        "Diseño de escenarios virtuales",
+        "Dirección de arte para video",
+        "Producción de contenido digital"
+      ],
+      "summary": "En 2019, Federico Elgueta desarrolló una campaña para la empresa de retail PARÍS en Chile, titulada 'Motion Duendes Mágicos'. El proyecto consistió en la creación de animaciones digitales que incluían duendes y escenarios tematizados, utilizando técnicas avanzadas de animación y diseño artístico.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, encargándose de todo el proceso desde el diseño hasta la ejecución de la animación.",
+      "citableClaim": "Federico Elgueta convirtió una visión mágica en realidad con animaciones 3D de alta calidad para PARÍS, Chile.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "pichara-activacion-mall-bogota-2023",
+      "client": "PICHARA",
+      "title": "ACTIVACIÓN MALL BOGOTÁ",
+      "year": 2023,
+      "country": "Colombia",
+      "city": "Bogotá",
+      "industry": "Retail",
+      "workTypes": [
+        "Activaciones"
+      ],
+      "capabilities": [
+        "Montaje de stand con iluminación LED integrada",
+        "Diseño conceptual de activaciones",
+        "Producción de montaje en espacios comerciales"
+      ],
+      "summary": "Federico Elgueta llevó a cabo una activación para Pichara en un centro comercial en Bogotá en 2023. Se diseñó y montó un stand llamativo con iluminación LED integrada para promover la marca. El espacio generó interacción y visibilidad entre los visitantes.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, conceptualizando y ejecutando la activación.",
+      "citableClaim": "Nuestra activación destacó a Pichara con un stand innovador y altamente visible en el centro comercial de Bogotá.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "pichara-lollapalooza-2023",
+      "client": "PICHARA",
+      "title": "LOLLAPALOOZA",
+      "year": 2023,
+      "country": "Chile",
+      "city": null,
+      "industry": "Entertainment",
+      "workTypes": [
+        "Event Activation",
+        "Interactive Installation"
+      ],
+      "capabilities": [
+        "Diseño de instalación interactiva",
+        "Proyección audiovisual envolvente",
+        "Personalización de experiencias de usuario",
+        "Fotografía digital para eventos",
+        "Creación de contenido multimedia"
+      ],
+      "summary": "Federico Elgueta lideró la producción de una activación innovadora para PICHARA durante Lollapalooza 2023 en Chile, presentando 'Music Pantone'. La experiencia incluyó instalaciones interactivas que combinaban proyección audiovisual y fotografía en un entorno inmersivo que personalizaba los contenidos para los asistentes.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, conceptualizando y ejecutando la experiencia completa.",
+      "citableClaim": "Federico Elgueta transformó el espacio en una experiencia inmersiva y personalizada que combinaba música y color en Lollapalooza 2023.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "pichara-stand-cosmetic-beauty-lima-2023",
+      "client": "PICHARA",
+      "title": "STAND COSMETIC BEAUTY LIMA",
+      "year": 2023,
+      "country": "Perú",
+      "city": "Lima",
+      "industry": "Cosmética y Belleza",
+      "workTypes": [
+        "Evento en vivo"
+      ],
+      "capabilities": [
+        "Producción de stand interactivo",
+        "Coordinación de actividades promocionales",
+        "Diseño de iluminación escénica",
+        "Gestión de presentadores y talento",
+        "Integración de códigos QR para interactividad"
+      ],
+      "summary": "En 2023, Federico Elgueta realizó la producción del stand de Pichara en el evento Cosmetic Beauty en Lima, Perú. El stand incluyó demostraciones de productos, actividades interactivas con QR, y distribución de regalos, atrayendo a un gran número de asistentes interesados en cosméticos.",
+      "role": "Federico Elgueta lideró la producción integral, diseñando y ejecutando todo el stand y las actividades asociadas.",
+      "citableClaim": "Federico Elgueta transformó el stand de Pichara en un epicentro interactivo en Cosmetic Beauty Lima 2023, maximizando la participación del público.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "proof-isla-mall-2014",
+      "client": "PROOF",
+      "title": "ISLA MALL",
+      "year": 2014,
+      "country": "Chile",
+      "city": null,
+      "industry": "Retail",
+      "workTypes": [
+        "Kiosks"
+      ],
+      "capabilities": [
+        "Diseño de kiosco modular",
+        "Exposición de productos",
+        "Iluminación interna de vitrinas",
+        "Identidad gráfica en 3D",
+        "Presentación interactiva al cliente"
+      ],
+      "summary": "En 2014, Federico Elgueta diseñó un kiosco modular para la marca PROOF en un centro comercial en Chile. Destacó por su innovadora exposición de productos e iluminación interna, ofreciendo una experiencia interactiva para el cliente. Además, incorporó elementos gráficos tridimensionales que resaltaban la identidad de la marca.",
+      "role": "Federico Elgueta lideró la creatividad y la producción integral, gestionando desde el diseño conceptual hasta la implementación del kiosco.",
+      "citableClaim": "Federico Elgueta transformó la experiencia de compra en centro comercial con un kiosco modular interactivo y diseño innovador para PROOF en Chile.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "royal-guard-trasera-restaurante-2014",
+      "client": "ROYAL GUARD",
+      "title": "TRASERA RESTAURANTE",
+      "year": 2014,
+      "country": "Chile",
+      "city": null,
+      "industry": "Bebidas",
+      "workTypes": [
+        "Diseño de estructura",
+        "Instalación de marca"
+      ],
+      "capabilities": [
+        "Diseño de estructura de exhibición",
+        "Instalación de iluminación LED",
+        "Producción de material POP"
+      ],
+      "summary": "En 2014, Federico Elgueta diseñó e instaló una estructura de exhibición iluminada para la marca Royal Guard en un restaurante en Chile. El enfoque fue crear un impactante punto visibilidad mediante luz LED y elementos de marca prominentes.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del diseño y ejecución de la instalación.",
+      "citableClaim": "Diseño e instalación de estructuras de exhibición que elevan la presencia de marca en entornos gastronómicos.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "samsung-galaxy-mobiliario-entel-2013",
+      "client": "SAMSUNG",
+      "title": "GALAXY MOBILIARIO ENTEL",
+      "year": 2013,
+      "country": null,
+      "city": null,
+      "industry": "Technology",
+      "workTypes": [
+        "Event production",
+        "Brand activation"
+      ],
+      "capabilities": [
+        "Estructura de mobiliario personalizado",
+        "Iluminación LED integrada"
+      ],
+      "summary": "Federico Elgueta diseñó y produjo mobiliario personalizado para Samsung Galaxy, con integración de iluminación LED, destinado a puntos de venta de Entel en 2013. El diseño destaca la marca y proporciona un atractivo visual efectivo.",
+      "role": "Agencia creativa y productora del mobiliario.",
+      "citableClaim": "Diseñamos y produjimos mobiliario con iluminación LED para destacar Samsung Galaxy en puntos de venta clave.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "samsung-galaxy-note-8-launch-2014",
+      "client": "SAMSUNG",
+      "title": "GALAXY NOTE 8 LAUNCH",
+      "year": 2017,
+      "country": "Chile",
+      "city": null,
+      "industry": "Tecnología",
+      "workTypes": [
+        "Evento de presentación",
+        "Activación de marca"
+      ],
+      "capabilities": [
+        "Escenografía de escenario",
+        "Gestión de presentadores",
+        "Exhibición de producto interactiva",
+        "Proyección en pantalla gigante"
+      ],
+      "summary": "Federico Elgueta organizó el lanzamiento del Samsung Galaxy Note 8 en Chile, destacando con un evento que incorporó escenografía impactante, proyección en pantalla gigante y presentadores. Los asistentes interactuaron con los nuevos dispositivos en una exhibición cuidadosamente diseñada.",
+      "role": "Federico Elgueta lideró la producción integral del evento, encargándose de la conceptualización y ejecución del lanzamiento.",
+      "citableClaim": "Federico Elgueta convirtió el lanzamiento del Samsung Galaxy Note 8 en Chile en una experiencia inmersiva e interactiva inolvidable.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "samsung-infinity-tables-2015",
+      "client": "SAMSUNG",
+      "title": "INFINITY TABLES",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": "Electronics",
+      "workTypes": [
+        "event"
+      ],
+      "capabilities": [
+        "Diseño de mesas interactivas",
+        "Producción de mobiliario LED personalizado",
+        "Integración de tecnología en mobiliario",
+        "Iluminación LED creativa",
+        "Montaje y desmontaje en punto de venta"
+      ],
+      "summary": "Federico Elgueta creó y produjo mesas interactivas para una activación de Samsung en 2015, presentadas dentro de un espacio de venta. Las mesas, denominadas Infinity Tables, incorporaron tecnología y diseño LED para realzar la experiencia del cliente.",
+      "role": "Federico Elgueta lideró la producción integral para Samsung, encargándose del diseño y fabricación de estructuras interactivas. Desarrollaron y produjeron las mesas con tecnología LED para el evento.",
+      "citableClaim": "Federico Elgueta transformó espacios de venta para Samsung con mesas interactivas LED que enriquecieron la experiencia del cliente.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "samsung-on-site-store-2015",
+      "client": "SAMSUNG",
+      "title": "ON SITE STORE",
+      "year": 2015,
+      "country": null,
+      "city": null,
+      "industry": "Tecnología y Electrónica",
+      "workTypes": [
+        "Activación en tienda",
+        "Diseño de displays",
+        "Gestión de espacio retail"
+      ],
+      "capabilities": [
+        "Diseño de displays interactivos",
+        "Configuración de productos en exposición",
+        "Iluminación personalizada para ambiente retail"
+      ],
+      "summary": "En 2015, Federico Elgueta se encargó de la activación en tienda y gestión del espacio retail para Samsung, destacando sus productos de tecnología en un entorno atractivo. Se diseñaron y configuraron displays interactivos que resaltan características de productos clave.",
+      "role": "Federico Elgueta lideró la producción técnica, apoyando a Samsung en la implementación de displays y gestión del espacio en tienda.",
+      "citableClaim": "Federico Elgueta transformó el espacio retail de Samsung en una vitrina tecnológica interactiva que potenció la experiencia de marca.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "samsung-try-love-influencers-off-to-on-2015",
+      "client": "SAMSUNG",
+      "title": "TRY & LOVE INFLUENCERS OFF TO ON",
+      "year": 2017,
+      "country": "null",
+      "city": "null",
+      "industry": "Technology",
+      "workTypes": [
+        "Experiential Marketing",
+        "Brand Activation"
+      ],
+      "capabilities": [
+        "Ambientación temática tecnológica",
+        "Estaciones de prueba interactivas"
+      ],
+      "summary": "Federico Elgueta desarrolló una ambientación para SAMSUNG en 2017 con el fin de promover el Galaxy S8 y S8+. La activación 'Try & Love' se centró en proporcionar una experiencia de marca inmersiva, permitiendo a los usuarios interactuar directamente con los dispositivos.",
+      "role": "Federico Elgueta lideró la creatividad y la producción, diseñando y ejecutando la experiencia.",
+      "citableClaim": "Federico Elgueta transformó un espacio en una experiencia interactiva para SAMSUNG, conectando a los usuarios con los nuevos Galaxy S8 y S8+.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "samsung-wash-stand-2013",
+      "client": "SAMSUNG",
+      "title": "WASH STAND",
+      "year": 2013,
+      "country": "Chile",
+      "city": null,
+      "industry": "Electrónica",
+      "workTypes": [
+        "Activaciones"
+      ],
+      "capabilities": [
+        "Diseño de estructura exhibidora",
+        "Producción de stands promocionales",
+        "Implementación de branding en puntos de venta",
+        "Montaje y transporte de mobiliario",
+        "Impresión de gráficos promocionales",
+        "Coordinación logística"
+      ],
+      "summary": "En 2013, Federico Elgueta desarrolló el proyecto 'WASH STAND' para Samsung en Chile. Consistió en el diseño y producción de stands promocionales para purificadores de aire, incluyendo branding destacado y montaje en tienda.",
+      "role": "Federico Elgueta lideró la producción integral, diseñando, fabricando y montando los stands promocionales para Samsung.",
+      "citableClaim": "Federico Elgueta transformó los espacios de venta en experiencia de marca al diseñar y producir stands promocionales icónicos para Samsung.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "schwarzkopf-lanzamiento-bonacure-2022",
+      "client": "SCHWARZKOPF",
+      "title": "LANZAMIENTO BONACURE",
+      "year": 2022,
+      "country": null,
+      "city": null,
+      "industry": "Cosmética",
+      "workTypes": [
+        "Evento de lanzamiento"
+      ],
+      "capabilities": [
+        "Diseño de iluminación escénica",
+        "Producción audiovisual",
+        "Instalación de escenario",
+        "Coordinación de entretenimiento en vivo",
+        "Diseño de experiencia de marca"
+      ],
+      "summary": "El evento de lanzamiento de la línea Bonacure de Schwarzkopf se llevó a cabo en un ambiente sofisticado con iluminación dinámica y entretenimiento en vivo. Se utilizaron presentaciones visuales impactantes para destacar los productos, creando una experiencia inmersiva y memorable para los asistentes. Notable por la integración de una temática visual fuerte y actuaciones artísticas.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del diseño conceptual y la ejecución del evento, asegurando una experiencia cohesiva y memorable.",
+      "citableClaim": "Experiencia inmersiva personalizada en el lanzamiento de Bonacure, combinando arte y tecnología para una marca líder en cosmética.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "scotiabank-fin-de-ano-2017",
+      "client": "SCOTIABANK",
+      "title": "FIN DE AÑO",
+      "year": 2017,
+      "country": null,
+      "city": null,
+      "industry": "banking",
+      "workTypes": [
+        "event production"
+      ],
+      "capabilities": [
+        "Mapping de gran formato",
+        "Iluminación arquitectónica",
+        "Escenografía al aire libre",
+        "Coordinación de espectáculos en vivo"
+      ],
+      "summary": "Federico Elgueta desarrolló un evento de fin de año para Scotiabank en 2017, destacándose en el uso de mapping de gran formato en un edificio emblemático. La iluminación arquitectónica y el montaje al aire libre fueron elementos clave.",
+      "role": "Federico Elgueta lideró la producción integral, manejando tanto el diseño creativo como la ejecución del evento.",
+      "citableClaim": "Federico Elgueta transformó un edificio icónico a través de mapping lumínico en un impresionante evento de fin de año.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "skyy-vodka-party-sponsor-bolivia-2014",
+      "client": "SKYY VODKA",
+      "title": "PARTY SPONSOR BOLIVIA",
+      "year": 2014,
+      "country": "Bolivia",
+      "city": null,
+      "industry": "Bebidas alcohólicas",
+      "workTypes": [
+        "Evento promocional"
+      ],
+      "capabilities": [
+        "Diseño de escenografía temática",
+        "Producción de contenido audiovisual",
+        "Gestión de eventos en vivo",
+        "Coordinación de personal uniformado"
+      ],
+      "summary": "Federico Elgueta organizó un evento promocional para SKYY Vodka en Bolivia en 2014. El evento incluyó escenografía temática y personal uniformado para crear un ambiente coherente con la marca. Se produjo contenido audiovisual para capturar el ambiente vibrante y las interacciones de los asistentes.",
+      "role": "Federico Elgueta lideró la producción integral, conceptualizando y ejecutando el evento. La empresa se encargó de todos los aspectos creativos y logísticos.",
+      "citableClaim": "Federico Elgueta transformó el evento promocional de SKYY Vodka en una experiencia vibrante y memorable en Bolivia.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "sofofa-plan-estrategico-2022",
+      "client": "SOFOFA",
+      "title": "PLAN ESTRATÉGICO",
+      "year": 2022,
+      "country": "Chile",
+      "city": null,
+      "industry": "Business Association",
+      "workTypes": [
+        "Evento corporativo",
+        "Conferencia"
+      ],
+      "capabilities": [
+        "Instalación de pantallas LED",
+        "Producción técnica de video",
+        "Diseño de presentaciones"
+      ],
+      "summary": "En 2022, se realizó un evento corporativo para SOFOFA en Chile, centrado en el plan estratégico de la organización. La producción incluyó la instalación de pantallas LED de gran formato y la gestión técnica del video.",
+      "role": "Federico Elgueta lideró la producción técnica, encargándose de la instalación audiovisual y soporte de presentaciones.",
+      "citableClaim": "Federico Elgueta transformó la presentación del plan estratégico de SOFOFA con avanzadas soluciones audiovisuales en 2022.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "soprole-stand-feria-laboral-2023",
+      "client": "SOPROLE",
+      "title": "STAND FERIA LABORAL",
+      "year": 2023,
+      "country": "Chile",
+      "city": null,
+      "industry": "Alimentaria",
+      "workTypes": [
+        "Montaje de stand"
+      ],
+      "capabilities": [
+        "Diseño gráfico temático",
+        "Construcción de stand promocional",
+        "Señalética interactiva y promocional",
+        "Implementación de iluminación"
+      ],
+      "summary": "Federico Elgueta conceptualizó y montó un stand para Soprole en una feria laboral en Chile en 2023. El stand incluyó diseño gráfico con el tema verde y natural de la marca, un refrigerador de productos y encuestas interactivas para el feedback de los asistentes.",
+      "role": "Federico Elgueta lideró la producción integral, encargándose del concepto y ejecución del stand.",
+      "citableClaim": "Federico Elgueta transformó la presencia de Soprole en una feria laboral con un stand atractivo y funcional.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "sqm-stand-feria-litio-2024",
+      "client": "SQM",
+      "title": "STAND FERIA LITIO",
+      "year": 2024,
+      "country": "null",
+      "city": "null",
+      "industry": "null",
+      "workTypes": [
+        "Stand Feria"
+      ],
+      "capabilities": [
+        "Pantallas LED interactivas",
+        "Diseño de stand personalizado"
+      ],
+      "summary": "Federico Elgueta desarrolló un stand interactivo para la feria del litio de SQM en 2024. Se utilizaron pantallas LED para mostrar contenido promocional y atraer la atención de los asistentes. El diseño del stand fue personalizado para encajar con la temática del cliente, destacando con elementos visuales impactantes.",
+      "role": "Producción integral, a cargo de conceptualización y ejecución. Federico Elgueta se encargó de diseñar y montar todo el stand, incluyendo las pantallas LED.",
+      "citableClaim": "Federico Elgueta transformó el stand de SQM en la feria del litio usando pantallas LED interactivas de alto impacto.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "tous-ooh-bolivia-2014",
+      "client": "TOUS",
+      "title": "OOH BOLIVIA",
+      "year": 2014,
+      "country": "Bolivia",
+      "city": "Santa Cruz",
+      "industry": "Retail",
+      "workTypes": [
+        "outdoor"
+      ],
+      "capabilities": [
+        "Instalación de publicidad exterior gráfica"
+      ],
+      "summary": "En 2014, Federico Elgueta ejecutó una campaña publicitaria exterior para TOUS en Santa Cruz, Bolivia, destacando en el Ventura Mall. Se utilizaron vallas gráficas grandes en distintas ubicaciones de la ciudad para promover la tienda de la marca de joyería.",
+      "role": "Federico Elgueta lideró la producción técnica, encargándose de ejecutar la instalación de la publicidad exterior en ubicaciones estratégicas de Santa Cruz.",
+      "citableClaim": "Federico Elgueta transformó el paisaje urbano de Santa Cruz, Bolivia, con una impactante campaña de publicidad exterior para TOUS.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "umbro-100-anos-2024",
+      "client": "UMBRO",
+      "title": "100 AÑOS",
+      "year": 2024,
+      "country": null,
+      "city": null,
+      "industry": "Deporte",
+      "workTypes": [
+        "Evento de aniversario",
+        "Activación de marca"
+      ],
+      "capabilities": [
+        "Escenografía temática de producto",
+        "Diseño de iluminación creativa",
+        "Producción de ambientes inmersivos",
+        "Instalación de elementos promocionales"
+      ],
+      "summary": "El evento conmemorativo 100 Años de Umbro celebró su legado en el deporte con una ambientación temática especial. Se utilizó escenografía creativa para enmarcar productos icónicos, sumado a un diseño de iluminación que generaba una atmósfera cautivadora.",
+      "role": "Federico Elgueta lideró la producción integral, responsabilizándose tanto del concepto como de la ejecución del evento. Se dedicaron a la creación de una experiencia inmersiva y memorable para Umbro.",
+      "citableClaim": "Federico Elgueta conmemoró el siglo de Umbro con una experiencia inmersiva que celebró su icónico legado en el deporte.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "verisure-cunaseg-2017",
+      "client": "VERISURE",
+      "title": "CUNASEG",
+      "year": 2017,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Seguridad",
+      "workTypes": [
+        "Evento corporativo",
+        "Cumbre",
+        "Conferencia"
+      ],
+      "capabilities": [
+        "Producción de eventos corporativos",
+        "Diseño de escenario y ambientación",
+        "Sonido e iluminación profesional",
+        "Coordinación de paneles de discusión",
+        "Soporte técnico audiovisual",
+        "Gestión de invitados y conferencias"
+      ],
+      "summary": "Federico Elgueta organizó la Cumbre Nacional de Seguridad (CUNASEG) en Santiago, Chile, para Verisure en 2017. El evento incluyó conferencias, paneles de discusión, y presentaciones en un entorno profesional, contando con tecnología avanzada en sonido e iluminación.",
+      "role": "Federico Elgueta lideró la producción integral, gestionando desde la conceptualización hasta la ejecución completa del evento.",
+      "citableClaim": "Federico Elgueta transformó la Cumbre Nacional de Seguridad en una experiencia envolvente y profesional para Verisure.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "wom-batiwom-2015",
+      "client": "WOM",
+      "title": "BATIWOM",
+      "year": 2015,
+      "country": "Chile",
+      "city": null,
+      "industry": "Telecommunications",
+      "workTypes": [
+        "Projection Mapping"
+      ],
+      "capabilities": [
+        "Proyección de gran formato en edificios"
+      ],
+      "summary": "En 2015, Federico Elgueta llevó a cabo una impresionante campaña de proyección para WOM en Chile. Utilizando tecnología de punta, proyectaron el logo de WOM en varios edificios icónicos de la ciudad, transformándolos en monumentales soportes publicitarios nocturnos.",
+      "role": "Productora técnica, encargada de la ejecución de la proyección.",
+      "citableClaim": "Federico Elgueta transformó edificios icónicos chilenos en monumentales soportes publicitarios nocturnos para WOM.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "wom-lanzamiento-marca-2015",
+      "client": "WOM",
+      "title": "LANZAMIENTO MARCA",
+      "year": 2015,
+      "country": "Chile",
+      "city": null,
+      "industry": "Telecomunicaciones",
+      "workTypes": [
+        "Evento experiencial de lanzamiento",
+        "Activación de marca"
+      ],
+      "capabilities": [
+        "Producción de eventos de lanzamiento",
+        "Activación de marca inmersiva",
+        "Coordinación de entretenimiento en vivo",
+        "Iluminación arquitectónica espectacular",
+        "Creación de contenido visual atractivo"
+      ],
+      "summary": "Federico Elgueta llevó a cabo el lanzamiento de la marca WOM en Chile en 2015, creando un evento impactante e innovador. El evento incluyó entretenimiento en vivo en espacios públicos, iluminación arquitectónica del edificio Costanera Center y múltiples actividades de interacción con el público.",
+      "role": "Federico Elgueta lideró la producción integral de este evento, conceptualizando y ejecutando una experiencia memorable para el lanzamiento de WOM en Chile.",
+      "citableClaim": "Federico Elgueta transformó el lanzamiento de WOM en Chile en una experiencia espectacular de inmersión y entretenimiento en 2015.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "wom-womers-welcome-to-casino-2017",
+      "client": "WOM",
+      "title": "WOMERS WELCOME TO CASINO",
+      "year": 2017,
+      "country": "Chile",
+      "city": null,
+      "industry": "Telecommunications",
+      "workTypes": [
+        "Brand Activation",
+        "Social Media Engagement",
+        "Event Design",
+        "Creative Content Creation"
+      ],
+      "capabilities": [
+        "Conceptualización de contenido digital diverso",
+        "Diseño de activaciones de marca innovadoras",
+        "Ejecución de campañas en redes sociales",
+        "Producción de eventos temáticos creativos"
+      ],
+      "summary": "En 2017, Federico Elgueta colaboró con la empresa WOM para crear una campaña de activación de marca bajo el título 'WOMERS WELCOME TO CASINO'. La iniciativa incluyó diseños visuales inspirados en videojuegos retro y eventos interactivos para ganar la atención en redes sociales. Se utilizaron activaciones de marca ingeniosas y contenido social creativo para fortalecer la presencia de WOM en el mercado chileno.",
+      "role": "Federico Elgueta lideró la creatividad y la producción integral, desarrollando la campaña desde la conceptualización hasta la ejecución. Se encargó de la producción de eventos, el contenido digital y la interacción social.",
+      "citableClaim": "Federico Elgueta transformó la experiencia de WOM en un evento interactivo, atrayendo audiencias con ingenio creativo y participación social innovadora.",
+      "era": "trayectoria",
+      "exception": null
+    }
+  ]
+}
