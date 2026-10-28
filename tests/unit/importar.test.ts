@@ -32,7 +32,7 @@ Mira [link] y también [link].
 
 describe("leerCopy", () => {
   test("reads each entry with title, pdf, guide and text when the file follows the real format", () => {
-    const entradas = leerCopy(ENCABEZADO + UNA + "\n" + OTRA)
+    const entradas = leerCopy(`${ENCABEZADO}${UNA}\n${OTRA}`)
     expect(entradas).toHaveLength(2)
     expect(entradas[0]).toEqual({
       titulo: "¿Qué es un focus group?",
