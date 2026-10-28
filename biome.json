@@ -7,7 +7,18 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!node_modules", "!.next", "!dist", "!build", "!data", "!lib/supabase/database.types.ts"]
+    "includes": [
+      "**",
+      "!node_modules",
+      "!.next",
+      "!dist",
+      "!build",
+      "!data",
+      "!lib/supabase/database.types.ts",
+      "!.open-next",
+      "!.wrangler",
+      "!cloudflare-env.d.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

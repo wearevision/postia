@@ -4,3 +4,4 @@ allowBuilds:
   unrs-resolver: true
   esbuild: true
   msw: false
+  workerd: true

@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "postia",
+  "main": ".open-next/worker.js",
+  // 2026-08-04 or later turns nodejs_compat on by default; the flag stays explicit for readers.
+  "compatibility_date": "2026-10-28",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "postia" }],
+  "observability": { "enabled": true }
+}

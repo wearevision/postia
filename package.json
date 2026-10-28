@@ -19,10 +19,14 @@
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
     "test:db": "vitest run --config vitest.integration.config.ts",
     "invitar": "tsx --env-file=.env.local scripts/invitar.ts",
-    "prueba:linkedin": "tsx --env-file=.env.local scripts/prueba-linkedin.ts"
+    "prueba:linkedin": "tsx --env-file=.env.local scripts/prueba-linkedin.ts",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "desplegar": "opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
+    "@opennextjs/cloudflare": "1.20.13",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@supabase/ssr": "^0.10.3",
@@ -61,7 +65,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "wrangler": "^4.154.0"
   },
   "description": "PostIA: app web para publicar en LinkedIn e Instagram de Federico y WAV, con firma humana antes de cada publicación"
 }
