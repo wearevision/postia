@@ -29,6 +29,13 @@ pnpm test:run         # vitest single run (CI)
 pnpm test:e2e         # playwright
 pnpm lint             # biome check
 pnpm format           # biome format --write
+pnpm type             # tsc --noEmit
+pnpm db:start         # Supabase local (puertos 546xx)
+pnpm db:reset         # rehace la base local (borra invitaciones y cuentas)
+pnpm db:types         # regenera lib/supabase/database.types.ts
+pnpm test:db          # pruebas de RLS contra Supabase local
+pnpm invitar --correo <c> --marca <m> --voz yo|nosotros
+pnpm prueba:linkedin  # fase 0: publica solo si escribes PUBLICAR
 ```
 
 ## Workflow
