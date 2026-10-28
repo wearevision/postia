@@ -1,0 +1,187 @@
+import { describe, expect, test } from "vitest"
+import { repositorioDePublicacion } from "@/lib/publicacion/repositorio"
+import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
+
+const EN_UNA_HORA = () => new Date(Date.now() + 3_600_000).toISOString()
+const HACE = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString()
+
+/** A signed piece whose moment already arrived. Signing refuses the past, so piece and signature move together. */
+async function vencida(opciones: { minutosVencida?: number; cuenta?: "api" | "a_mano" } = {}) {
+  const dueno = await personaConSesion("repo")
+  const marca = await marcaConDueno(dueno.userId)
+  const cuenta = await cuentaDe(marca, "persona", opciones.cuenta ?? "api")
+  const { data: pieza, error } = await dueno.db.rpc("crear_pieza", {
+    p_cuenta: cuenta,
+    p_formato: "texto",
+    p_texto: "Hola desde el publicador",
+  })
+  if (error) throw error
+  const { data: version } = await admin()
+    .from("versiones")
+    .select("id, huella")
+    .eq("pieza_id", pieza)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .single()
+  const { data: firma, error: errorDeFirma } = await dueno.db.rpc("firmar_pieza", {
+    p_pieza: pieza,
+    p_huella: version?.huella as string,
+    p_programada_para: EN_UNA_HORA(),
+  })
+  if (errorDeFirma) throw errorDeFirma
+  const cuando = HACE(opciones.minutosVencida ?? 1)
+  await admin().from("piezas").update({ programada_para: cuando }).eq("id", pieza)
+  await admin()
+    .from("firmas")
+    .update({ programada_para: cuando })
+    .eq("id", firma as string)
+  return { ...dueno, marca, cuenta, pieza: pieza as string, version: version?.id as string, firma: firma as string }
+}
+
+const repo = () => repositorioDePublicacion(admin())
+
+async function estadoDe(pieza: string) {
+  const { data } = await admin()
+    .from("piezas")
+    .select("estado, motivo, arrendada_hasta, enlace")
+    .eq("id", pieza)
+    .single()
+  return data
+}
+
+describe("repositorioDePublicacion", () => {
+  test("tomarPendientes leases a due piece once and returns its account, latest version and valid signature", async () => {
+    const c = await vencida()
+    const primera = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    expect(primera).toMatchObject({
+      id: c.pieza,
+      marcaId: c.marca,
+      cuentaId: c.cuenta,
+      ruta: "api",
+      formato: "texto",
+      ventanaMinutos: 30,
+      version: {
+        id: c.version,
+        texto: "Hola desde el publicador",
+        titulo: null,
+        archivoRuta: null,
+        archivoSha256: null,
+      },
+      firma: { id: c.firma },
+    })
+    expect(primera?.cuentaNombre).toMatch(/^Cuenta /)
+    expect(primera?.firma?.huella).toBe(primera?.version.huella)
+    expect(new Date(primera?.programadaPara ?? "").getTime()).toBeLessThan(Date.now())
+
+    const segunda = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    expect(segunda).toBeUndefined()
+  })
+
+  test("reservarEnvio writes the row and starts sending; a second call answers ya_enviado", async () => {
+    const c = await vencida()
+    const pieza = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    if (!pieza) throw new Error("la pieza vencida no apareció")
+    expect(await repo().reservarEnvio(pieza)).toBe("reservado")
+    expect((await estadoDe(c.pieza))?.estado).toBe("publicando")
+    const { data: filas } = await admin().from("publicaciones").select("firma_id, version_id").eq("pieza_id", c.pieza)
+    expect(filas).toEqual([{ firma_id: c.firma, version_id: c.version }])
+    expect(await repo().reservarEnvio(pieza)).toBe("ya_enviado")
+  })
+
+  test("reservarEnvio lets the database refusal propagate and refuses a piece with no signature", async () => {
+    const c = await vencida({ minutosVencida: 31 })
+    const base = {
+      id: c.pieza,
+      marcaId: c.marca,
+      cuentaId: c.cuenta,
+      cuentaNombre: "x",
+      ruta: "api" as const,
+      formato: "texto" as const,
+      programadaPara: HACE(31),
+      ventanaMinutos: 30,
+      version: { id: c.version, texto: "t", titulo: null, archivoRuta: null, archivoSha256: null, huella: "h" },
+    }
+    await expect(repo().reservarEnvio({ ...base, firma: { id: c.firma, huella: "h" } })).rejects.toThrow(
+      /reserva_fuera_de_ventana/,
+    )
+    await expect(repo().reservarEnvio({ ...base, firma: null })).rejects.toThrow(/firma/)
+  })
+
+  test("cerrarEnvio stores the URN and link and publishes the piece", async () => {
+    const c = await vencida()
+    const pieza = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    if (!pieza) throw new Error("la pieza vencida no apareció")
+    await repo().reservarEnvio(pieza)
+    const enlace = "https://www.linkedin.com/feed/update/urn:li:share:777"
+    await repo().cerrarEnvio(c.pieza, "urn:li:share:777", enlace)
+    expect(await estadoDe(c.pieza)).toMatchObject({ estado: "publicada", enlace })
+    const { data: fila } = await admin().from("publicaciones").select("post_urn").eq("pieza_id", c.pieza).single()
+    expect(fila?.post_urn).toBe("urn:li:share:777")
+  })
+
+  test("mover parks the piece with its reason and drops the lease; an illegal move throws", async () => {
+    const c = await vencida()
+    await repo().tomarPendientes()
+    expect((await estadoDe(c.pieza))?.arrendada_hasta).not.toBeNull()
+    await repo().mover(c.pieza, "a_mano", "La conexión venció.")
+    expect(await estadoDe(c.pieza)).toMatchObject({
+      estado: "a_mano",
+      motivo: "La conexión venció.",
+      arrendada_hasta: null,
+    })
+
+    await admin().from("piezas").update({ estado: "descartada" }).eq("id", c.pieza)
+    await expect(repo().mover(c.pieza, "por_aprobar", "no debería")).rejects.toThrow(/transicion_no_permitida/)
+  })
+
+  test("sinRespuesta finds a piece being sent with no URN whose send is older than the cut", async () => {
+    const c = await vencida()
+    const pieza = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    if (!pieza) throw new Error("la pieza vencida no apareció")
+    await repo().reservarEnvio(pieza)
+
+    expect((await repo().sinRespuesta(HACE(15))).find((x) => x.id === c.pieza)).toBeUndefined()
+
+    await admin()
+      .from("publicaciones")
+      .update({ enviado_en: HACE(20) })
+      .eq("pieza_id", c.pieza)
+    const colgadas = await repo().sinRespuesta(HACE(15))
+    expect(colgadas.find((x) => x.id === c.pieza)).toEqual({
+      id: c.pieza,
+      marcaId: c.marca,
+      cuentaNombre: pieza.cuentaNombre,
+    })
+
+    await repo().cerrarEnvio(c.pieza, "urn:li:share:888", "https://www.linkedin.com/feed/update/urn:li:share:888")
+    expect((await repo().sinRespuesta(HACE(15))).find((x) => x.id === c.pieza)).toBeUndefined()
+  })
+
+  test("credencial returns the Vault token of the connected account, and null when there is none", async () => {
+    const c = await vencida()
+    expect(await repo().credencial(c.cuenta)).toBeNull()
+    const expira = new Date(Date.now() + 60 * 86_400_000).toISOString()
+    const { error } = await c.db.rpc("conectar_linkedin", {
+      p_cuenta: c.cuenta,
+      p_token: "token-de-prueba",
+      p_titular: "urn:li:person:abc123",
+      p_nombre: "Federico Elgueta",
+      p_scopes: ["openid", "profile", "w_member_social"],
+      p_expira_en: expira,
+    })
+    expect(error).toBeNull()
+    const credencial = await repo().credencial(c.cuenta)
+    expect(credencial).toMatchObject({ token: "token-de-prueba", titular: "urn:li:person:abc123" })
+    expect(new Date(credencial?.expiraEn ?? "").toISOString()).toBe(expira)
+  })
+
+  test("descargar returns the bytes of a stored file and fails for a missing one", async () => {
+    const c = await vencida()
+    const ruta = `${c.marca}/${c.pieza}-prueba.bin`
+    const bytes = new Uint8Array([1, 2, 3, 4])
+    const { error } = await admin().storage.from("piezas").upload(ruta, bytes, { contentType: "application/pdf" })
+    expect(error).toBeNull()
+    expect(await repo().descargar(ruta)).toEqual(bytes)
+    await expect(repo().descargar(`${c.marca}/no-existe.pdf`)).rejects.toThrow()
+  })
+})

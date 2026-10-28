@@ -5,3 +5,4 @@ allowBuilds:
   esbuild: true
   msw: false
   workerd: true
+  '@depot/cli': false
