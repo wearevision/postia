@@ -83,6 +83,8 @@ describe("FormularioDePieza", () => {
     escribir("Texto")
     crearPieza()
     expect(await screen.findByRole("alert")).toHaveTextContent("No pude guardar.")
+    // The error commits inside the transition; the button is disabled until the transition ends, and a click on it is ignored.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Crear pieza" })).toBeEnabled())
     crearPieza()
     await waitFor(() => expect(crear).toHaveBeenCalledTimes(2))
     expect(subir).toHaveBeenCalledTimes(1)
