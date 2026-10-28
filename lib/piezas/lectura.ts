@@ -1,3 +1,4 @@
+import { z } from "zod"
 import { type EstadoDePieza, esEstado } from "@/lib/piezas/estados"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import type { Db } from "@/lib/supabase/database"
@@ -53,17 +54,18 @@ export async function bandeja(db: Db, ahora = Date.now()): Promise<Bandeja> {
     .select("id, estado, programada_para, motivo, cuentas(nombre, marcas(nombre)), versiones(numero, texto, titulo)")
     .in("estado", ["por_aprobar", "a_mano", "envio_dudoso", "error", "programada"])
     .order("programada_para", { ascending: true, nullsFirst: false })
+    .order("creada_en", { ascending: true })
   if (error) throw new Error(`No pude leer la bandeja: ${error.message}`, { cause: error })
   const tarjetas = data.map((p): TarjetaDePieza => {
     const ultima = ultimaVersion(p.versiones)
-    const base = ultima?.titulo ?? ultima?.texto ?? ""
+    const base = [...(ultima?.titulo ?? ultima?.texto ?? "")]
     return {
       id: p.id,
       estado: leerEstado(p.estado),
       cuenta: p.cuentas?.nombre ?? "",
       marca: p.cuentas?.marcas?.nombre ?? "",
       programadaPara: p.programada_para,
-      extracto: base.length > LARGO_DEL_EXTRACTO ? `${base.slice(0, LARGO_DEL_EXTRACTO)}…` : base,
+      extracto: base.length > LARGO_DEL_EXTRACTO ? `${base.slice(0, LARGO_DEL_EXTRACTO).join("")}…` : base.join(""),
       motivo: p.motivo,
     }
   })
@@ -93,6 +95,7 @@ export interface DetalleDePieza {
 }
 
 export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<DetalleDePieza | null> {
+  if (!z.uuid().safeParse(id).success) return null
   const { data: p, error } = await db
     .from("piezas")
     .select(
@@ -115,7 +118,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
     .select("programada_para")
     .eq("cuenta_id", p.cuentas.id)
     .in("estado", ["programada", "publicando", "publicada"])
-    .not("programada_para", "is", null)
+    .gte("programada_para", new Date(ahora).toISOString())
   if (errorDeOcupadas)
     throw new Error(`No pude leer los horarios: ${errorDeOcupadas.message}`, { cause: errorDeOcupadas })
   const tipo = leerTipo(p.cuentas.tipo)

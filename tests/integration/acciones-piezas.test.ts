@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
 import { cerrarAMano, crearPieza, descartar, desprogramar, dudosoAMano, firmarPieza } from "@/lib/piezas/acciones"
+import { sha256 } from "@/lib/piezas/huella"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
 const EN_UNA_HORA = () => new Date(Date.now() + 3_600_000).toISOString()
@@ -62,7 +63,7 @@ describe("piece actions", () => {
     })
     expect(r.ok).toBe(true)
     const { data } = await admin().from("versiones").select("archivo_sha256").eq("archivo_ruta", ruta).single()
-    expect(data?.archivo_sha256).toMatch(/^[0-9a-f]{64}$/)
+    expect(data?.archivo_sha256).toBe(sha256(new TextEncoder().encode("%PDF-1.4\nhola")))
   })
 
   test("a carousel refuses a file that is not a PDF", async () => {
@@ -160,5 +161,62 @@ describe("piece actions", () => {
   test("a doubtful send that is not doubtful says so", async () => {
     const { db, piezaId } = await piezaCreada("acc-dudoso")
     expect(await dudosoAMano(db, piezaId)).toEqual({ ok: false, error: "Esta pieza no está en duda." })
+  })
+
+  test("counts text length in code points after normalizing, like the database", async () => {
+    const { db, userId } = await personaConSesion("acc-largo")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    expect((await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "😀".repeat(3000) })).ok).toBe(true)
+    expect((await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: `${"a".repeat(3000)}   \r\n` })).ok).toBe(
+      true,
+    )
+    expect(await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: `   ${"a".repeat(3000)}` })).toEqual({
+      ok: false,
+      error: "El texto pasa los 3000 caracteres de LinkedIn.",
+    })
+  })
+
+  test("a carousel file under another brand's folder is refused before it is read", async () => {
+    const { db, userId } = await personaConSesion("acc-otra-marca")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const ajena = `${crypto.randomUUID()}/${crypto.randomUUID()}.pdf`
+    expect(
+      await crearPieza(db, { cuentaId: cuenta, formato: "carrusel_pdf", texto: "T", titulo: "X", archivoRuta: ajena }),
+    ).toEqual({ ok: false, error: "Ese archivo pertenece a otra marca." })
+  })
+
+  test("a carousel for an account the person cannot see gets the owner message", async () => {
+    const { cuenta, marca } = await piezaCreada("acc-cuenta-ajena")
+    const extrano = await personaConSesion("acc-cuenta-extrano")
+    const ruta = `${marca}/${crypto.randomUUID()}.pdf`
+    expect(
+      await crearPieza(extrano.db, {
+        cuentaId: cuenta,
+        formato: "carrusel_pdf",
+        texto: "T",
+        titulo: "X",
+        archivoRuta: ruta,
+      }),
+    ).toEqual({ ok: false, error: "Solo el dueño de la marca puede crear piezas." })
+  })
+
+  test("the pieces bucket refuses files over 30 MB", async () => {
+    const { data } = await admin().storage.getBucket("piezas")
+    expect(data?.file_size_limit).toBe(30 * 1024 * 1024)
+  })
+
+  test("discarding validates the id and the reason", async () => {
+    const { db, piezaId } = await piezaCreada("acc-motivo")
+    expect(await descartar(db, piezaId, "m".repeat(600))).toEqual({
+      ok: false,
+      error: "Revisa el motivo: máximo 500 caracteres.",
+    })
+    expect(await descartar(db, "no-es-uuid", "x")).toEqual({ ok: false, error: "Revisa los datos de la pieza." })
+  })
+
+  test("unscheduling and the doubtful-send action validate the id", async () => {
+    const { db } = await personaConSesion("acc-uuid")
+    expect(await desprogramar(db, "no-es-uuid")).toEqual({ ok: false, error: "Revisa los datos de la pieza." })
+    expect(await dudosoAMano(db, "no-es-uuid")).toEqual({ ok: false, error: "Revisa los datos de la pieza." })
   })
 })

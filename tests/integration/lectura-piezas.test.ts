@@ -165,4 +165,22 @@ describe("detail", () => {
     expect(await detalle(extrano.db, piezaId)).toBeNull()
     expect(await detalle(e.db, crypto.randomUUID())).toBeNull()
   })
+
+  test("returns null for an id that is not a uuid without asking the database", async () => {
+    const e = await entorno("lec-no-uuid")
+    expect(await detalle(e.db, "no-es-uuid")).toBeNull()
+  })
+
+  test("cuts the extract by characters, never inside an emoji", async () => {
+    const e = await entorno("lec-emoji")
+    await nueva(e, "😀".repeat(100))
+    const b = await bandeja(e.db)
+    expect(b.porFirmar[0]?.extracto).toBe(`${"😀".repeat(90)}…`)
+  })
+
+  test("keeps the pieces waiting for a signature in creation order", async () => {
+    const e = await entorno("lec-orden")
+    const ids = [await nueva(e, "uno"), await nueva(e, "dos"), await nueva(e, "tres")]
+    expect((await bandeja(e.db)).porFirmar.map((t) => t.id)).toEqual(ids)
+  })
 })

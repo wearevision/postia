@@ -1,7 +1,7 @@
 -- Files of pieces (carousel PDFs), private, one folder per brand: «<marca_id>/<uuid>.pdf».
 -- Supabase Storage instead of the plano's R2 until template rendering needs R2 (decided 2026-10-28).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('piezas', 'piezas', false, 104857600, array['application/pdf']);
+values ('piezas', 'piezas', false, 31457280, array['application/pdf']);
 
 -- CASE guarantees the regex runs before the cast: a first folder that is not a uuid is denied, not an error.
 create policy "miembros leen archivos de su marca" on storage.objects for select to authenticated
