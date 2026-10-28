@@ -81,8 +81,27 @@ language sql immutable set search_path = '' as $$
 $$;
 
 create function public.poner_huella() returns trigger
-language plpgsql set search_path = '' as $$
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_formato text;
+  v_marca uuid;
 begin
+  select p.formato, c.marca_id into v_formato, v_marca
+    from public.piezas p join public.cuentas c on c.id = p.cuenta_id where p.id = new.pieza_id;
+  if v_formato = 'carrusel_pdf' and (new.archivo_ruta is null or new.archivo_sha256 is null or new.titulo is null) then
+    raise exception using errcode = '22023', message = 'carrusel_sin_archivo_o_titulo';
+  end if;
+  if v_formato = 'texto' and (new.archivo_ruta is not null or new.titulo is not null) then
+    raise exception using errcode = '22023', message = 'texto_con_archivo';
+  end if;
+  if new.archivo_ruta is not null then
+    if split_part(new.archivo_ruta, '/', 1) <> v_marca::text then
+      raise exception using errcode = '42501', message = 'archivo_de_otra_marca';
+    end if;
+    if new.archivo_ruta !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.pdf$' then
+      raise exception using errcode = '22023', message = 'ruta_de_archivo_invalida';
+    end if;
+  end if;
   new.texto := public.normalizar_texto(new.texto);
   new.huella := encode(extensions.digest(
     convert_to(new.texto, 'UTF8') || '\x00'::bytea
@@ -98,7 +117,7 @@ create trigger versiones_huella before insert on public.versiones
 
 -- Versions never change: a correction is a new version.
 create function public.versiones_inmutables() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = '' as $$
 begin
   raise exception using errcode = '42501', message = 'las_versiones_no_cambian';
 end $$;
@@ -111,7 +130,8 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if new.numero > 1 then
     update public.firmas set vigente = false where pieza_id = new.pieza_id and vigente;
-    update public.piezas set estado = 'por_aprobar', motivo = 'Cambió el texto o el archivo: hay que firmar de nuevo.'
+    update public.piezas set estado = 'por_aprobar', arrendada_hasta = null,
+           motivo = 'Cambió el texto o el archivo: hay que firmar de nuevo.'
      where id = new.pieza_id and estado in ('programada', 'a_mano');
   end if;
   return new;
@@ -147,6 +167,14 @@ begin
          and f.huella = (select v.huella from public.versiones v where v.pieza_id = new.id order by v.numero desc limit 1)
     ) then
       raise exception using errcode = '23514', message = 'programar_sin_firma_vigente';
+    end if;
+    -- Sending needs the signature of the current version for exactly this date (Puerta 2, Sale lo que se aprobó).
+    if new.estado = 'publicando' and not exists (
+      select 1 from public.firmas f
+       where f.pieza_id = new.id and f.vigente and f.programada_para = new.programada_para
+         and f.huella = (select v.huella from public.versiones v where v.pieza_id = new.id order by v.numero desc limit 1)
+    ) then
+      raise exception using errcode = '23514', message = 'publicar_sin_firma_vigente';
     end if;
     insert into public.eventos (pieza_id, de, a, por, motivo) values (new.id, old.estado, new.estado, auth.uid(), new.motivo);
   end if;
@@ -195,12 +223,6 @@ begin
   select marca_id into v_marca from public.cuentas where id = p_cuenta;
   if v_marca is null or not public.es_dueno(v_marca) then
     raise exception using errcode = '42501', message = 'solo_el_dueno_crea_piezas';
-  end if;
-  if p_formato = 'carrusel_pdf' and (p_archivo_ruta is null or p_titulo is null) then
-    raise exception using errcode = '22023', message = 'carrusel_sin_archivo_o_titulo';
-  end if;
-  if p_archivo_ruta is not null and split_part(p_archivo_ruta, '/', 1) <> v_marca::text then
-    raise exception using errcode = '42501', message = 'archivo_de_otra_marca';
   end if;
   insert into public.piezas (cuenta_id, formato, creada_por) values (p_cuenta, p_formato, auth.uid()) returning id into v_pieza;
   insert into public.versiones (pieza_id, numero, texto, titulo, archivo_ruta, archivo_sha256, creada_por)
@@ -254,7 +276,7 @@ begin
   update public.firmas set vigente = false where pieza_id = p_pieza and vigente;
   insert into public.firmas (pieza_id, version_id, huella, programada_para, firmada_por)
   values (p_pieza, v_version.id, v_version.huella, p_programada_para, auth.uid()) returning id into v_firma;
-  update public.piezas set estado = 'programada', programada_para = p_programada_para, motivo = null where id = p_pieza;
+  update public.piezas set estado = 'programada', programada_para = p_programada_para, arrendada_hasta = null, motivo = null where id = p_pieza;
   return v_firma;
 end $$;
 
@@ -265,7 +287,7 @@ begin
     raise exception using errcode = '42501', message = 'solo_el_dueno_desprograma';
   end if;
   update public.firmas set vigente = false where pieza_id = p_pieza and vigente;
-  update public.piezas set estado = 'por_aprobar', motivo = 'Desprogramada.' where id = p_pieza and estado = 'programada';
+  update public.piezas set estado = 'por_aprobar', arrendada_hasta = null, motivo = 'Desprogramada.' where id = p_pieza and estado = 'programada';
   if not found then
     raise exception using errcode = '22023', message = 'pieza_no_programada';
   end if;
@@ -273,9 +295,18 @@ end $$;
 
 create function public.descartar_pieza(p_pieza uuid, p_motivo text) returns void
 language plpgsql security definer set search_path = '' as $$
+declare
+  v_estado text;
 begin
   if not public.es_dueno(public.marca_de_pieza(p_pieza)) then
     raise exception using errcode = '42501', message = 'solo_el_dueno_descarta';
+  end if;
+  select estado into v_estado from public.piezas where id = p_pieza for update;
+  if v_estado in ('publicada', 'descartada') then
+    raise exception using errcode = '22023', message = 'pieza_ya_cerrada';
+  end if;
+  if v_estado = 'publicando' then
+    raise exception using errcode = '22023', message = 'pieza_enviandose';
   end if;
   update public.firmas set vigente = false where pieza_id = p_pieza and vigente;
   update public.piezas set estado = 'descartada', motivo = nullif(btrim(p_motivo), '') where id = p_pieza;
@@ -287,6 +318,9 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if not public.es_dueno(public.marca_de_pieza(p_pieza)) then
     raise exception using errcode = '42501', message = 'solo_el_dueno_cierra';
+  end if;
+  if p_enlace is null then
+    raise exception using errcode = '22023', message = 'falta_el_enlace';
   end if;
   update public.piezas set estado = 'publicada', enlace = p_enlace, motivo = null
    where id = p_pieza and estado in ('a_mano', 'envio_dudoso');
@@ -304,6 +338,9 @@ begin
   end if;
   update public.piezas set estado = 'a_mano', motivo = 'Revisado: no salió. Publícala a mano.'
    where id = p_pieza and estado = 'envio_dudoso';
+  if not found then
+    raise exception using errcode = '22023', message = 'pieza_no_esta_dudosa';
+  end if;
 end $$;
 
 -- The publisher (service role only): leases due pieces so two runs never take the same one.
@@ -329,3 +366,13 @@ grant execute on function public.crear_pieza(uuid, text, text, text, text, text)
   public.cerrar_a_mano(uuid, text), public.dudoso_a_mano(uuid), public.marca_de_pieza(uuid) to authenticated;
 revoke execute on function public.tomar_para_publicar() from authenticated;
 grant execute on function public.tomar_para_publicar(), public.transiciones_de_pieza() to service_role;
+
+create index eventos_pieza on public.eventos (pieza_id);
+create index firmas_pieza on public.firmas (pieza_id);
+create index firmas_version on public.firmas (version_id);
+create index publicaciones_version on public.publicaciones (version_id);
+create index publicaciones_firma on public.publicaciones (firma_id);
+
+-- Trigger functions are never called by people.
+revoke execute on function public.poner_huella(), public.versiones_inmutables(), public.version_nueva_cae_firma(),
+  public.guardia_de_estado() from public, anon, authenticated;
