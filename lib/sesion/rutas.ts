@@ -1,0 +1,13 @@
+export const RUTA_DE_INICIO = "/"
+export const RUTA_DE_INGRESO = "/ingreso"
+export const RUTA_DE_SALIR = "/salir"
+export const RUTA_DE_MARCAS = "/marcas"
+export const RUTA_DE_AJUSTES = "/ajustes"
+
+const PUBLICAS = new Set([RUTA_DE_INGRESO])
+
+/** Where the proxy redirects a request, or null to let it through. Brand access is checked by the app layout. */
+export function destinoDe(ruta: string, conSesion: boolean): string | null {
+  if (!conSesion) return PUBLICAS.has(ruta) ? null : RUTA_DE_INGRESO
+  return ruta === RUTA_DE_INGRESO ? RUTA_DE_INICIO : null
+}
