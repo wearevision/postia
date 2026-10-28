@@ -1,7 +1,7 @@
 import { PDFDocument } from "pdf-lib"
 import { describe, expect, test } from "vitest"
 import { Falla } from "@/lib/dominio/falla"
-import { pdfDePrueba, repartir } from "@/lib/fase0/pdf-de-prueba"
+import { leerPdf, pdfDePrueba, repartir } from "@/lib/fase0/pdf-de-prueba"
 
 describe("pdfDePrueba", () => {
   test("makes one 1080×1350 page per slide, with Spanish accents", async () => {
@@ -11,6 +11,16 @@ describe("pdfDePrueba", () => {
   })
   test("refuses an empty carousel", async () => {
     await expect(pdfDePrueba([])).rejects.toBeInstanceOf(Falla)
+  })
+})
+
+describe("leerPdf", () => {
+  test("accepts a finished carousel PDF and counts its pages", async () => {
+    const datos = await pdfDePrueba(["Uno", "Dos", "Tres"])
+    expect(await leerPdf(datos)).toEqual({ datos, paginas: 3 })
+  })
+  test("refuses a file that is not a PDF", async () => {
+    await expect(leerPdf(new TextEncoder().encode("no soy un pdf"))).rejects.toBeInstanceOf(Falla)
   })
 })
 

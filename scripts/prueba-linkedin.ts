@@ -2,14 +2,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createInterface } from "node:readline/promises"
 import { parseArgs } from "node:util"
 import { Falla } from "@/lib/dominio/falla"
-import { pdfDePrueba } from "@/lib/fase0/pdf-de-prueba"
+import { leerPdf, pdfDePrueba } from "@/lib/fase0/pdf-de-prueba"
 import { type PedidoDePrueba, publicarPrueba } from "@/lib/fase0/prueba-linkedin"
 import { crearPost, estadoDelDocumento, RespuestaDudosa, subirDocumento } from "@/lib/linkedin/api"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 const USO =
   "Uso: pnpm prueba:linkedin texto --texto <archivo> --visibilidad PUBLIC|CONNECTIONS\n" +
-  "     pnpm prueba:linkedin carrusel --texto <archivo> --laminas <archivo> --titulo <texto> --visibilidad PUBLIC|CONNECTIONS"
+  "     pnpm prueba:linkedin carrusel --texto <archivo> (--laminas <archivo> | --pdf <archivo>) --titulo <texto>\n" +
+  "                                   --visibilidad PUBLIC|CONNECTIONS"
 
 async function firmar(resumen: string): Promise<boolean> {
   console.log(`\n${resumen}\n`)
@@ -45,6 +46,7 @@ async function main() {
     options: {
       texto: { type: "string" },
       laminas: { type: "string" },
+      pdf: { type: "string" },
       titulo: { type: "string" },
       visibilidad: { type: "string" },
     },
@@ -63,19 +65,27 @@ async function main() {
   const texto = await readFile(values.texto, "utf8")
   let pedido: PedidoDePrueba = { paso: "texto", texto, visibilidad }
   if (paso === "carrusel") {
-    if (!values.laminas || !values.titulo) {
+    // Exactly one source: slides to render, or a carousel already designed elsewhere.
+    if (!values.titulo || Boolean(values.laminas) === Boolean(values.pdf)) {
       console.error(USO)
       process.exitCode = 1
       return
     }
-    const laminas = (await readFile(values.laminas, "utf8"))
-      .split(/\n\s*\n/)
-      .map((l) => l.trim())
-      .filter(Boolean)
-    const pdf = await pdfDePrueba(laminas)
-    await mkdir(".fase0", { recursive: true })
-    await writeFile(".fase0/carrusel-de-prueba.pdf", pdf)
-    console.log(`PDF de ${laminas.length} láminas en .fase0/carrusel-de-prueba.pdf: ábrelo antes de firmar.`)
+    let pdf: Uint8Array
+    if (values.pdf) {
+      const leido = await leerPdf(new Uint8Array(await readFile(values.pdf)))
+      pdf = leido.datos
+      console.log(`PDF de ${leido.paginas} páginas: ${values.pdf}. Ábrelo antes de firmar.`)
+    } else {
+      const laminas = (await readFile(values.laminas ?? "", "utf8"))
+        .split(/\n\s*\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+      pdf = await pdfDePrueba(laminas)
+      await mkdir(".fase0", { recursive: true })
+      await writeFile(".fase0/carrusel-de-prueba.pdf", pdf)
+      console.log(`PDF de ${laminas.length} láminas en .fase0/carrusel-de-prueba.pdf: ábrelo antes de firmar.`)
+    }
     pedido = { paso: "carrusel", texto, pdf, titulo: values.titulo, visibilidad }
   }
 
