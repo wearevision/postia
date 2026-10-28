@@ -1,5 +1,6 @@
 import { Falla } from "@/lib/dominio/falla"
 import type { crearPost, EstadoDeDocumento, Visibilidad } from "@/lib/linkedin/api"
+import { esperarDocumento } from "@/lib/linkedin/documento"
 import {
   aLittleText,
   BYTES_MAXIMOS_DEL_DOCUMENTO,
@@ -7,9 +8,6 @@ import {
   LARGO_MAXIMO_DEL_TEXTO,
   tituloDelDocumento,
 } from "@/lib/linkedin/dominio"
-
-const SONDEOS_MAXIMOS = 20
-const ESPERA_ENTRE_SONDEOS_MS = 3_000
 
 export interface DepsDePrueba {
   api: {
@@ -53,15 +51,6 @@ function resumenDe(pedido: PedidoDePrueba): string {
   return lineas.join("\n")
 }
 
-async function esperarDocumento(deps: DepsDePrueba, token: string, documento: string): Promise<EstadoDeDocumento> {
-  for (let sondeo = 0; sondeo < SONDEOS_MAXIMOS; sondeo++) {
-    const estado = await deps.api.estadoDelDocumento({ token, documento })
-    if (estado !== "procesando") return estado
-    await deps.esperar(ESPERA_ENTRE_SONDEOS_MS)
-  }
-  return "procesando"
-}
-
 /** Phase 0: one signed post on Federico's profile. No retries: a doubtful answer is checked by a person. */
 export async function publicarPrueba(
   deps: DepsDePrueba,
@@ -97,7 +86,11 @@ export async function publicarPrueba(
     autor: credencial.titular,
     datos: pedido.pdf,
   })
-  const estado = await esperarDocumento(deps, credencial.token, documento)
+  const estado = await esperarDocumento(
+    { estadoDelDocumento: deps.api.estadoDelDocumento, esperar: deps.esperar },
+    credencial.token,
+    documento,
+  )
   if (estado === "fallido") return { estado: "documento_fallido", documento }
   if (estado === "procesando") return { estado: "documento_tarde", documento }
   const urn = await deps.api.crearPost({ ...base, documento, titulo: tituloDelDocumento(pedido.titulo) })
