@@ -34,6 +34,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      conexiones: {
+        Row: {
+          app: string
+          conectada_en: string
+          conectada_por: string
+          expira_en: string
+          id: string
+          nombre: string | null
+          red: string
+          scopes: string[]
+          titular: string
+        }
+        Insert: {
+          app: string
+          conectada_en?: string
+          conectada_por: string
+          expira_en: string
+          id?: string
+          nombre?: string | null
+          red: string
+          scopes: string[]
+          titular: string
+        }
+        Update: {
+          app?: string
+          conectada_en?: string
+          conectada_por?: string
+          expira_en?: string
+          id?: string
+          nombre?: string | null
+          red?: string
+          scopes?: string[]
+          titular?: string
+        }
+        Relationships: []
+      }
+      cuentas: {
+        Row: {
+          conexion_id: string | null
+          creada_en: string
+          id: string
+          marca_id: string
+          nombre: string
+          red: string
+          ritmo_semanal: number
+          ruta: string
+          tipo: string
+        }
+        Insert: {
+          conexion_id?: string | null
+          creada_en?: string
+          id?: string
+          marca_id: string
+          nombre: string
+          red: string
+          ritmo_semanal?: number
+          ruta: string
+          tipo: string
+        }
+        Update: {
+          conexion_id?: string | null
+          creada_en?: string
+          id?: string
+          marca_id?: string
+          nombre?: string
+          red?: string
+          ritmo_semanal?: number
+          ruta?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_conexion_id_fkey"
+            columns: ["conexion_id"]
+            isOneToOne: false
+            referencedRelation: "conexiones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marcas: {
         Row: {
           creada_en: string
@@ -89,10 +176,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      conectar_linkedin: {
+        Args: {
+          p_cuenta: string
+          p_expira_en: string
+          p_nombre: string
+          p_scopes: string[]
+          p_titular: string
+          p_token: string
+        }
+        Returns: string
+      }
       crear_marca: {
         Args: { p_nombre: string; p_voz: string }
         Returns: string
       }
+      credencial_de_cuenta: {
+        Args: { p_cuenta: string }
+        Returns: {
+          expira_en: string
+          titular: string
+          token: string
+        }[]
+      }
+      desconectar_cuenta: { Args: { p_cuenta: string }; Returns: undefined }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
       tiene_acceso: { Args: never; Returns: boolean }
