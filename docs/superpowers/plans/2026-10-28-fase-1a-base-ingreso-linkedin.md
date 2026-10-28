@@ -1108,7 +1108,7 @@ describe("FormularioIngreso", () => {
   test("shows the error as an alert and stays on the address step", async () => {
     const pedirCodigo = vi.fn(async () => ({ ok: false as const, error: "Revisa tu correo: le falta algo." }))
     render(<FormularioIngreso pedirCodigo={pedirCodigo} verificarCodigo={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText("Tu correo"), { target: { value: "x" } })
+    fireEvent.change(screen.getByLabelText("Tu correo"), { target: { value: "federico@wav" } })
     fireEvent.click(screen.getByRole("button", { name: "Mandar código" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Revisa tu correo: le falta algo.")
     expect(screen.getByLabelText("Tu correo")).toBeInTheDocument()
