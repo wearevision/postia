@@ -353,8 +353,8 @@ language sql security definer set search_path = '' as $$
       where estado = 'programada' and programada_para <= now()
         and (arrendada_hasta is null or arrendada_hasta < now())
       order by programada_para
-      -- Serial work: a carousel takes ~90 s and the lease lasts 10 min, so a bigger batch would outlive its lease.
-      limit 5
+      -- Serial work: ~90 s per carousel x 3 < 540 s (the run's maxDuration) < 600 s (this lease), so a batch never outlives its lease.
+      limit 3
       for update skip locked)
   returning p.*
 $$;

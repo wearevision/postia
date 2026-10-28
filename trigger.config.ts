@@ -4,6 +4,7 @@ export default defineConfig({
   project: "proj_cfileylububfgxfoqhyb",
   dirs: ["./trigger"],
   runtime: "node",
-  maxDuration: 300,
+  // Below the 600 s lease of tomar_para_publicar: a run is cut off before its pieces can be leased again.
+  maxDuration: 540,
   retries: { enabledInDev: false, default: { maxAttempts: 1 } },
 })

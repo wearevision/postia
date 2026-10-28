@@ -211,16 +211,25 @@ export async function publicarPieza(
 /** One run of the scheduled task: due pieces one by one, then sends left without an answer. */
 export async function publicarPendientes(p: PuertosDePublicacion): Promise<Record<ResultadoDePublicacion, number>> {
   const cuenta = { publicada: 0, por_aprobar: 0, a_mano: 0, envio_dudoso: 0, reintentar: 0 }
-  for (const pieza of await p.tomarPendientes()) {
-    try {
-      cuenta[await publicarPieza(p, pieza)]++
-    } catch (error) {
-      // One piece must not starve the others. A throw before the reservation sent nothing; after it, the
-      // "sin respuesta" sweep below parks the piece as doubtful.
-      console.error(`No pude procesar la pieza ${pieza.id}: ${describir(error)}`)
-      cuenta.reintentar++
+  try {
+    for (const pieza of await p.tomarPendientes()) {
+      try {
+        cuenta[await publicarPieza(p, pieza)]++
+      } catch (error) {
+        // One piece must not starve the others. A throw before the reservation sent nothing; after it, the
+        // "sin respuesta" sweep below parks the piece as doubtful.
+        console.error(`No pude procesar la pieza ${pieza.id}: ${describir(error)}`)
+        cuenta.reintentar++
+      }
     }
+  } finally {
+    // Sends left hanging must be found even when taking the due pieces failed.
+    await barrerSinRespuesta(p, cuenta)
   }
+  return cuenta
+}
+
+async function barrerSinRespuesta(p: PuertosDePublicacion, cuenta: Record<ResultadoDePublicacion, number>) {
   const desde = new Date(p.ahora() - QUINCE_MINUTOS_MS).toISOString()
   for (const colgada of await p.sinRespuesta(desde)) {
     const motivo = "El envío quedó sin respuesta: revisa si salió."
@@ -233,5 +242,4 @@ export async function publicarPendientes(p: PuertosDePublicacion): Promise<Recor
     await avisarSiPuede(p, colgada.marcaId, aviso(colgada, "Revisa LinkedIn", motivo))
     cuenta.envio_dudoso++
   }
-  return cuenta
 }

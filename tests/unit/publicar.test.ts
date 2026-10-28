@@ -307,6 +307,15 @@ describe("publicarPendientes", () => {
     expect(cuenta).toMatchObject({ reintentar: 1, publicada: 1 })
   })
 
+  test("still sweeps sends left without an answer when taking the due pieces fails", async () => {
+    const { p, m, estadoDe } = puertos({}, { p9: "publicando" })
+    m.tomarPendientes.mockRejectedValue(new Error("db caída"))
+    m.sinRespuesta.mockResolvedValue([{ id: "p9", marcaId: "marca-1", cuentaNombre: "WAV" }])
+    silenciar()
+    await expect(publicarPendientes(p)).rejects.toThrow("db caída")
+    expect(estadoDe("p9")).toBe("envio_dudoso")
+  })
+
   test("one hung piece that cannot be moved does not stop the others", async () => {
     const { p, m, estadoDe } = puertos({}, { h1: "publicando", h2: "publicando" })
     m.sinRespuesta.mockResolvedValue([

@@ -75,6 +75,28 @@ describe("avisarMiembros", () => {
     expect(count).toBe(1)
   })
 
+  test("a send that throws does not stop the other devices and is logged without the endpoint", async () => {
+    const dueno = await personaConSesion("lanza")
+    const marca = await marcaConDueno(dueno.userId)
+    const roto = await aparato(dueno.userId, "roto")
+    const sano = await aparato(dueno.userId, "sano")
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {})
+    const enviados: string[] = []
+    const falso: ServicioPush = {
+      async enviar(suscripcion) {
+        enviados.push(suscripcion.endpoint)
+        if (suscripcion.endpoint === roto) throw new Error("mensaje demasiado grande")
+        return { estado: "enviado" }
+      },
+    }
+
+    await expect(avisarMiembros(admin(), falso, marca, AVISO)).resolves.toBeUndefined()
+
+    expect(enviados.sort()).toEqual([roto, sano].sort())
+    expect(registro).toHaveBeenCalledWith(expect.stringContaining("mensaje demasiado grande"))
+    expect(JSON.stringify(registro.mock.calls)).not.toContain(roto)
+  })
+
   test("does nothing for a brand with no devices", async () => {
     const dueno = await personaConSesion("vacia")
     const marca = await marcaConDueno(dueno.userId)

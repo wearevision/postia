@@ -1,11 +1,37 @@
-import { describe, expect, test } from "vitest"
+import { beforeEach, describe, expect, test, vi } from "vitest"
 import { repositorioDePublicacion } from "@/lib/publicacion/repositorio"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
 const EN_UNA_HORA = () => new Date(Date.now() + 3_600_000).toISOString()
 const HACE = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString()
 
-/** A signed piece whose moment already arrived. Signing refuses the past, so piece and signature move together. */
+/** Signs the latest version and makes the moment arrive. Signing refuses the past, so piece and signature move together. */
+async function firmarVencida(
+  c: { db: Awaited<ReturnType<typeof personaConSesion>>["db"]; pieza: string },
+  minutosVencida = 1,
+) {
+  const { data: version } = await admin()
+    .from("versiones")
+    .select("id, huella")
+    .eq("pieza_id", c.pieza)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .single()
+  const { data: firma, error } = await c.db.rpc("firmar_pieza", {
+    p_pieza: c.pieza,
+    p_huella: version?.huella as string,
+    p_programada_para: EN_UNA_HORA(),
+  })
+  if (error) throw error
+  const cuando = HACE(minutosVencida)
+  await admin().from("piezas").update({ programada_para: cuando }).eq("id", c.pieza)
+  await admin()
+    .from("firmas")
+    .update({ programada_para: cuando })
+    .eq("id", firma as string)
+  return { version: version?.id as string, firma: firma as string }
+}
+
 async function vencida(opciones: { minutosVencida?: number; cuenta?: "api" | "a_mano" } = {}) {
   const dueno = await personaConSesion("repo")
   const marca = await marcaConDueno(dueno.userId)
@@ -16,29 +42,16 @@ async function vencida(opciones: { minutosVencida?: number; cuenta?: "api" | "a_
     p_texto: "Hola desde el publicador",
   })
   if (error) throw error
-  const { data: version } = await admin()
-    .from("versiones")
-    .select("id, huella")
-    .eq("pieza_id", pieza)
-    .order("numero", { ascending: false })
-    .limit(1)
-    .single()
-  const { data: firma, error: errorDeFirma } = await dueno.db.rpc("firmar_pieza", {
-    p_pieza: pieza,
-    p_huella: version?.huella as string,
-    p_programada_para: EN_UNA_HORA(),
-  })
-  if (errorDeFirma) throw errorDeFirma
-  const cuando = HACE(opciones.minutosVencida ?? 1)
-  await admin().from("piezas").update({ programada_para: cuando }).eq("id", pieza)
-  await admin()
-    .from("firmas")
-    .update({ programada_para: cuando })
-    .eq("id", firma as string)
-  return { ...dueno, marca, cuenta, pieza: pieza as string, version: version?.id as string, firma: firma as string }
+  const c = { ...dueno, marca, cuenta, pieza: pieza as string }
+  return { ...c, ...(await firmarVencida(c, opciones.minutosVencida)) }
 }
 
 const repo = () => repositorioDePublicacion(admin())
+
+// Leftover due pieces from other files would fill the lease batch: take them first so each test sees only its own.
+beforeEach(async () => {
+  while ((await repo().tomarPendientes()).length > 0);
+})
 
 async function estadoDe(pieza: string) {
   const { data } = await admin()
@@ -107,6 +120,43 @@ describe("repositorioDePublicacion", () => {
     await expect(repo().reservarEnvio({ ...base, firma: null })).rejects.toThrow(/firma/)
   })
 
+  test("tomarPendientes returns the new version and signature after an edit and a new signature", async () => {
+    const c = await vencida()
+    await c.db.rpc("nueva_version", { p_pieza: c.pieza, p_texto: "Texto corregido" })
+    const nueva = await firmarVencida(c)
+    const pieza = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    expect(nueva.version).not.toBe(c.version)
+    expect(pieza?.version).toMatchObject({ id: nueva.version, texto: "Texto corregido" })
+    expect(pieza?.firma?.id).toBe(nueva.firma)
+  })
+
+  test("tomarPendientes returns due pieces oldest first", async () => {
+    const vieja = await vencida({ minutosVencida: 20 })
+    const nueva = await vencida({ minutosVencida: 2 })
+    const ids = (await repo().tomarPendientes()).map((p) => p.id)
+    expect(ids.indexOf(vieja.pieza)).toBeGreaterThanOrEqual(0)
+    expect(ids.indexOf(vieja.pieza)).toBeLessThan(ids.indexOf(nueva.pieza))
+  })
+
+  test("tomarPendientes parks an unreadable piece for a person and still returns the others", async () => {
+    const rota = await vencida()
+    const sana = await vencida()
+    await admin().from("versiones").delete().eq("pieza_id", rota.pieza)
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const ids = (await repo().tomarPendientes()).map((p) => p.id)
+
+    expect(ids).toContain(sana.pieza)
+    expect(ids).not.toContain(rota.pieza)
+    expect(await estadoDe(rota.pieza)).toMatchObject({
+      estado: "por_aprobar",
+      motivo: "No pude leer la pieza para publicarla. Revísala y fírmala de nuevo.",
+      arrendada_hasta: null,
+    })
+    expect(registro).toHaveBeenCalled()
+    registro.mockRestore()
+  })
+
   test("cerrarEnvio stores the URN and link and publishes the piece", async () => {
     const c = await vencida()
     const pieza = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
@@ -155,6 +205,31 @@ describe("repositorioDePublicacion", () => {
 
     await repo().cerrarEnvio(c.pieza, "urn:li:share:888", "https://www.linkedin.com/feed/update/urn:li:share:888")
     expect((await repo().sinRespuesta(HACE(15))).find((x) => x.id === c.pieza)).toBeUndefined()
+  })
+
+  test("sinRespuesta ignores an older orphan send once the piece was signed again and sent afresh", async () => {
+    const c = await vencida()
+    const primera = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    if (!primera) throw new Error("la pieza vencida no apareció")
+    await repo().reservarEnvio(primera)
+    await admin()
+      .from("publicaciones")
+      .update({ enviado_en: HACE(40) })
+      .eq("pieza_id", c.pieza)
+    await repo().mover(c.pieza, "a_mano", "Salió dudoso.")
+    await admin().from("piezas").update({ estado: "por_aprobar" }).eq("id", c.pieza)
+    await firmarVencida(c)
+    const segunda = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
+    if (!segunda) throw new Error("la pieza vencida no volvió")
+    await repo().reservarEnvio(segunda)
+
+    expect((await repo().sinRespuesta(HACE(15))).find((x) => x.id === c.pieza)).toBeUndefined()
+
+    await admin()
+      .from("publicaciones")
+      .update({ enviado_en: HACE(20) })
+      .eq("firma_id", segunda.firma?.id as string)
+    expect((await repo().sinRespuesta(HACE(15))).find((x) => x.id === c.pieza)?.id).toBe(c.pieza)
   })
 
   test("credencial returns the Vault token of the connected account, and null when there is none", async () => {

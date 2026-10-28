@@ -8,6 +8,8 @@ type PuertosDeBase = Pick<
   "tomarPendientes" | "sinRespuesta" | "credencial" | "descargar" | "reservarEnvio" | "cerrarEnvio" | "mover"
 >
 
+const MOTIVO_ILEGIBLE = "No pude leer la pieza para publicarla. Revísala y fírmala de nuevo."
+
 function fallo(accion: string, error: { message: string }): never {
   throw new Error(`${accion}: ${error.message}`, { cause: error })
 }
@@ -24,6 +26,16 @@ function comoFormato(valor: string): PiezaParaPublicar["formato"] {
 
 /** The publisher's ports over the service role. The state guard still applies: an illegal move throws. */
 export function repositorioDePublicacion(db: Db): PuertosDeBase {
+  async function mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string) {
+    const { error } = await db
+      .from("piezas")
+      .update({ estado: a, motivo, arrendada_hasta: null })
+      .eq("id", piezaId)
+      .select("id")
+      .single()
+    if (error) fallo(`No pude mover la pieza a ${a}`, error)
+  }
+
   return {
     async tomarPendientes() {
       const { data: arrendadas, error } = await db.rpc("tomar_para_publicar")
@@ -38,38 +50,54 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
           "id",
           arrendadas.map((a) => a.id),
         )
+        .order("programada_para")
       if (errorDeLectura) fallo("No pude leer las piezas por publicar", errorDeLectura)
-      return piezas.map((p): PiezaParaPublicar => {
-        const ultima = [...p.versiones].sort((a, b) => b.numero - a.numero)[0]
-        if (!ultima) throw new Error(`La pieza ${p.id} no tiene versiones.`)
-        if (!p.programada_para) throw new Error(`La pieza ${p.id} está arrendada sin fecha.`)
-        const firma = p.firmas.find((f) => f.vigente)
-        return {
-          id: p.id,
-          marcaId: p.cuentas.marca_id,
-          cuentaId: p.cuentas.id,
-          cuentaNombre: p.cuentas.nombre,
-          ruta: comoRuta(p.cuentas.ruta),
-          formato: comoFormato(p.formato),
-          programadaPara: p.programada_para,
-          ventanaMinutos: p.ventana_minutos,
-          version: {
-            id: ultima.id,
-            texto: ultima.texto,
-            titulo: ultima.titulo,
-            archivoRuta: ultima.archivo_ruta,
-            archivoSha256: ultima.archivo_sha256,
-            huella: ultima.huella,
-          },
-          firma: firma ? { id: firma.id, huella: firma.huella } : null,
+      const listas: PiezaParaPublicar[] = []
+      for (const p of piezas) {
+        try {
+          const ultima = [...p.versiones].sort((a, b) => b.numero - a.numero)[0]
+          if (!ultima) throw new Error("no tiene versiones")
+          if (!p.programada_para) throw new Error("está arrendada sin fecha")
+          const firma = p.firmas.find((f) => f.vigente)
+          listas.push({
+            id: p.id,
+            marcaId: p.cuentas.marca_id,
+            cuentaId: p.cuentas.id,
+            cuentaNombre: p.cuentas.nombre,
+            ruta: comoRuta(p.cuentas.ruta),
+            formato: comoFormato(p.formato),
+            programadaPara: p.programada_para,
+            ventanaMinutos: p.ventana_minutos,
+            version: {
+              id: ultima.id,
+              texto: ultima.texto,
+              titulo: ultima.titulo,
+              archivoRuta: ultima.archivo_ruta,
+              archivoSha256: ultima.archivo_sha256,
+              huella: ultima.huella,
+            },
+            firma: firma ? { id: firma.id, huella: firma.huella } : null,
+          })
+        } catch (error) {
+          // One unreadable piece must not block the others: a person looks at it, and it leaves the lease.
+          console.error(`No pude leer la pieza ${p.id}: ${error instanceof Error ? error.message : String(error)}`)
+          try {
+            await mover(p.id, "por_aprobar", MOTIVO_ILEGIBLE)
+          } catch (errorAlMover) {
+            const causa = errorAlMover instanceof Error ? errorAlMover.message : String(errorAlMover)
+            console.error(`No pude apartar la pieza ${p.id}: ${causa}`)
+          }
         }
-      })
+      }
+      return listas
     },
 
     async sinRespuesta(desde) {
       const { data, error } = await db
         .from("publicaciones")
-        .select("pieza_id, piezas!inner(estado, cuentas!inner(nombre, marca_id))")
+        .select("pieza_id, firmas!inner(vigente), piezas!inner(estado, cuentas!inner(nombre, marca_id))")
+        // Only the open send of the current signature: an older orphan row must not mark a fresh send doubtful.
+        .eq("firmas.vigente", true)
         .is("post_urn", null)
         .lt("enviado_en", desde)
         .eq("piezas.estado", "publicando")
@@ -113,15 +141,6 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       const { error } = await db.rpc("cerrar_envio", { p_pieza: piezaId, p_urn: urn, p_enlace: enlace })
       if (error) fallo("No pude cerrar el envío", error)
     },
-
-    async mover(piezaId, a, motivo) {
-      const { error } = await db
-        .from("piezas")
-        .update({ estado: a, motivo, arrendada_hasta: null })
-        .eq("id", piezaId)
-        .select("id")
-        .single()
-      if (error) fallo(`No pude mover la pieza a ${a}`, error)
-    },
+    mover,
   }
 }
