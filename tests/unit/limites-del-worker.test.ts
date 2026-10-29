@@ -1,25 +1,77 @@
+// @vitest-environment node
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
+import { type Fuente, recorrerImports } from "../grafo-de-imports"
+
+const RAIZ = path.resolve(__dirname, "../..")
 
 function archivos(carpeta: string): string[] {
-  if (!existsSync(carpeta)) return []
-  return readdirSync(carpeta).flatMap((nombre) => {
-    const ruta = path.join(carpeta, nombre)
-    return statSync(ruta).isDirectory() ? archivos(ruta) : /\.(ts|tsx)$/.test(nombre) ? [ruta] : []
+  const absoluta = path.join(RAIZ, carpeta)
+  if (!existsSync(absoluta)) return []
+  return readdirSync(absoluta).flatMap((nombre) => {
+    const ruta = path.posix.join(carpeta, nombre)
+    return statSync(path.join(RAIZ, ruta)).isDirectory() ? archivos(ruta) : /\.(ts|tsx)$/.test(nombre) ? [ruta] : []
   })
 }
 
+const disco: Fuente = {
+  esArchivo: (ruta) => existsSync(path.join(RAIZ, ruta)) && statSync(path.join(RAIZ, ruta)).isFile(),
+  leer: (ruta) => readFileSync(path.join(RAIZ, ruta), "utf8"),
+}
+
+function enMemoria(archivos: Record<string, string>): Fuente {
+  return {
+    esArchivo: (ruta) => ruta in archivos,
+    leer: (ruta) => archivos[ruta] ?? "",
+  }
+}
+
+const esDelClienteDeClaude = (ruta: string) => ruta.startsWith("lib/ia/")
+const esElSdk = (paquete: string) => paquete === "@anthropic-ai/sdk" || paquete.startsWith("@anthropic-ai/sdk/")
+
+describe("recorrerImports", () => {
+  test("follows alias, relative, re-export, side-effect, multi-line and dynamic imports down to the SDK", () => {
+    const grafo = recorrerImports(
+      ["app/page.tsx"],
+      enMemoria({
+        "app/page.tsx": 'import { a } from "@/lib/a"\nimport "./estilos"\n',
+        "app/estilos.ts": "export {}\n",
+        "lib/a.ts": 'export * from "./b"\n',
+        "lib/b/index.ts": 'import {\n  type C,\n  c,\n} from "../c"\n',
+        "lib/c.tsx": 'export const c = () => import("@/lib/ia/claude")\n',
+        "lib/ia/claude.ts": 'import Anthropic from "@anthropic-ai/sdk"\nimport x from "@anthropic-ai/sdk/resources"\n',
+      }),
+    )
+    expect([...grafo.archivos].sort()).toEqual([
+      "app/estilos.ts",
+      "app/page.tsx",
+      "lib/a.ts",
+      "lib/b/index.ts",
+      "lib/c.tsx",
+      "lib/ia/claude.ts",
+    ])
+    expect([...grafo.paquetes].sort()).toEqual(["@anthropic-ai/sdk", "@anthropic-ai/sdk/resources"])
+    expect(grafo.sinResolver).toEqual([])
+  })
+
+  test("reports a project import it cannot resolve instead of silently stopping there", () => {
+    const grafo = recorrerImports(["app/page.tsx"], enMemoria({ "app/page.tsx": 'import { a } from "@/lib/falta"\n' }))
+    expect(grafo.sinResolver).toEqual(["app/page.tsx → @/lib/falta"])
+  })
+})
+
 describe("Worker boundary", () => {
-  test("no route, component or module the Worker serves imports the Claude client or the Anthropic SDK", () => {
-    // lib/gasto/lectura.ts and acciones.ts arrive in Task 8; Ajustes imports them.
-    const servidas = [
+  test("nothing reachable from a route, a component or the proxy imports the Claude client or the Anthropic SDK", () => {
+    const entradas = [
       ...archivos("app"),
       ...archivos("components"),
-      "lib/gasto/lectura.ts",
-      "lib/gasto/acciones.ts",
-    ].filter((f) => existsSync(f))
-    const culpables = servidas.filter((f) => /from "(@\/lib\/ia\/|@anthropic-ai\/sdk)/.test(readFileSync(f, "utf8")))
-    expect(culpables).toEqual([])
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    expect(entradas.length).toBeGreaterThan(0)
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos].filter(esDelClienteDeClaude)).toEqual([])
+    expect([...grafo.paquetes].filter(esElSdk)).toEqual([])
   })
 })

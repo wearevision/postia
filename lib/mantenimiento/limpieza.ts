@@ -90,15 +90,38 @@ export async function limpiarArchivos(
   })
 }
 
-/** The nightly jobs are independent: each runs even if another fails, and the first failure still shows. */
+function mensajeDe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/** The nightly jobs are independent: each runs even if another fails, and every failure is logged and thrown together. */
 export async function mantenimientoNocturno(pasos: {
   archivos(): Promise<number>
   avisos(): Promise<void>
   gastos(): Promise<number>
 }): Promise<{ archivos: number; gastosVencidos: number }> {
   const [archivos, avisos, gastos] = await Promise.allSettled([pasos.archivos(), pasos.avisos(), pasos.gastos()])
-  if (archivos.status === "rejected") throw archivos.reason
-  if (avisos.status === "rejected") throw avisos.reason
-  if (gastos.status === "rejected") throw gastos.reason
-  return { archivos: archivos.value, gastosVencidos: gastos.value }
+  if (archivos.status === "fulfilled" && avisos.status === "fulfilled" && gastos.status === "fulfilled") {
+    return { archivos: archivos.value, gastosVencidos: gastos.value }
+  }
+  const resultados = [
+    { paso: "archivos", resultado: archivos },
+    { paso: "avisos", resultado: avisos },
+    { paso: "gastos", resultado: gastos },
+  ]
+  const fallas: { paso: string; razon: unknown }[] = []
+  const terminados: string[] = []
+  for (const { paso, resultado } of resultados) {
+    if (resultado.status === "rejected") {
+      fallas.push({ paso, razon: resultado.reason })
+      console.error(`Falló el paso nocturno «${paso}»: ${mensajeDe(resultado.reason)}`)
+    } else {
+      terminados.push(typeof resultado.value === "number" ? `${paso}=${resultado.value}` : paso)
+    }
+  }
+  if (terminados.length > 0) console.log(`Pasos nocturnos que sí terminaron: ${terminados.join(", ")}`)
+  throw new AggregateError(
+    fallas.map((f) => f.razon),
+    `Fallaron pasos nocturnos: ${fallas.map((f) => `${f.paso} (${mensajeDe(f.razon)})`).join("; ")}`,
+  )
 }

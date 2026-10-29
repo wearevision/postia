@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { Falla } from "@/lib/dominio/falla"
 import { exigirEnv } from "@/lib/env"
 import { type AvisoDeTope, type LibroDeGastos, pagar } from "@/lib/gasto/pagar"
 import { costoReal, estimarCosto, type ModeloClaude, type Uso } from "@/lib/gasto/precios"
@@ -23,7 +24,7 @@ export interface PedidoAClaude {
 export interface RespuestaDeClaude {
   texto: string
   /** "refusal" must be handled by the caller before using `texto`. */
-  detenido: string | null
+  detenido: Anthropic.StopReason | null
 }
 
 /**
@@ -71,18 +72,30 @@ export function esRechazoProbado(error: unknown): boolean {
 
 type Crear = (solicitud: Anthropic.MessageCreateParamsNonStreaming) => Promise<{
   content: { type: string; text?: string }[]
-  stop_reason: string | null
+  stop_reason: Anthropic.StopReason | null
   usage: Parameters<typeof usoDe>[0]
 }>
 
-/** Retries are attempts the ledger must see, so the SDK never retries on its own. */
+/**
+ * Retries are attempts the ledger must see, so the SDK never retries on its own. Always streamed: a non-streaming
+ * call over about 21k max_tokens is refused by the SDK, and any fixed timeout could cut a call already billed.
+ */
 export function crearReal(entorno: Record<string, string | undefined> = process.env): Crear {
   const cliente = new Anthropic({
     apiKey: exigirEnv("ANTHROPIC_API_KEY", entorno.ANTHROPIC_API_KEY),
     maxRetries: 0,
-    timeout: 120_000,
   })
-  return (solicitud) => cliente.messages.create(solicitud)
+  return (solicitud) => cliente.messages.stream(solicitud).finalMessage()
+}
+
+/** Only text is priced (lib/gasto/precios.ts): an image or document would be estimated by its base64 size. */
+function caracteresDe(mensaje: Anthropic.MessageParam): number {
+  if (typeof mensaje.content === "string") return mensaje.content.length
+  return mensaje.content.reduce((n, bloque) => {
+    if (bloque.type !== "text")
+      throw new Falla(`Todavía no sé calcular el costo de un bloque «${bloque.type}»; solo texto.`)
+    return n + bloque.text.length
+  }, 0)
 }
 
 export async function pedirPagando(
@@ -92,12 +105,7 @@ export async function pedirPagando(
 ): Promise<RespuestaDeClaude> {
   const solicitud = solicitudDe(pedido)
   const modelo = pedido.modelo ?? MODELO_POR_DEFECTO
-  const caracteres =
-    pedido.sistema.length +
-    pedido.mensajes.reduce(
-      (n, m) => n + (typeof m.content === "string" ? m.content.length : JSON.stringify(m.content).length),
-      0,
-    )
+  const caracteres = pedido.mensajes.reduce((n, m) => n + caracteresDe(m), pedido.sistema.length)
   return pagar(
     { libro: puertos.libro, avisar: puertos.avisar, esRechazoProbado },
     {

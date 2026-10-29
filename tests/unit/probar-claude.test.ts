@@ -9,7 +9,7 @@ describe("probarClaude", () => {
   })
 
   test("makes one cheap call keyed by the run, charged to General", async () => {
-    const pedir = vi.fn(async () => ({ texto: "listo", detenido: "end_turn" }))
+    const pedir = vi.fn(async () => ({ texto: "listo", detenido: "end_turn" as const }))
     expect(await probarClaude({ confirmacion: "GASTAR" }, "run_1", pedir)).toEqual({ hecho: true, texto: "listo" })
     expect(pedir).toHaveBeenCalledWith(
       { clave: "probar-claude:run_1", paso: "probar", marcaId: null },
