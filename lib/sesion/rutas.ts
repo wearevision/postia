@@ -5,11 +5,17 @@ export const RUTA_DE_MARCAS = "/marcas"
 export const RUTA_DE_AJUSTES = "/ajustes"
 export const RUTA_DE_NUEVA_PIEZA = "/piezas/nueva"
 export const RUTA_DE_CALENDARIO = "/calendario"
+export const RUTA_DE_VOZ = "/voz"
+export const RUTA_DE_CLIENTES = "/clientes"
 
 export function rutaDeCalendario(destino: { semana: string } | { mes: string }): string {
   return "semana" in destino
     ? `${RUTA_DE_CALENDARIO}?semana=${destino.semana}`
     : `${RUTA_DE_CALENDARIO}?vista=mes&mes=${destino.mes}`
+}
+
+export function rutaDeVoz(marcaId: string, version?: number): string {
+  return `${RUTA_DE_VOZ}/${encodeURIComponent(marcaId)}${version ? `?version=${version}` : ""}`
 }
 
 export function rutaDePieza(id: string): string {
