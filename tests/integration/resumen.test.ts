@@ -132,4 +132,41 @@ describe("enviarResumenes", () => {
     expect(de(endpoint)).toEqual([])
     expect(await lineaSinEnviar(marca)).toEqual([null])
   })
+
+  test("tells each person only the pillar alerts of their own brands", async () => {
+    const hace = (dias: number) => new Date(Date.now() - dias * 86_400_000).toISOString()
+    const dentroDe = (dias: number) => new Date(Date.now() + dias * 86_400_000).toISOString()
+    const { db, userId } = await personaConSesion("resumen-pilares")
+    const marca = await marcaConDueno(userId)
+    const cuenta = await cuentaConRitmo(marca, 3)
+    const { data: pilares, error } = await admin()
+      .from("pilares")
+      .insert([
+        { marca_id: marca, nombre: "Olvidado", por_semana: 1, orden: 1, creado_en: hace(30) },
+        { marca_id: marca, nombre: "En camino", por_semana: 1, orden: 2, creado_en: hace(30) },
+      ])
+      .select("id, nombre")
+    if (error) throw error
+    const enCamino = pilares.find((p) => p.nombre === "En camino")?.id
+    const pieza = await piezaDe(db, cuenta)
+    await admin()
+      .from("piezas")
+      .update({ planeada_para: dentroDe(3), pilar_id: enCamino })
+      .eq("id", pieza)
+    const { data: cuentaLeida } = await admin().from("cuentas").select("nombre").eq("id", cuenta).single()
+    const endpoint = await aparato(userId)
+
+    const ajeno = await personaConSesion("resumen-pilares-ajeno")
+    const marcaAjena = await marcaConDueno(ajeno.userId)
+    await anotarAviso(admin(), marcaAjena, { titulo: "Cuenta", cuerpo: "Algo de la otra marca", url: "/piezas/x" })
+    const endpointAjeno = await aparato(ajeno.userId)
+    const { falso, de } = servicio()
+
+    await enviarResumenes(admin(), falso, Date.now())
+
+    const cuerpo = de(endpoint)[0]?.mensaje.cuerpo ?? ""
+    expect(cuerpo).toContain(`«Olvidado» no ha salido en ${cuentaLeida?.nombre} en más de dos semanas.`)
+    expect(cuerpo).not.toContain("En camino")
+    expect(de(endpointAjeno)[0]?.mensaje.cuerpo).not.toContain("Olvidado")
+  })
 })

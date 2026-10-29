@@ -1,3 +1,4 @@
+import { lineaDeAlerta } from "@/lib/voz/balance"
 import type { MensajePush } from "./tipos"
 
 export interface EstadoDelResumen {
@@ -6,6 +7,8 @@ export interface EstadoDelResumen {
   revisar: number
   reservas: { cuenta: string; tiene: number; meta: number }[]
   huecos: { cuenta: string; faltan: number; semana: "esta" | "proxima" }[]
+  /** D20: pillars two weeks without coming out (lib/voz/balance.ts decides which). */
+  pilares: { cuenta: string; pilar: string; dias: number | null }[]
   lineas: MensajePush[]
 }
 
@@ -38,6 +41,7 @@ export function armarResumen(e: EstadoDelResumen): MensajePush | null {
     ...e.huecos.map(
       (h) => `Faltan ${h.faltan} en ${h.cuenta} ${h.semana === "esta" ? "esta semana" : "la próxima semana"}.`,
     ),
+    ...e.pilares.map((p) => lineaDeAlerta(p.pilar, p.dias, p.cuenta)),
   ].map(recortar)
   if (filas.length === 0) return null
   const unicaLinea = filas.length === 1 && e.lineas.length === 1 ? e.lineas[0] : null

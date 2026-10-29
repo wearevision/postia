@@ -2,6 +2,7 @@ import { huecosDeLaSemana, semanaDe, semanaDelLunes, sumarDias } from "@/lib/pie
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { calendario } from "@/lib/piezas/lectura"
 import type { Db } from "@/lib/supabase/database"
+import { balancePorCuenta } from "@/lib/voz/lectura"
 import { avisarPersona } from "./a-miembros"
 import type { ServicioPush } from "./push"
 import { avisosSinEnviar, type LineaPendiente, marcarEnviados } from "./repositorio-de-avisos"
@@ -10,7 +11,7 @@ import { armarResumen, type EstadoDelResumen } from "./resumen"
 type PorMarca = Omit<EstadoDelResumen, "lineas">
 
 function vacio(): PorMarca {
-  return { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [] }
+  return { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [], pilares: [] }
 }
 
 async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMarca>> {
@@ -53,6 +54,13 @@ async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMar
       if (faltan > 0) e.huecos.push({ cuenta: c.nombre, faltan, semana: nombre })
     }
   }
+
+  // D20: only the alerts; the whole balance lives in the calendar.
+  for (const { marcaId, cuenta, balance } of await balancePorCuenta(db, ahora)) {
+    for (const f of balance.filas.filter((f) => f.alerta)) {
+      de(marcaId).pilares.push({ cuenta, pilar: f.nombre, dias: f.diasSinSalir })
+    }
+  }
   return porMarca
 }
 
@@ -83,6 +91,7 @@ export async function enviarResumenes(
         estado.revisar += e.revisar
         estado.reservas.push(...e.reservas)
         estado.huecos.push(...e.huecos)
+        estado.pilares.push(...e.pilares)
       }
       suyas.push(...lineas.filter((l) => l.marcaId === marcaId))
     }
