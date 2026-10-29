@@ -357,6 +357,32 @@ describe("covering unsigned slots from the reserve", () => {
     expect((await estadoDe(c.pendiente))?.estado).toBe("por_aprobar")
   })
 
+  test("a reserve piece sent back for a cause in the piece itself goes to the gate with its reserve signature dropped", async () => {
+    const c = await reservaYPendiente()
+    await repo().cubrirConReserva(c.pendiente, enTresDias())
+    await repo().tomarPendientes()
+    await repo().mover(c.reserva, "por_aprobar", "El archivo cambió después de la firma.")
+    expect(await estadoDe(c.reserva)).toMatchObject({
+      estado: "por_aprobar",
+      motivo: "El archivo cambió después de la firma.",
+    })
+    const { data: firmas } = await admin().from("firmas").select("vigente").eq("pieza_id", c.reserva)
+    expect(firmas).toEqual([{ vigente: false }])
+  })
+
+  test("devolverALaReserva returns a reserve piece to the reserve, and a plain signed piece to the gate", async () => {
+    const c = await reservaYPendiente()
+    await repo().cubrirConReserva(c.pendiente, enTresDias())
+    await repo().tomarPendientes()
+    expect(await repo().devolverALaReserva(c.reserva, "Tarde.")).toBe("en_reserva")
+    expect((await estadoDe(c.reserva))?.estado).toBe("en_reserva")
+
+    const normal = await vencida()
+    await repo().tomarPendientes()
+    expect(await repo().devolverALaReserva(normal.pieza, "Tarde.")).toBe("por_aprobar")
+    expect((await estadoDe(normal.pieza))?.estado).toBe("por_aprobar")
+  })
+
   test("a reserve piece of an account published by hand is covered and then handed to a person", async () => {
     const c = await reservaYPendiente("a_mano")
     const puertos = repo()

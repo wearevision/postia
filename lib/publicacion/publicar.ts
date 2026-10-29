@@ -60,6 +60,8 @@ export interface PuertosDePublicacion {
   reservarEnvio(pieza: PiezaParaPublicar): Promise<"reservado" | "ya_enviado">
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
   mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<void>
+  /** Timing causes only: a piece that came out of the reserve goes back to it. Says where the piece ended. */
+  devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva">
   avisar(marcaId: string, aviso: Aviso): Promise<void>
   vencidasSinFirma(): Promise<PendienteSinFirma[]>
   horariosOcupados(cuentaId: string, desde: number): Promise<number[]>
@@ -95,8 +97,21 @@ async function devolver(
   pieza: PiezaParaPublicar,
   a: "por_aprobar" | "a_mano" | "envio_dudoso",
   motivo: string,
+  porHorario = false,
 ): Promise<ResultadoDePublicacion> {
-  await p.mover(pieza.id, a, motivo)
+  if (a === "por_aprobar" && porHorario) {
+    const destino = await p.devolverALaReserva(pieza.id, motivo)
+    if (destino === "en_reserva") {
+      await avisarSiPuede(p, pieza.marcaId, {
+        titulo: `Volvió a la reserva · ${pieza.cuentaNombre}`,
+        cuerpo: "No alcanzó a salir a su hora; la app la usará en el próximo espacio sin firma.",
+        url: `/piezas/${pieza.id}`,
+      })
+      return a
+    }
+  } else {
+    await p.mover(pieza.id, a, motivo)
+  }
   const titulos = { por_aprobar: "No salió", a_mano: "Publica a mano", envio_dudoso: "Revisa LinkedIn" } as const
   await avisarSiPuede(p, pieza.marcaId, aviso(pieza, titulos[a], motivo))
   return a
@@ -132,7 +147,7 @@ export async function publicarPieza(
 ): Promise<ResultadoDePublicacion> {
   const credencial = pieza.ruta === "api" ? await p.credencial(pieza.cuentaId) : null
   const revision = revisar(p, pieza, credencial)
-  if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo)
+  if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo, revision.porHorario === true)
   // revisarAntesDeEnviar already refuses a missing connection; this only narrows the type for what follows.
   if (!credencial) return devolver(p, pieza, "a_mano", "No encontré la conexión de LinkedIn de esta cuenta.")
 
@@ -170,7 +185,7 @@ export async function publicarPieza(
 
   // The document wait can take minutes: the window is checked again at the last moment before reserving.
   const ultima = revisar(p, pieza, credencial)
-  if (!ultima.ok) return devolver(p, pieza, ultima.destino, ultima.motivo)
+  if (!ultima.ok) return devolver(p, pieza, ultima.destino, ultima.motivo, ultima.porHorario === true)
 
   let reserva: "reservado" | "ya_enviado"
   try {

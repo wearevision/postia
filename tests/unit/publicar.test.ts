@@ -69,6 +69,10 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     }),
     cerrarEnvio: vi.fn(async (id: string) => pasar(id, "publicada")),
     mover: vi.fn(async (id: string, a: "por_aprobar" | "a_mano" | "envio_dudoso") => pasar(id, a)),
+    devolverALaReserva: vi.fn(async (id: string): Promise<"por_aprobar" | "en_reserva"> => {
+      pasar(id, "por_aprobar")
+      return "por_aprobar"
+    }),
     avisar: vi.fn(async () => {}),
     vencidasSinFirma: vi.fn(async (): Promise<PendienteSinFirma[]> => []),
     horariosOcupados: vi.fn(async (): Promise<number[]> => []),
@@ -224,6 +228,41 @@ describe("publicarPieza", () => {
     const { p, m } = puertos({ ahora: () => Date.parse("2026-11-03T14:40:00Z") })
     expect(await publicarPieza(p, pieza())).toBe("por_aprobar")
     expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+  })
+
+  test("a missed window is a timing cause: the database may send the piece back to the reserve, and the notice says so", async () => {
+    const { p, m } = puertos({
+      ahora: () => Date.parse("2026-11-03T14:40:00Z"),
+      devolverALaReserva: vi.fn(async () => "en_reserva" as const),
+    })
+    expect(await publicarPieza(p, pieza())).toBe("por_aprobar")
+    expect(p.devolverALaReserva).toHaveBeenCalledWith("pieza-1", expect.stringContaining("30 minutos"))
+    expect(m.mover).not.toHaveBeenCalled()
+    expect(m.avisar).toHaveBeenCalledWith("marca-1", {
+      titulo: "Volvió a la reserva · Federico",
+      cuerpo: "No alcanzó a salir a su hora; la app la usará en el próximo espacio sin firma.",
+      url: "/piezas/pieza-1",
+    })
+  })
+
+  test("a missed window on a piece that was not in the reserve keeps the plain notice", async () => {
+    const { p, m } = puertos({ ahora: () => Date.parse("2026-11-03T14:40:00Z") })
+    await publicarPieza(p, pieza())
+    expect(m.avisar).toHaveBeenCalledWith("marca-1", expect.objectContaining({ titulo: "No salió · Federico" }))
+  })
+
+  test("a cause in the piece itself never goes back to the reserve", async () => {
+    const { p, m } = puertos({ descargar: vi.fn(async () => new Uint8Array([9, 9])) })
+    await publicarPieza(p, carrusel())
+    expect(m.devolverALaReserva).not.toHaveBeenCalled()
+    expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", "El archivo cambió después de la firma.")
+  })
+
+  test("a signature of another version is a cause in the piece, not timing", async () => {
+    const { p, m } = puertos()
+    await publicarPieza(p, pieza({ firma: { id: "f1", huella: "b".repeat(64) } }))
+    expect(m.devolverALaReserva).not.toHaveBeenCalled()
+    expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", expect.any(String))
   })
 
   test("re-checks the window right before reserving: a slow document wait can push it past the window", async () => {

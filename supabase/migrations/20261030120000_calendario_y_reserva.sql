@@ -235,14 +235,18 @@ begin
   return v_reserva;
 end $$;
 
--- The publisher's way back to the gate (service role only). A piece that came out of the reserve (its current signature
--- is a reserve one for the current version) and fails before sending returns to the reserve with that signature intact
--- and no dates, instead of looking like an unsigned due piece; any other piece goes to por_aprobar as before.
+-- The publisher's way back to the gate (service role only). The cause decides, and the publisher says which:
+--  * p_a_la_reserva = true (timing: the slot's window passed): a piece that came out of the reserve (its current
+--    signature is a reserve one for the current version) returns to en_reserva with that signature intact and no dates;
+--    any other piece goes to por_aprobar.
+--  * p_a_la_reserva = false (the piece itself: file changed, unreadable, missing PDF): the piece goes to por_aprobar and
+--    a reserve signature is dropped, so it cannot be picked again and fail again.
 -- Two moves in one transaction because the state table has no programada -> en_reserva edge. Returns the new state.
-create function public.devolver_pieza(p_pieza uuid, p_motivo text) returns text
+create function public.devolver_pieza(p_pieza uuid, p_motivo text, p_a_la_reserva boolean) returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   v_huella text;
+  v_firma_de_reserva boolean;
 begin
   perform 1 from public.piezas where id = p_pieza for update;
   if not found then
@@ -250,9 +254,14 @@ begin
   end if;
   update public.piezas set estado = 'por_aprobar', motivo = p_motivo, arrendada_hasta = null where id = p_pieza;
   select v.huella into v_huella from public.versiones v where v.pieza_id = p_pieza order by v.numero desc limit 1;
-  if not exists (
+  select exists (
     select 1 from public.firmas f where f.pieza_id = p_pieza and f.vigente and f.para_reserva and f.huella = v_huella
-  ) then
+  ) into v_firma_de_reserva;
+  if not v_firma_de_reserva then
+    return 'por_aprobar';
+  end if;
+  if not p_a_la_reserva then
+    update public.firmas set vigente = false where pieza_id = p_pieza and vigente and para_reserva;
     return 'por_aprobar';
   end if;
   update public.firmas set programada_para = null where pieza_id = p_pieza and vigente and para_reserva;
@@ -263,9 +272,9 @@ begin
 end $$;
 
 -- Service role only: Supabase's default privileges grant execute to anon and authenticated otherwise.
-revoke execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text)
+revoke execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text, boolean)
   from public, anon, authenticated;
-grant execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text) to service_role;
+grant execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text, boolean) to service_role;
 
 -- D26: non-urgent notices wait here for the 9:00 and 17:00 digest (trigger/resumen.ts). Service role only.
 create table public.avisos_pendientes (

@@ -9,7 +9,10 @@ export interface DatosDeRevision {
   conexionExpira: string | null
 }
 
-export type Revision = { ok: true } | { ok: false; destino: "por_aprobar" | "a_mano"; motivo: string }
+/** `porHorario` marks a cause of timing (the window passed), as opposed to a cause in the piece itself. */
+export type Revision =
+  | { ok: true }
+  | { ok: false; destino: "por_aprobar" | "a_mano"; motivo: string; porHorario?: true }
 
 /** Re-checked right before sending (plano: revisarAntesDeEnviar). Order matters: signature, window, route. */
 export function revisarAntesDeEnviar(d: DatosDeRevision, ahora: number): Revision {
@@ -20,6 +23,7 @@ export function revisarAntesDeEnviar(d: DatosDeRevision, ahora: number): Revisio
     return {
       ok: false,
       destino: "por_aprobar",
+      porHorario: true,
       motivo: `No alcanzó a salir dentro de sus ${d.ventanaMinutos} minutos. Fírmala de nuevo con otra fecha.`,
     }
   }

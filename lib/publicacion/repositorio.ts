@@ -14,6 +14,7 @@ type PuertosDeBase = Pick<
   | "reservarEnvio"
   | "cerrarEnvio"
   | "mover"
+  | "devolverALaReserva"
   | "vencidasSinFirma"
   | "horariosOcupados"
   | "cubrirConReserva"
@@ -46,11 +47,21 @@ function comoFormato(valor: string): PiezaParaPublicar["formato"] {
 
 /** The publisher's ports over the service role. The state guard still applies: an illegal move throws. */
 export function repositorioDePublicacion(db: Db): PuertosDeBase {
+  async function devolver(piezaId: string, motivo: string, aLaReserva: boolean): Promise<"por_aprobar" | "en_reserva"> {
+    const { data, error } = await db.rpc("devolver_pieza", {
+      p_pieza: piezaId,
+      p_motivo: motivo,
+      p_a_la_reserva: aLaReserva,
+    })
+    if (error) fallo("No pude devolver la pieza a la puerta 1", error)
+    if (data === "por_aprobar" || data === "en_reserva") return data
+    throw new Error(`Respuesta inesperada al devolver la pieza: ${data}`)
+  }
+
   async function mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string) {
     if (a === "por_aprobar") {
-      // A piece that came out of the reserve goes back to it; the database decides, atomically.
-      const { error } = await db.rpc("devolver_pieza", { p_pieza: piezaId, p_motivo: motivo })
-      if (error) fallo("No pude devolver la pieza a la puerta 1", error)
+      // The cause is in the piece: a reserve signature is dropped so the piece cannot be picked again and fail again.
+      await devolver(piezaId, motivo, false)
       return
     }
     const { error } = await db
@@ -168,6 +179,7 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       if (error) fallo("No pude cerrar el envío", error)
     },
     mover,
+    devolverALaReserva: (piezaId, motivo) => devolver(piezaId, motivo, true),
 
     async vencidasSinFirma() {
       const { data, error } = await db

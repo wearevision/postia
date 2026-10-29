@@ -538,7 +538,7 @@ export type Database = {
       desconectar_cuenta: { Args: { p_cuenta: string }; Returns: undefined }
       desprogramar_pieza: { Args: { p_pieza: string }; Returns: undefined }
       devolver_pieza: {
-        Args: { p_motivo: string; p_pieza: string }
+        Args: { p_a_la_reserva: boolean; p_motivo: string; p_pieza: string }
         Returns: string
       }
       dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
