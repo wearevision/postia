@@ -270,25 +270,27 @@ describe("notices", () => {
 })
 
 describe("expired reservations", () => {
-  test("an expired reservation does not count toward the month's spend", async () => {
+  test("an expired reservation keeps counting at its estimate: nobody proved it was not billed", async () => {
     const { ahora, desde } = mesDePrueba()
     await tope(desde, 10_000_000)
     const c = clave()
     await reservar(c, 9_000_000, ahora)
     await vencer(c)
-    expect((await reservar(clave(), 9_000_000, ahora)).estado).toBe("reservado")
+    expect((await reservar(clave(), 2_000_000, ahora)).estado).toBe("tope_alcanzado")
+    expect((await reservar(clave(), 1_000_000, ahora)).estado).toBe("reservado")
   })
 
-  test("a paid call that finishes after the sweep is confirmed and counts again", async () => {
+  test("an expired reservation confirmed late counts once, at its real cost", async () => {
     const { ahora, desde } = mesDePrueba()
     await tope(desde, 10_000_000)
     const c = clave()
     await reservar(c, 9_000_000, ahora)
     await vencer(c)
-    const { data, error } = await confirmar(c, 9_000_000, ahora)
+    const { data, error } = await confirmar(c, 5_000_000, ahora)
     expect(error).toBeNull()
     expect(data).toMatchObject({ estado: "confirmado" })
-    expect((await reservar(clave(), 2_000_000, ahora)).estado).toBe("tope_alcanzado")
+    expect((await reservar(clave(), 5_000_000, ahora)).estado).toBe("reservado")
+    expect((await reservar(clave(), 1, ahora)).estado).toBe("tope_alcanzado")
   })
 
   test("the sweep leaves a reservation just under 24 hours old alone", async () => {

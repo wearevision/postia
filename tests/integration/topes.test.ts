@@ -60,6 +60,26 @@ describe("resumen_de_gasto", () => {
     expect(resumen.filas).toContainEqual(expect.objectContaining({ marca_id: marca, gastado_micro: 1_500_000 }))
   })
 
+  test("counts an expired reservation in the brand's row and the month's total", async () => {
+    const { db, userId } = await personaConSesion("resumen-vencido")
+    const marca = await marcaConDueno(userId)
+    const clave = `prueba:${randomUUID()}`
+    const { error } = await admin().rpc("reservar_gasto", {
+      p_clave: clave,
+      p_proveedor: "anthropic",
+      p_paso: "prueba",
+      p_estimado_micro: 700_000,
+      p_marca: marca,
+    })
+    if (error) throw error
+    const { error: errorAlVencer } = await admin().from("gastos").update({ estado: "vencido" }).eq("clave", clave)
+    if (errorAlVencer) throw errorAlVencer
+    const { data } = await db.rpc("resumen_de_gasto")
+    const resumen = data as { gastado_micro: number; filas: { marca_id: string | null; gastado_micro: number }[] }
+    expect(resumen.gastado_micro).toBeGreaterThanOrEqual(700_000)
+    expect(resumen.filas).toContainEqual(expect.objectContaining({ marca_id: marca, gastado_micro: 700_000 }))
+  })
+
   test("is refused to a person without a brand", async () => {
     const { db } = await personaConSesion("resumen-extrano")
     const { error } = await db.rpc("resumen_de_gasto")

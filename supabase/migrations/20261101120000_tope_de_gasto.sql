@@ -60,12 +60,13 @@ language sql stable set search_path = '' as $$
   limit 1
 $$;
 
--- A reservation counts at its estimate until confirmed; released and expired ones do not count.
+-- A reservation counts at its estimate until confirmed. Only a proven refusal (sin_cobro) stops counting: an expired
+-- one was never proven unbilled, so it keeps its estimate until a late confirmation replaces it with the real cost.
 create function public.gastado(p_mes date, p_marca uuid default null) returns bigint
 language sql stable set search_path = '' as $$
   select coalesce(sum(coalesce(real_micro, estimado_micro)), 0)::bigint
   from public.gastos
-  where mes = p_mes and estado in ('reservado', 'confirmado') and (p_marca is null or marca_id = p_marca)
+  where mes = p_mes and estado <> 'sin_cobro' and (p_marca is null or marca_id = p_marca)
 $$;
 
 -- Inserts the thresholds this scope crossed for the first time this month and returns them.
@@ -149,7 +150,7 @@ begin
     raise exception using errcode = '22023', message = 'gasto_desconocido';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('gastos:' || v_gasto.mes::text, 0));
-  -- A paid call can finish after the nightly sweep expired its reservation: it is confirmed and counts again.
+  -- A paid call can finish after the nightly sweep expired its reservation: its real cost replaces the estimate.
   update public.gastos set estado = 'confirmado', real_micro = p_real_micro, cerrado_en = p_ahora
   where clave = p_clave and estado in ('reservado', 'vencido');
   if not found then
@@ -186,7 +187,7 @@ begin
   raise exception using errcode = '22023', message = 'gasto_cerrado';
 end $$;
 
--- Plano «Mantenimiento»: a reservation nobody confirmed or released in a day stops counting.
+-- Plano «Mantenimiento»: closes a reservation nobody confirmed or released in a day. It keeps counting at its estimate.
 create function public.barrer_gastos(p_ahora timestamptz default now()) returns integer
 language sql security definer set search_path = '' as $$
   with vencidos as (
@@ -213,7 +214,7 @@ begin
     'filas', jsonb_build_array(jsonb_build_object(
         'marca_id', null, 'nombre', 'General', 'tope_micro', null,
         'gastado_micro', (select coalesce(sum(coalesce(real_micro, estimado_micro)), 0)::bigint from public.gastos
-                          where mes = v_mes and estado in ('reservado', 'confirmado') and marca_id is null)
+                          where mes = v_mes and estado <> 'sin_cobro' and marca_id is null)
       )) || coalesce((
         select jsonb_agg(jsonb_build_object(
           'marca_id', m.id, 'nombre', m.nombre, 'tope_micro', public.tope_vigente(m.id, v_mes),
