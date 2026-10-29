@@ -1,8 +1,19 @@
 import { createHash } from "node:crypto"
 import { describe, expect, test } from "vitest"
-import { cerrarAMano, crearPieza, descartar, desprogramar, dudosoAMano, firmarPieza } from "@/lib/piezas/acciones"
+import {
+  cerrarAMano,
+  crearPieza,
+  descartar,
+  desprogramar,
+  dudosoAMano,
+  firmarParaReserva,
+  firmarPieza,
+  planearConFechaPropuesta,
+  planearPieza,
+  sacarDeReserva,
+} from "@/lib/piezas/acciones"
 import { sha256 } from "@/lib/piezas/huella"
-import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
+import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
 
 const EN_UNA_HORA = () => new Date(Date.now() + 3_600_000).toISOString()
 
@@ -278,5 +289,57 @@ describe("piece actions", () => {
     const { db } = await personaConSesion("acc-uuid")
     expect(await desprogramar(db, "no-es-uuid")).toEqual({ ok: false, error: "Revisa los datos de la pieza." })
     expect(await dudosoAMano(db, "no-es-uuid")).toEqual({ ok: false, error: "Revisa los datos de la pieza." })
+  })
+})
+
+describe("plans and the reserve", () => {
+  test("two new pieces of one account get consecutive proposed slots", async () => {
+    const { db, userId } = await personaConSesion("acc-plan")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const a = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Una" })
+    const b = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Otra" })
+    if (!a.ok || !b.ok) throw new Error("no se crearon")
+    const planA = await planearConFechaPropuesta(db, a.piezaId)
+    const planB = await planearConFechaPropuesta(db, b.piezaId)
+    if (!planA.ok || !planB.ok) throw new Error("no se planearon")
+    expect(Date.parse(planB.planeadaPara)).toBeGreaterThan(Date.parse(planA.planeadaPara))
+  })
+
+  test("moving the plan explains a taken slot and the past in words", async () => {
+    const { db, userId } = await personaConSesion("acc-mover")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const a = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Una" })
+    const b = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Otra" })
+    if (!a.ok || !b.ok) throw new Error("no se crearon")
+    const cuando = enDias(4)
+    expect(await planearPieza(db, { piezaId: a.piezaId, planeadaPara: cuando })).toEqual({ ok: true })
+    expect(await planearPieza(db, { piezaId: b.piezaId, planeadaPara: cuando })).toEqual({
+      ok: false,
+      error: "Esa cuenta ya tiene una pieza a esa hora. Elige otra.",
+    })
+    expect(
+      await planearPieza(db, { piezaId: b.piezaId, planeadaPara: new Date(Date.now() - 60_000).toISOString() }),
+    ).toEqual({
+      ok: false,
+      error: "Elige una fecha y hora futuras.",
+    })
+  })
+
+  test("signs for the reserve, refuses a stale version, and takes the piece out again", async () => {
+    const { db, userId } = await personaConSesion("acc-reserva")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const creada = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Para la reserva" })
+    if (!creada.ok) throw new Error(creada.error)
+    expect(await firmarParaReserva(db, { piezaId: creada.piezaId, huella: "0".repeat(64) })).toEqual({
+      ok: false,
+      error: "La pieza cambió desde que la abriste. Revísala de nuevo antes de firmar.",
+    })
+    const { huella } = await versionVigente(creada.piezaId)
+    expect(await firmarParaReserva(db, { piezaId: creada.piezaId, huella })).toEqual({ ok: true })
+    expect(await sacarDeReserva(db, creada.piezaId)).toEqual({ ok: true })
+    expect(await sacarDeReserva(db, creada.piezaId)).toEqual({
+      ok: false,
+      error: "Esta pieza ya no está en la reserva.",
+    })
   })
 })

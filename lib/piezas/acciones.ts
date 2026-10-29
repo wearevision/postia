@@ -1,6 +1,8 @@
 import { z } from "zod"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { proponerFecha } from "@/lib/piezas/horarios"
 import { normalizarTexto } from "@/lib/piezas/huella"
+import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
 
@@ -26,9 +28,18 @@ const MENSAJES: Record<string, string> = {
   pieza_no_espera_enlace: "Esta pieza no está esperando un enlace.",
   falta_el_enlace: "Pega el enlace de la publicación en LinkedIn.",
   pieza_no_esta_dudosa: "Esta pieza no está en duda.",
+  solo_el_dueno_planea: "Solo el dueño de la marca puede mover la fecha planeada.",
+  solo_el_dueno_saca_de_la_reserva: "Solo el dueño de la marca puede sacar piezas de la reserva.",
+  pieza_no_esta_en_reserva: "Esta pieza ya no está en la reserva.",
+  pieza_no_espera_reserva: "Esta pieza ya no espera una pieza de la reserva.",
 }
 
-const MENSAJES_DE_LA_GUARDIA = ["transicion_no_permitida", "programar_sin_firma_vigente", "publicar_sin_firma_vigente"]
+const MENSAJES_DE_LA_GUARDIA = [
+  "transicion_no_permitida",
+  "programar_sin_firma_vigente",
+  "reservar_sin_firma_vigente",
+  "publicar_sin_firma_vigente",
+]
 
 function falla(error: { code?: string; message: string }): { ok: false; error: string } {
   if (error.code === "23505") return { ok: false, error: "Esa cuenta ya tiene una pieza a esa hora. Elige otra." }
@@ -167,5 +178,58 @@ export async function cerrarAMano(db: Db, entrada: unknown): Promise<Resultado> 
 export async function dudosoAMano(db: Db, piezaId: string): Promise<Resultado> {
   if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
   const { error } = await db.rpc("dudoso_a_mano", { p_pieza: piezaId })
+  return error ? falla(error) : { ok: true }
+}
+
+const Plan = z.object({ piezaId: z.uuid(), planeadaPara: z.iso.datetime({ offset: true }) })
+
+export async function planearPieza(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = Plan.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: "Revisa la fecha y la hora." }
+  const { error } = await db.rpc("planear_pieza", { p_pieza: leida.data.piezaId, p_fecha: leida.data.planeadaPara })
+  return error ? falla(error) : { ok: true }
+}
+
+// Two pieces created at once can race for the same proposed slot; the slot index refuses the second (23505).
+const INTENTOS_DE_PLAN = 3
+
+/** Plans an unsigned piece in the first free slot of its account (D19). Used after creating it and after the reserve. */
+export async function planearConFechaPropuesta(
+  db: Db,
+  piezaId: string,
+  ahora = Date.now(),
+): Promise<Resultado<{ planeadaPara: string }>> {
+  if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { data: pieza, error } = await db
+    .from("piezas")
+    .select("cuenta_id, cuentas(tipo)")
+    .eq("id", piezaId)
+    .maybeSingle()
+  if (error) return falla(error)
+  if (!pieza?.cuentas) return { ok: false, error: DATOS_DE_PIEZA }
+  const tipo = leerTipo(pieza.cuentas.tipo)
+  const ocupados = await horariosOcupados(db, pieza.cuenta_id, ahora, piezaId)
+  for (let intento = 0; intento < INTENTOS_DE_PLAN; intento++) {
+    const fecha = proponerFecha(tipo, ocupados, ahora)
+    const { error: errorDePlan } = await db.rpc("planear_pieza", { p_pieza: piezaId, p_fecha: fecha.toISOString() })
+    if (!errorDePlan) return { ok: true, planeadaPara: fecha.toISOString() }
+    if (errorDePlan.code !== "23505") return falla(errorDePlan)
+    ocupados.push(fecha.getTime())
+  }
+  return { ok: false, error: "No encontré un horario libre. Elige la fecha a mano." }
+}
+
+const FirmaDeReserva = z.object({ piezaId: z.uuid(), huella: z.string().regex(/^[0-9a-f]{64}$/) })
+
+export async function firmarParaReserva(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = FirmaDeReserva.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { error } = await db.rpc("firmar_para_reserva", { p_pieza: leida.data.piezaId, p_huella: leida.data.huella })
+  return error ? falla(error) : { ok: true }
+}
+
+export async function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
+  if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { error } = await db.rpc("sacar_de_reserva", { p_pieza: piezaId })
   return error ? falla(error) : { ok: true }
 }
