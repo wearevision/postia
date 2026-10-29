@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto"
 import { createClient } from "@supabase/supabase-js"
 import { describe, expect, test } from "vitest"
+import { marcarExcepcion, quitarExcepcion } from "@/lib/clientes/acciones"
+import { clientes, leerExcepciones } from "@/lib/clientes/lectura"
 import type { Database } from "@/lib/supabase/database.types"
 import { admin, entornoLocal, marcaConDueno, personaConSesion } from "./entorno"
 
@@ -142,5 +144,61 @@ describe("casos and excepciones", () => {
       const { data } = await anonimo.from(tabla).select("*").limit(1)
       expect({ tabla, filas: data ?? [] }).toEqual({ tabla, filas: [] })
     }
+  })
+})
+
+describe("lib/clientes", () => {
+  test("clientes groups cases by client with their active exceptions, newest case first", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const viejo = await caso(cliente)
+    const nuevo = await caso(cliente)
+    await admin().from("casos").update({ anio: 2023 }).eq("slug", nuevo)
+    const { db } = await duenoDeAlguna("cli-lib")
+    expect(await marcarExcepcion(db, { cliente, tipo: "sin_logo", alias: "", hasta: "" })).toMatchObject({ ok: true })
+    const fila = (await clientes(db)).find((c) => c.cliente === cliente)
+    expect(fila?.casos.map((c) => c.slug)).toEqual([nuevo, viejo])
+    expect(fila?.excepciones.map((e) => e.tipo)).toEqual(["sin_logo"])
+  })
+
+  test("marcarExcepcion reads aliases separated by commas and quitarExcepcion hides it from the active list", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const { db } = await duenoDeAlguna("cli-alias")
+    const marcada = await marcarExcepcion(db, {
+      cliente,
+      tipo: "no_nombrar",
+      alias: " Uno, Dos ,",
+      hasta: "2030-01-01",
+    })
+    if (!marcada.ok) throw new Error(marcada.error)
+    expect((await leerExcepciones(db)).find((e) => e.cliente === cliente)).toEqual({
+      cliente,
+      alias: ["Uno", "Dos"],
+      tipo: "no_nombrar",
+      hasta: "2030-01-01",
+    })
+    expect(await quitarExcepcion(db, marcada.id)).toEqual({ ok: true })
+    expect((await leerExcepciones(db)).some((e) => e.cliente === cliente)).toBe(false)
+  })
+
+  test("marcarExcepcion answers in Spanish when the exception already exists", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const { db } = await duenoDeAlguna("cli-doble")
+    await marcarExcepcion(db, { cliente, tipo: "no_nombrar", alias: "", hasta: "" })
+    expect(await marcarExcepcion(db, { cliente, tipo: "no_nombrar", alias: "", hasta: "" })).toEqual({
+      ok: false,
+      error: "Ese cliente ya tiene esa excepción.",
+    })
+  })
+
+  test("marcarExcepcion answers in Spanish when the aliases repeat", async () => {
+    const { db } = await duenoDeAlguna("cli-alias-doble")
+    expect(
+      await marcarExcepcion(db, {
+        cliente: `Cliente ${randomUUID().slice(0, 6)}`,
+        tipo: "no_nombrar",
+        alias: "Uno, uno",
+        hasta: "",
+      }),
+    ).toEqual({ ok: false, error: "Revisa el cliente, el tipo y los alias: sin alias repetidos." })
   })
 })
