@@ -12,13 +12,14 @@ import {
   planearPieza,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
-import { RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
+import { RUTA_DE_CALENDARIO, RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
 function despues(piezaId: string, resultado: Resultado): Resultado {
   if (resultado.ok) {
     revalidatePath(rutaDePieza(piezaId))
     revalidatePath(RUTA_DE_INICIO)
+    revalidatePath(RUTA_DE_CALENDARIO)
   }
   return resultado
 }

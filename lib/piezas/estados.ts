@@ -33,3 +33,15 @@ export function transicionPermitida(de: EstadoDePieza, a: EstadoDePieza): boolea
 export function esEstado(valor: string): valor is EstadoDePieza {
   return (ESTADOS as readonly string[]).includes(valor)
 }
+
+export const NOMBRE_DEL_ESTADO: Record<EstadoDePieza, string> = {
+  por_aprobar: "Por firmar",
+  en_reserva: "En reserva",
+  programada: "Programada",
+  publicando: "Publicándose",
+  publicada: "Publicada",
+  envio_dudoso: "Envío en duda",
+  a_mano: "Para publicar a mano",
+  error: "Con error",
+  descartada: "Descartada",
+}

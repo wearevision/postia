@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import type { EstadoDePieza } from "@/lib/piezas/estados"
+import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { createClient } from "@/lib/supabase/server"
@@ -18,18 +18,6 @@ import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controle
 import { FirmaDePieza } from "./firma"
 import { PlanDePieza } from "./plan"
 
-const ESTADOS: Record<EstadoDePieza, string> = {
-  por_aprobar: "Por firmar",
-  en_reserva: "En reserva",
-  programada: "Programada",
-  publicando: "Publicándose",
-  publicada: "Publicada",
-  envio_dudoso: "Envío en duda",
-  a_mano: "Para publicar a mano",
-  error: "Con error",
-  descartada: "Descartada",
-}
-
 const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano", "error"]
 
 export default async function Pieza({ params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +31,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       <header className="space-y-2">
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
         <h1 className="text-2xl font-semibold">{version.titulo ?? "Post de texto"}</h1>
-        <p className="text-apagado">{ESTADOS[estado]}</p>
+        <p className="text-apagado">{NOMBRE_DEL_ESTADO[estado]}</p>
         {pieza.motivo && <p className="text-sm">{pieza.motivo}</p>}
       </header>
 
