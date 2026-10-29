@@ -489,6 +489,10 @@ export type Database = {
           token: string
         }[]
       }
+      cubrir_con_reserva: {
+        Args: { p_pendiente: string; p_siguiente: string }
+        Returns: string
+      }
       descartar_pieza: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: undefined

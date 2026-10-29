@@ -187,3 +187,52 @@ end $$;
 
 revoke execute on function public.firmar_para_reserva(uuid, text), public.sacar_de_reserva(uuid) from public, anon;
 grant execute on function public.firmar_para_reserva(uuid, text), public.sacar_de_reserva(uuid) to authenticated;
+
+-- D21, plano usarReserva (service role only): a due piece nobody signed gives its slot to the oldest reserve piece of
+-- its account and moves to p_siguiente (computed by the app with proponerFecha). One transaction: a taken p_siguiente
+-- (23505) undoes everything. Returns the reserve piece used, or null when there was none to use.
+create function public.cubrir_con_reserva(p_pendiente uuid, p_siguiente timestamptz) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_pendiente public.piezas;
+  v_hueco timestamptz;
+  v_reserva uuid;
+begin
+  select * into v_pendiente from public.piezas where id = p_pendiente for update;
+  if not found or v_pendiente.estado <> 'por_aprobar' or v_pendiente.planeada_para is null
+     or v_pendiente.planeada_para > now() then
+    raise exception using errcode = '22023', message = 'pieza_no_espera_reserva';
+  end if;
+  if p_siguiente is null or p_siguiente < now() + interval '1 minute' then
+    raise exception using errcode = '22023', message = 'fecha_en_el_pasado';
+  end if;
+  v_hueco := v_pendiente.planeada_para;
+  -- The pending piece leaves the slot first: the slot index would otherwise see two pieces in it.
+  update public.piezas set planeada_para = p_siguiente,
+         motivo = 'No alcanzó firma a tiempo: la corrí al siguiente espacio libre.'
+   where id = p_pendiente;
+
+  -- Past the slot's window the reserve piece would go out late («Ventana de atraso»): then no reserve is used.
+  select p.id into v_reserva
+    from public.piezas p
+    join public.firmas f on f.pieza_id = p.id and f.vigente and f.para_reserva
+   where p.cuenta_id = v_pendiente.cuenta_id and p.estado = 'en_reserva'
+     and now() <= v_hueco + make_interval(mins => p.ventana_minutos)
+   order by f.firmada_en, p.id
+   limit 1
+   for update of p, f skip locked;
+  if v_reserva is null then
+    return null;
+  end if;
+
+  -- Signature first: the guard checks that the signature's date is the piece's date. reservar_envio checks it again.
+  update public.firmas set programada_para = v_hueco where pieza_id = v_reserva and vigente;
+  update public.piezas set estado = 'programada', programada_para = v_hueco, arrendada_hasta = null,
+         motivo = 'Salió de la reserva para cubrir un espacio sin firma.'
+   where id = v_reserva;
+  return v_reserva;
+end $$;
+
+-- Service role only: Supabase's default privileges grant execute to anon and authenticated otherwise.
+revoke execute on function public.cubrir_con_reserva(uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.cubrir_con_reserva(uuid, timestamptz) to service_role;

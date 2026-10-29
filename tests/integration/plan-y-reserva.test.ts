@@ -1,5 +1,15 @@
 import { describe, expect, test } from "vitest"
-import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, piezaDe, versionVigente } from "./entorno"
+import type { Db } from "@/lib/supabase/database"
+import {
+  admin,
+  cuentaDe,
+  enDias,
+  haceMinutos,
+  marcaConDueno,
+  personaConSesion,
+  piezaDe,
+  versionVigente,
+} from "./entorno"
 
 async function cuentaConDueno(prefijo = "plan") {
   const dueno = await personaConSesion(prefijo)
@@ -203,5 +213,122 @@ describe("the reserve (D21)", () => {
     await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: (await versionVigente(pieza)).huella })
     expect((await db.rpc("descartar_pieza", { p_pieza: pieza, p_motivo: "" })).error).toBeNull()
     expect((await planeada(pieza))?.estado).toBe("descartada")
+  })
+})
+
+/** A planned unsigned piece whose slot just passed. Planning refuses the past, so the slot is moved by the service role. */
+async function pendienteVencida(db: Db, cuenta: string, minutos = 2) {
+  const pieza = await piezaDe(db, cuenta, "Pendiente sin firma")
+  const hueco = haceMinutos(minutos)
+  const { error } = await admin().from("piezas").update({ planeada_para: hueco }).eq("id", pieza)
+  if (error) throw error
+  return { pieza, hueco }
+}
+
+async function enReserva(db: Db, cuenta: string, texto = "De la reserva") {
+  const pieza = await piezaDe(db, cuenta, texto)
+  const { error } = await db.rpc("firmar_para_reserva", {
+    p_pieza: pieza,
+    p_huella: (await versionVigente(pieza)).huella,
+  })
+  if (error) throw error
+  return pieza
+}
+
+const cubrir = (pendiente: string, siguiente: string) =>
+  admin().rpc("cubrir_con_reserva", { p_pendiente: pendiente, p_siguiente: siguiente })
+
+describe("cubrir_con_reserva (D21)", () => {
+  test("the oldest reserve piece takes the slot, its signature gets the date, and reservar_envio accepts it", async () => {
+    const { db, cuenta } = await cuentaConDueno("cubrir")
+    const vieja = await enReserva(db, cuenta, "Primera de la reserva")
+    await enReserva(db, cuenta, "Segunda de la reserva")
+    const { pieza: pendiente, hueco } = await pendienteVencida(db, cuenta)
+    const siguiente = enDias(3)
+
+    const { data: usada, error } = await cubrir(pendiente, siguiente)
+    expect(error).toBeNull()
+    expect(usada).toBe(vieja)
+
+    const reserva = await planeada(vieja)
+    expect(reserva?.estado).toBe("programada")
+    expect(Date.parse(reserva?.programada_para ?? "")).toBe(Date.parse(hueco))
+    expect(Date.parse(reserva?.planeada_para ?? "")).toBe(Date.parse(hueco))
+    const { data: firma } = await admin()
+      .from("firmas")
+      .select("id, programada_para, para_reserva")
+      .eq("pieza_id", vieja)
+      .eq("vigente", true)
+      .single()
+    expect(Date.parse(firma?.programada_para ?? "")).toBe(Date.parse(hueco))
+    expect(firma?.para_reserva).toBe(true)
+
+    const movida = await planeada(pendiente)
+    expect(movida?.estado).toBe("por_aprobar")
+    expect(Date.parse(movida?.planeada_para ?? "")).toBe(Date.parse(siguiente))
+
+    const version = await versionVigente(vieja)
+    const envio = await admin().rpc("reservar_envio", {
+      p_pieza: vieja,
+      p_version: version.id,
+      p_firma: firma?.id as string,
+    })
+    expect(envio.error).toBeNull()
+    expect(envio.data).toBe("reservado")
+  })
+
+  test("without a reserve the pending piece still moves, and nothing else changes", async () => {
+    const { db, cuenta } = await cuentaConDueno("cubrir-sin")
+    const { pieza } = await pendienteVencida(db, cuenta)
+    const siguiente = enDias(3)
+    const { data, error } = await cubrir(pieza, siguiente)
+    expect(error).toBeNull()
+    expect(data).toBeNull()
+    expect(Date.parse((await planeada(pieza))?.planeada_para ?? "")).toBe(Date.parse(siguiente))
+  })
+
+  test("past the slot's window no reserve is used: it would publish late", async () => {
+    const { db, cuenta } = await cuentaConDueno("cubrir-tarde")
+    const reserva = await enReserva(db, cuenta)
+    const { pieza } = await pendienteVencida(db, cuenta, 45)
+    expect((await cubrir(pieza, enDias(3))).data).toBeNull()
+    expect((await planeada(reserva))?.estado).toBe("en_reserva")
+  })
+
+  test("only a reserve piece of the same account is used", async () => {
+    const { db, cuenta, marca } = await cuentaConDueno("cubrir-otra")
+    const otraCuenta = await cuentaDe(marca, "empresa", "a_mano")
+    const ajena = await enReserva(db, otraCuenta)
+    const { pieza } = await pendienteVencida(db, cuenta)
+    expect((await cubrir(pieza, enDias(3))).data).toBeNull()
+    expect((await planeada(ajena))?.estado).toBe("en_reserva")
+  })
+
+  test("refuses a piece that is not a due unsigned planned piece, and a next slot in the past", async () => {
+    const { db, cuenta } = await cuentaConDueno("cubrir-no")
+    const futura = await piezaDe(db, cuenta)
+    await db.rpc("planear_pieza", { p_pieza: futura, p_fecha: enDias(2) })
+    expect((await cubrir(futura, enDias(3))).error?.message).toBe("pieza_no_espera_reserva")
+    const { pieza } = await pendienteVencida(db, cuenta)
+    expect((await cubrir(pieza, haceMinutos(1))).error?.message).toBe("fecha_en_el_pasado")
+  })
+
+  test("a taken next slot rolls everything back", async () => {
+    const { db, cuenta } = await cuentaConDueno("cubrir-choque")
+    const reserva = await enReserva(db, cuenta)
+    const ocupada = await piezaDe(db, cuenta)
+    const siguiente = enDias(3)
+    await db.rpc("planear_pieza", { p_pieza: ocupada, p_fecha: siguiente })
+    const { pieza, hueco } = await pendienteVencida(db, cuenta)
+    expect((await cubrir(pieza, siguiente)).error?.code).toBe("23505")
+    expect(Date.parse((await planeada(pieza))?.planeada_para ?? "")).toBe(Date.parse(hueco))
+    expect((await planeada(reserva))?.estado).toBe("en_reserva")
+  })
+
+  test("a person cannot call it", async () => {
+    const { db, cuenta } = await cuentaConDueno("cubrir-persona")
+    const { pieza } = await pendienteVencida(db, cuenta)
+    const { error } = await db.rpc("cubrir_con_reserva", { p_pendiente: pieza, p_siguiente: enDias(3) })
+    expect(error?.code).toBe("42501")
   })
 })
