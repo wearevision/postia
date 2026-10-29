@@ -53,7 +53,7 @@ function ultimaVersion<V extends { numero: number }>(versiones: V[]): V | undefi
 
 // The states that hold a slot: the plan of an unsigned piece, or the signed date (planeada_para follows it while signed).
 const CON_HORARIO = ["por_aprobar", "programada", "publicando", "publicada"] as const
-// What the calendar shows: anything with a slot that is out, may still go out, or needs a person.
+// What the calendar shows (a_mano, envio_dudoso and error show here by their old slot but hold none): anything with a slot that is out, may still go out, or needs a person.
 const EN_EL_CALENDARIO = [
   "por_aprobar",
   "programada",
@@ -102,11 +102,22 @@ export interface PiezaDelCalendario {
   extracto: string
 }
 
+const RangoDelCalendario = z.object({
+  desde: z.iso.datetime({ offset: true }),
+  hasta: z.iso.datetime({ offset: true }),
+})
+const SEIS_SEMANAS_MS = 42 * 86_400_000
+
 export async function calendario(
   db: Db,
   desde: string,
   hasta: string,
 ): Promise<{ cuentas: CuentaDelCalendario[]; piezas: PiezaDelCalendario[] }> {
+  const rango = RangoDelCalendario.safeParse({ desde, hasta })
+  if (!rango.success || Date.parse(hasta) <= Date.parse(desde)) throw new Error("Rango de fechas inválido.")
+  if (Date.parse(hasta) - Date.parse(desde) > SEIS_SEMANAS_MS) {
+    throw new Error("El calendario no muestra más de seis semanas a la vez.")
+  }
   const [cuentas, reservas, piezas] = await Promise.all([
     db.from("cuentas").select("id, nombre, marca_id, tipo, ritmo_semanal").order("nombre"),
     db.from("piezas").select("cuenta_id").eq("estado", "en_reserva"),

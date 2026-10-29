@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 import { describe, expect, test } from "vitest"
 import {
+  asegurarPlan,
   cerrarAMano,
   crearPieza,
   descartar,
@@ -12,6 +13,7 @@ import {
   planearPieza,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
+import { proponerFecha } from "@/lib/piezas/horarios"
 import { sha256 } from "@/lib/piezas/huella"
 import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
 
@@ -337,9 +339,71 @@ describe("plans and the reserve", () => {
     const { huella } = await versionVigente(creada.piezaId)
     expect(await firmarParaReserva(db, { piezaId: creada.piezaId, huella })).toEqual({ ok: true })
     expect(await sacarDeReserva(db, creada.piezaId)).toEqual({ ok: true })
+    const { data: tras } = await admin()
+      .from("piezas")
+      .select("estado, planeada_para")
+      .eq("id", creada.piezaId)
+      .single()
+    expect(tras?.estado).toBe("por_aprobar")
+    expect(tras?.planeada_para).not.toBeNull()
     expect(await sacarDeReserva(db, creada.piezaId)).toEqual({
       ok: false,
       error: "Esta pieza ya no está en la reserva.",
     })
+  })
+
+  test("asegurarPlan plans an unplanned piece to sign and leaves a planned one alone", async () => {
+    const { db, userId } = await personaConSesion("acc-asegurar")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const creada = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Sin plan" })
+    if (!creada.ok) throw new Error(creada.error)
+    expect(await asegurarPlan(db, creada.piezaId)).toEqual({ ok: true })
+    const { data: antes } = await admin().from("piezas").select("planeada_para").eq("id", creada.piezaId).single()
+    expect(antes?.planeada_para).not.toBeNull()
+    expect(await asegurarPlan(db, creada.piezaId)).toEqual({ ok: true })
+    const { data: despues } = await admin().from("piezas").select("planeada_para").eq("id", creada.piezaId).single()
+    expect(despues?.planeada_para).toBe(antes?.planeada_para)
+
+    const { huella } = await versionVigente(creada.piezaId)
+    await firmarParaReserva(db, { piezaId: creada.piezaId, huella })
+    expect(await asegurarPlan(db, creada.piezaId)).toEqual({ ok: true })
+    const { data: enReserva } = await admin().from("piezas").select("planeada_para").eq("id", creada.piezaId).single()
+    expect(enReserva?.planeada_para).toBeNull()
+  })
+
+  test("retries with the next slot when another piece takes the proposed one first", async () => {
+    const { db, userId } = await personaConSesion("acc-carrera")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const a = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Una" })
+    const b = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Otra" })
+    if (!a.ok || !b.ok) throw new Error("no se crearon")
+    const ahora = Date.now()
+    const primero = proponerFecha("persona", [], ahora)
+    const segundo = proponerFecha("persona", [primero.getTime()], ahora)
+    let robado = false
+    const conCarrera: typeof db = new Proxy(db, {
+      get(objetivo, propiedad) {
+        const valor = Reflect.get(objetivo, propiedad, objetivo)
+        if (propiedad !== "rpc") return typeof valor === "function" ? valor.bind(objetivo) : valor
+        return async (...args: Parameters<typeof db.rpc>) => {
+          if (!robado && args[0] === "planear_pieza") {
+            robado = true
+            await db.rpc("planear_pieza", { p_pieza: a.piezaId, p_fecha: primero.toISOString() })
+          }
+          return db.rpc(...args)
+        }
+      },
+    })
+    const plan = await planearConFechaPropuesta(conCarrera, b.piezaId, ahora)
+    expect(plan).toEqual({ ok: true, planeadaPara: segundo.toISOString() })
+  })
+
+  test("planning never throws: an impossible clock comes back as a Spanish error", async () => {
+    const { db, userId } = await personaConSesion("acc-sin-lanzar")
+    const cuenta = await cuentaDe(await marcaConDueno(userId))
+    const creada = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Una" })
+    if (!creada.ok) throw new Error(creada.error)
+    const r = await planearConFechaPropuesta(db, creada.piezaId, Number.NaN)
+    expect(r.ok).toBe(false)
   })
 })

@@ -51,6 +51,16 @@ describe("calendario", () => {
     expect(piezas.find((p) => p.id === e.reserva)).toBeUndefined()
   })
 
+  test("refuses ranges that are not instants or span more than six weeks", async () => {
+    const e = await escenario()
+    await expect(calendario(e.db, "ayer", enDias(3))).rejects.toThrow("Rango de fechas inválido.")
+    await expect(calendario(e.db, new Date().toISOString(), enDias(43))).rejects.toThrow(
+      "El calendario no muestra más de seis semanas a la vez.",
+    )
+    await expect(calendario(e.db, enDias(5), enDias(2))).rejects.toThrow("Rango de fechas inválido.")
+    await expect(calendario(e.db, new Date().toISOString(), enDias(41))).resolves.toBeDefined()
+  })
+
   test("a stranger sees nothing", async () => {
     await escenario()
     const extrano = await personaConSesion("calendario-extrano")

@@ -193,7 +193,7 @@ export async function planearPieza(db: Db, entrada: unknown): Promise<Resultado>
 // Two pieces created at once can race for the same proposed slot; the slot index refuses the second (23505).
 const INTENTOS_DE_PLAN = 3
 
-/** Plans an unsigned piece in the first free slot of its account (D19). Used after creating it and after the reserve. */
+/** Plans an unsigned piece in the first free slot of its account (D19). Never throws: a failure comes back in the result. */
 export async function planearConFechaPropuesta(
   db: Db,
   piezaId: string,
@@ -207,16 +207,32 @@ export async function planearConFechaPropuesta(
     .maybeSingle()
   if (error) return falla(error)
   if (!pieza?.cuentas) return { ok: false, error: DATOS_DE_PIEZA }
-  const tipo = leerTipo(pieza.cuentas.tipo)
-  const ocupados = await horariosOcupados(db, pieza.cuenta_id, ahora, piezaId)
-  for (let intento = 0; intento < INTENTOS_DE_PLAN; intento++) {
-    const fecha = proponerFecha(tipo, ocupados, ahora)
-    const { error: errorDePlan } = await db.rpc("planear_pieza", { p_pieza: piezaId, p_fecha: fecha.toISOString() })
-    if (!errorDePlan) return { ok: true, planeadaPara: fecha.toISOString() }
-    if (errorDePlan.code !== "23505") return falla(errorDePlan)
-    ocupados.push(fecha.getTime())
+  try {
+    const tipo = leerTipo(pieza.cuentas.tipo)
+    const ocupados = await horariosOcupados(db, pieza.cuenta_id, ahora, piezaId)
+    for (let intento = 0; intento < INTENTOS_DE_PLAN; intento++) {
+      const fecha = proponerFecha(tipo, ocupados, ahora)
+      const { error: errorDePlan } = await db.rpc("planear_pieza", { p_pieza: piezaId, p_fecha: fecha.toISOString() })
+      if (!errorDePlan) return { ok: true, planeadaPara: fecha.toISOString() }
+      if (errorDePlan.code !== "23505") return falla(errorDePlan)
+      ocupados.push(fecha.getTime())
+    }
+    return { ok: false, error: "No encontré un horario libre. Elige la fecha a mano." }
+  } catch (causa) {
+    console.error("No pude proponer un horario", causa)
+    const sinHorario = causa instanceof Error && causa.message.startsWith("No encontré un horario libre")
+    return { ok: false, error: sinHorario ? causa.message : "No pude proponer un horario. Elige la fecha a mano." }
   }
-  return { ok: false, error: "No encontré un horario libre. Elige la fecha a mano." }
+}
+
+/** Plans a piece waiting for a signature that holds no slot yet; anything else is left as it is. */
+export async function asegurarPlan(db: Db, piezaId: string): Promise<Resultado> {
+  if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { data, error } = await db.from("piezas").select("estado, planeada_para").eq("id", piezaId).maybeSingle()
+  if (error) return falla(error)
+  if (!data || data.estado !== "por_aprobar" || data.planeada_para !== null) return { ok: true }
+  const plan = await planearConFechaPropuesta(db, piezaId)
+  return plan.ok ? { ok: true } : plan
 }
 
 const FirmaDeReserva = z.object({ piezaId: z.uuid(), huella: z.string().regex(/^[0-9a-f]{64}$/) })
@@ -231,5 +247,7 @@ export async function firmarParaReserva(db: Db, entrada: unknown): Promise<Resul
 export async function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
   if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
   const { error } = await db.rpc("sacar_de_reserva", { p_pieza: piezaId })
-  return error ? falla(error) : { ok: true }
+  if (error) return falla(error)
+  // Out of the reserve it is a piece to sign again, and a piece to sign holds a slot.
+  return asegurarPlan(db, piezaId)
 }

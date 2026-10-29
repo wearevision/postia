@@ -233,7 +233,7 @@ describe("plans and the reserve", () => {
     expect(d?.fechaPropuesta).toBe(new Date(plan).toISOString())
   })
 
-  test("detail of an unplanned piece skips the slot another piece plans, but not its own", async () => {
+  test("detail of an unplanned piece skips the slot another piece plans", async () => {
     const e = await entorno("lec-plan-ajeno")
     const ahora = Date.now()
     const primero = proponerFecha("persona", [], ahora)
@@ -244,6 +244,20 @@ describe("plans and the reserve", () => {
     expect(error).toBeNull()
 
     expect((await detalle(e.db, libre, ahora))?.fechaPropuesta).toBe(segundo.toISOString())
-    expect((await detalle(e.db, otra, ahora))?.fechaPropuesta).toBe(primero.toISOString())
+  })
+
+  test("detail replaces a plan that is about to be due with the next free slot, never with the plan itself", async () => {
+    const e = await entorno("lec-plan-vencido")
+    const ahora = Date.now()
+    const primero = proponerFecha("persona", [], ahora)
+    const propia = await nueva(e, "Propia")
+    const { error } = await e.db.rpc("planear_pieza", { p_pieza: propia, p_fecha: primero.toISOString() })
+    expect(error).toBeNull()
+    // Seen from 30 seconds before its slot, the plan is no longer a usable proposal.
+    const casiVencido = primero.getTime() - 30_000
+
+    const propuesta = (await detalle(e.db, propia, casiVencido))?.fechaPropuesta
+    expect(Date.parse(propuesta ?? "")).toBeGreaterThanOrEqual(casiVencido + 30 * 60_000)
+    expect(propuesta).not.toBe(primero.toISOString())
   })
 })
