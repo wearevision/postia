@@ -130,3 +130,42 @@ grant execute on function public.guardar_linea(uuid, integer, jsonb, jsonb, uuid
 revoke execute on function public.guardar_linea_editorial(uuid, integer, jsonb, jsonb) from public, anon;
 grant execute on function public.guardar_linea_editorial(uuid, integer, jsonb, jsonb) to authenticated;
 revoke execute on function public.lineas_inmutables() from public, anon, authenticated;
+
+-- D20: which pillar a piece serves. Changing it does not touch the huella: the pillar is not published.
+alter table public.piezas add column pilar_id uuid references public.pilares (id);
+create index piezas_pilar on public.piezas (pilar_id) where pilar_id is not null;
+
+-- Also guards the service role (scripts/cargar-wr3.ts): a pillar belongs to the brand of the piece's account.
+create function public.pilar_de_su_marca() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.pilar_id is not null and not exists (
+    select 1 from public.pilares pi join public.cuentas c on c.marca_id = pi.marca_id
+     where pi.id = new.pilar_id and c.id = new.cuenta_id
+  ) then
+    raise exception using errcode = '23514', message = 'pilar_de_otra_marca';
+  end if;
+  return new;
+end $$;
+create trigger piezas_pilar_de_su_marca before insert or update of pilar_id, cuenta_id on public.piezas
+  for each row execute function public.pilar_de_su_marca();
+
+create function public.poner_pilar(p_pieza uuid, p_pilar uuid default null) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.es_dueno(public.marca_de_pieza(p_pieza)) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_cambia_piezas';
+  end if;
+  if p_pilar is not null and not exists (select 1 from public.pilares where id = p_pilar and activo) then
+    raise exception using errcode = '22023', message = 'pilar_inactivo';
+  end if;
+  update public.piezas set pilar_id = p_pilar
+   where id = p_pieza and estado not in ('publicando', 'publicada', 'descartada');
+  if not found then
+    raise exception using errcode = '22023', message = 'pieza_ya_cerrada';
+  end if;
+end $$;
+
+revoke execute on function public.poner_pilar(uuid, uuid) from public, anon;
+grant execute on function public.poner_pilar(uuid, uuid) to authenticated;
+revoke execute on function public.pilar_de_su_marca() from public, anon, authenticated;

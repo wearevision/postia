@@ -362,6 +362,7 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          pilar_id: string | null
           plan_fallo_en: string | null
           planeada_para: string | null
           programada_para: string | null
@@ -377,6 +378,7 @@ export type Database = {
           formato: string
           id?: string
           motivo?: string | null
+          pilar_id?: string | null
           plan_fallo_en?: string | null
           planeada_para?: string | null
           programada_para?: string | null
@@ -392,6 +394,7 @@ export type Database = {
           formato?: string
           id?: string
           motivo?: string | null
+          pilar_id?: string | null
           plan_fallo_en?: string | null
           planeada_para?: string | null
           programada_para?: string | null
@@ -403,6 +406,13 @@ export type Database = {
             columns: ["cuenta_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piezas_pilar_id_fkey"
+            columns: ["pilar_id"]
+            isOneToOne: false
+            referencedRelation: "pilares"
             referencedColumns: ["id"]
           },
         ]
@@ -687,6 +697,10 @@ export type Database = {
         Args: { p_fecha: string; p_pieza: string }
         Returns: undefined
       }
+      poner_pilar: {
+        Args: { p_pieza: string; p_pilar?: string }
+        Returns: undefined
+      }
       registrar_falla_de_espacio: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: boolean
@@ -709,6 +723,7 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          pilar_id: string | null
           plan_fallo_en: string | null
           planeada_para: string | null
           programada_para: string | null
