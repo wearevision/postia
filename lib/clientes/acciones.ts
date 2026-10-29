@@ -23,8 +23,7 @@ const NuevaExcepcion = z.object({
 
 function falla(error: { code?: string; message: string }): { ok: false; error: string } {
   if (error.code === "23505") return { ok: false, error: "Ese cliente ya tiene esa excepción." }
-  const mensaje = MENSAJES[error.message]
-  if (mensaje) return { ok: false, error: mensaje }
+  if (Object.hasOwn(MENSAJES, error.message)) return { ok: false, error: MENSAJES[error.message] }
   console.error("Falla inesperada al guardar una excepción", error.code, error.message)
   return { ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." }
 }

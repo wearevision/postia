@@ -49,7 +49,8 @@ export async function lineaDeMarca(db: Db, marcaId: string, version?: number): P
   if (versiones.error) fallo("No pude leer las versiones de la línea", versiones.error)
   if (!marca.data) return null
   const vigente = versiones.data[0]?.version ?? 0
-  const pedida = version && version >= 1 && version <= vigente ? version : vigente
+  const pedida =
+    version !== undefined && Number.isInteger(version) && version >= 1 && version <= vigente ? version : vigente
   let actual: VersionDeLinea | null = null
   if (pedida > 0) {
     const { data, error } = await db

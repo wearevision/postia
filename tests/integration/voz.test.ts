@@ -266,7 +266,42 @@ describe("lib/voz", () => {
     })
     expect(await guardarLinea(db, { marcaId: marca, base: 1, secciones: SECCIONES, pilares: [] })).toEqual({
       ok: false,
-      error: "Revisa los pilares: entre 1 y 8, con nombres distintos.",
+      error: "Revisa los pilares: entre 1 y 8, con nombres distintos y una decimal como máximo por semana.",
+    })
+  })
+
+  test("lineaDeMarca falls back to the current version when the asked one is not a whole number", async () => {
+    const { db, marca } = await dueno("voz-version-rara")
+    await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })
+    await guardarLinea(db, { marcaId: marca, base: 1, secciones: { ...SECCIONES, tono: "Dos" }, pilares: PILARES })
+    expect((await lineaDeMarca(db, marca, 1.5))?.actual?.version).toBe(2)
+    expect((await lineaDeMarca(db, marca, Number.NaN))?.actual?.version).toBe(2)
+  })
+
+  test("guardarLinea tells which part of the line is wrong", async () => {
+    const { db, marca } = await dueno("voz-lib-mensajes")
+    expect(
+      await guardarLinea(db, {
+        marcaId: marca,
+        base: 0,
+        secciones: { ...SECCIONES, tono: "x".repeat(6001) },
+        pilares: PILARES,
+      }),
+    ).toEqual({ ok: false, error: "Revisa el largo de cada sección." })
+    expect(
+      await guardarLinea(db, {
+        marcaId: marca,
+        base: 0,
+        secciones: SECCIONES,
+        pilares: [{ ...PILARES[0], porSemana: 1.25 }],
+      }),
+    ).toEqual({
+      ok: false,
+      error: "Revisa los pilares: entre 1 y 8, con nombres distintos y una decimal como máximo por semana.",
+    })
+    expect(await guardarLinea(db, { marcaId: "no", base: 0, secciones: SECCIONES, pilares: PILARES })).toEqual({
+      ok: false,
+      error: "Revisa los datos de la línea.",
     })
   })
 

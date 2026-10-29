@@ -10,7 +10,9 @@ const ARCHIVO_POR_DEFECTO = "data/casos/casos.json"
 
 // Only what excepcionesIniciales reads; leerCasos has already validated every case in full.
 const ExcepcionesDelArchivo = z.object({
-  cases: z.array(z.object({ slug: z.string(), client: z.string(), exception: z.enum(["evento privado"]).nullable() })),
+  cases: z.array(
+    z.object({ slug: z.string(), client: z.string().trim(), exception: z.enum(["evento privado"]).nullable() }),
+  ),
 })
 
 async function main() {
@@ -28,7 +30,12 @@ async function main() {
   const userId = await buscarUsuario(db, correo)
 
   // Upsert by slug: running it again after correcting the file updates the rows and creates nothing twice.
-  const { error } = await db.from("casos").upsert(casos, { onConflict: "slug" })
+  // cargado_en only has a column default, which the update side of an upsert does not apply.
+  const cargadoEn = new Date().toISOString()
+  const { error } = await db.from("casos").upsert(
+    casos.map((c) => ({ ...c, cargado_en: cargadoEn })),
+    { onConflict: "slug" },
+  )
   if (error) throw new Error(`No pude guardar los casos: ${error.message}`, { cause: error })
   console.log(`${casos.length} casos de ${new Set(casos.map((c) => c.cliente)).size} clientes`)
 
