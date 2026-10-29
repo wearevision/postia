@@ -31,14 +31,17 @@ create table public.gastos (
   proveedor text not null check (proveedor in ('anthropic', 'voyage', 'gemini')),
   paso text not null check (length(btrim(paso)) between 1 and 60),
   mes date not null,
-  estimado_micro bigint not null check (estimado_micro > 0),
-  real_micro bigint check (real_micro >= 0),
+  -- US$1,000 per call at most: no sum of a month's rows can come near the bigint limit.
+  estimado_micro bigint not null check (estimado_micro between 1 and 1000000000),
+  real_micro bigint check (real_micro between 0 and 1000000000),
   estado text not null default 'reservado' check (estado in ('reservado', 'confirmado', 'sin_cobro', 'vencido')),
   creado_en timestamptz not null default now(),
   cerrado_en timestamptz,
   constraint real_al_confirmar check ((estado = 'confirmado') = (real_micro is not null))
 );
 create index gastos_que_cuentan on public.gastos (mes, marca_id) where estado in ('reservado', 'confirmado');
+create index on public.gastos (marca_id);
+create index on public.topes (marca_id);
 
 -- One row per month, scope ('global' or a brand id) and threshold: each push goes out once.
 create table public.avisos_de_tope (
@@ -103,6 +106,9 @@ declare
   v_estado text;
   v_tope bigint;
 begin
+  if p_estimado_micro is null or p_estimado_micro not between 1 and 1000000000 then
+    raise exception using errcode = '22023', message = 'estimado_invalido';
+  end if;
   -- One reservation at a time per month: two steps racing at the edge of the cap cannot both pass.
   perform pg_advisory_xact_lock(hashtextextended('gastos:' || v_mes::text, 0));
   select estado into v_estado from public.gastos where clave = p_clave;
@@ -143,8 +149,9 @@ begin
     raise exception using errcode = '22023', message = 'gasto_desconocido';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('gastos:' || v_gasto.mes::text, 0));
+  -- A paid call can finish after the nightly sweep expired its reservation: it is confirmed and counts again.
   update public.gastos set estado = 'confirmado', real_micro = p_real_micro, cerrado_en = p_ahora
-  where clave = p_clave and estado = 'reservado';
+  where clave = p_clave and estado in ('reservado', 'vencido');
   if not found then
     select * into v_gasto from public.gastos where clave = p_clave;
     if v_gasto.estado = 'confirmado' and v_gasto.real_micro = p_real_micro then
@@ -190,7 +197,7 @@ language sql security definer set search_path = '' as $$
   select count(*)::integer from vencidos
 $$;
 
--- Ajustes «Gasto del mes»: the global total and cap, «General», and each brand the person belongs to.
+-- Ajustes «Gasto del mes»: the global total and cap, «General», and each brand the person owns.
 create function public.resumen_de_gasto() returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -213,7 +220,7 @@ begin
           'gastado_micro', public.gastado(v_mes, m.id)
         ) order by m.nombre)
         from public.marcas m
-        where public.es_miembro(m.id)
+        where public.es_dueno(m.id)
       ), '[]'::jsonb)
   );
 end $$;
