@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
+import { lineaEnReserva } from "@/lib/piezas/textos"
 import { createClient } from "@/lib/supabase/server"
 import { PublicarAMano } from "./a-mano"
 import {
@@ -62,7 +63,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       )}
       {estado === "en_reserva" && (
         <div className="space-y-3">
-          <p>En reserva: la app le pone fecha y la publica cuando a {cuenta.nombre} le falte una pieza firmada.</p>
+          <p>{lineaEnReserva(cuenta.ruta, cuenta.nombre)}</p>
           <SacarDeReserva piezaId={pieza.id} sacar={sacarDeReservaAccion} />
         </div>
       )}

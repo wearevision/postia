@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { explicacionDeReserva } from "@/lib/piezas/textos"
 
 interface Props {
   piezaId: string
@@ -83,8 +84,7 @@ export function FirmaDePieza({
         Firmar para la reserva
       </button>
       <p id="explicacion-de-reserva" className="text-sm text-apagado">
-        Sin fecha. Cuando a {cuenta} le falte una pieza firmada, la app le pone fecha y la publica sin volver a
-        preguntarte.
+        {explicacionDeReserva(ruta, cuenta)}
       </p>
       {error && (
         <p role="alert" className="text-sm text-peligro">

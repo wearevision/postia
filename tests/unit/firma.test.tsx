@@ -89,6 +89,16 @@ describe("signing for the reserve", () => {
     expect(boton).toHaveAccessibleDescription(explicacion.textContent ?? "")
   })
 
+  test("for a by-hand account the explanation promises a notice, not a publication", () => {
+    montar({ ruta: "a_mano", cuenta: "Página de WAV" })
+    expect(
+      screen.getByText(
+        "Sin fecha. Cuando a Página de WAV le falte una pieza firmada, la app le pone fecha y te avisa para publicarla a mano, sin volver a preguntarte.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/la publica/)).toBeNull()
+  })
+
   test("signs the exact version without a date", async () => {
     const firmarParaReserva = vi.fn(async () => ({ ok: true as const }))
     const firmar = montar({ firmarParaReserva })
