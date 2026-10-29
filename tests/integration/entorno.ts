@@ -77,3 +77,24 @@ export async function cuentaDe(
   if (error) throw error
   return data.id
 }
+
+export async function piezaDe(db: Db, cuentaId: string, texto = "Hola desde PostIA"): Promise<string> {
+  const { data, error } = await db.rpc("crear_pieza", { p_cuenta: cuentaId, p_formato: "texto", p_texto: texto })
+  if (error) throw error
+  return data
+}
+
+export async function versionVigente(piezaId: string): Promise<{ id: string; huella: string }> {
+  const { data, error } = await admin()
+    .from("versiones")
+    .select("id, huella")
+    .eq("pieza_id", piezaId)
+    .order("numero", { ascending: false })
+    .limit(1)
+    .single()
+  if (error) throw error
+  return data
+}
+
+export const enDias = (dias: number) => new Date(Date.now() + dias * 86_400_000).toISOString()
+export const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString()
