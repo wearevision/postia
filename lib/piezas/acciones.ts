@@ -1,5 +1,8 @@
 import { z } from "zod"
+import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
+import { type Excepcion, prepararRevision } from "@/lib/clientes/revision"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { normalizarTexto } from "@/lib/piezas/huella"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
@@ -137,6 +140,68 @@ export async function crearPieza(db: Db, entrada: unknown): Promise<Resultado<{ 
   return error ? falla(error) : { ok: true, piezaId: data }
 }
 
+export const EXCEPCIONES_NUEVAS = "Hay excepciones nuevas desde que abriste la pieza. Recarga para revisarlas."
+
+interface PuertosDeApertura {
+  /** Active exceptions marked after `desde`. */
+  nuevasDesde(desde: string): Promise<Excepcion[]>
+  /** Title and text of the version being signed; null when it is not the piece's version (the signature refuses it). */
+  texto(): Promise<string | null>
+}
+
+/**
+ * Gate 1 race: the verdict the person saw covered the exceptions marked up to the page's render time (`abiertaEn`).
+ * One marked after it that names a client of this piece was never shown, and the publisher only re-checks exceptions
+ * marked after the signature, so the signature is refused until the page is reloaded. An exception for a client the
+ * piece does not name leaves the verdict as it was and does not hold anyone's signature. `abiertaEn` comes from the
+ * browser: never in the future.
+ */
+export async function revisarApertura(p: PuertosDeApertura, abiertaEn: unknown, ahora: number): Promise<Resultado> {
+  const leida = z.iso
+    .datetime({ offset: true })
+    .refine((valor) => Date.parse(valor) <= ahora)
+    .safeParse(abiertaEn)
+  if (!leida.success) return { ok: false, error: "Recarga la pieza antes de firmar." }
+  let nombrados: number
+  try {
+    const nuevas = await p.nuevasDesde(leida.data)
+    if (nuevas.length === 0) return { ok: true }
+    const texto = await p.texto()
+    if (texto === null) return { ok: true }
+    nombrados = prepararRevision(nuevas, diaEnSantiago(ahora)).clientes(texto).length
+  } catch (error) {
+    console.error(
+      "No pude revisar las excepciones nuevas antes de firmar",
+      error instanceof Error ? error.message : String(error),
+    )
+    return { ok: false, error: "No pude revisar los clientes. Inténtalo de nuevo en un rato." }
+  }
+  return nombrados > 0 ? { ok: false, error: EXCEPCIONES_NUEVAS } : { ok: true }
+}
+
+function aperturaDe(entrada: unknown): unknown {
+  return typeof entrada === "object" && entrada !== null && "abiertaEn" in entrada ? entrada.abiertaEn : undefined
+}
+
+function puertosDeApertura(db: Db, piezaId: string, huella: string): PuertosDeApertura {
+  return {
+    nuevasDesde: (desde) => excepcionesPuestasDespues(db, desde),
+    async texto() {
+      const { data, error } = await db
+        .from("versiones")
+        .select("titulo, texto")
+        .eq("pieza_id", piezaId)
+        .eq("huella", huella)
+        .order("numero", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw new Error(`No pude leer la versión: ${error.message}`, { cause: error })
+      // The same text the gate 1 verdict reviewed (app/(app)/piezas/[id]/page.tsx).
+      return data ? [data.titulo, data.texto].filter(Boolean).join("\n") : null
+    },
+  }
+}
+
 const Firma = z.object({
   piezaId: z.uuid(),
   huella: z.string().regex(/^[0-9a-f]{64}$/),
@@ -146,6 +211,12 @@ const Firma = z.object({
 export async function firmarPieza(db: Db, entrada: unknown): Promise<Resultado> {
   const leida = Firma.safeParse(entrada)
   if (!leida.success) return { ok: false, error: "Revisa la fecha y la hora." }
+  const apertura = await revisarApertura(
+    puertosDeApertura(db, leida.data.piezaId, leida.data.huella),
+    aperturaDe(entrada),
+    Date.now(),
+  )
+  if (!apertura.ok) return apertura
   const { error } = await db.rpc("firmar_pieza", {
     p_pieza: leida.data.piezaId,
     p_huella: leida.data.huella,
@@ -246,6 +317,12 @@ const FirmaDeReserva = z.object({ piezaId: z.uuid(), huella: z.string().regex(/^
 export async function firmarParaReserva(db: Db, entrada: unknown): Promise<Resultado> {
   const leida = FirmaDeReserva.safeParse(entrada)
   if (!leida.success) return { ok: false, error: DATOS_DE_PIEZA }
+  const apertura = await revisarApertura(
+    puertosDeApertura(db, leida.data.piezaId, leida.data.huella),
+    aperturaDe(entrada),
+    Date.now(),
+  )
+  if (!apertura.ok) return apertura
   const { error } = await db.rpc("firmar_para_reserva", { p_pieza: leida.data.piezaId, p_huella: leida.data.huella })
   return error ? falla(error) : { ok: true }
 }

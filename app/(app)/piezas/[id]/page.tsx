@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
-import { type Hallazgo, prepararRevision } from "@/lib/clientes/revision"
+import { type Excepcion, type Hallazgo, prepararRevision } from "@/lib/clientes/revision"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
@@ -48,9 +48,23 @@ export default async function Pieza({
   if (!pieza) notFound()
   const { estado, version, cuenta } = pieza
 
-  /** Gate 1 verdict without AI. The reviewer compiles once per request: the Worker has 10 ms of CPU. */
-  async function revisarAntesDeFirmar(): Promise<Hallazgo[]> {
-    const revisor = prepararRevision(await leerExcepciones(db), diaEnSantiago(Date.now()))
+  // Taken before the exceptions are read: signing refuses any exception marked after it (revisarApertura).
+  const abiertaEn = new Date().toISOString()
+
+  /** Gate 1 verdict without AI; null when the exceptions could not be read. Compiles once: the Worker has 10 ms of CPU. */
+  async function revisarAntesDeFirmar(): Promise<Hallazgo[] | null> {
+    let excepciones: Excepcion[]
+    try {
+      excepciones = await leerExcepciones(db)
+    } catch (error) {
+      // The verdict only informs; the page must still open, and it says the clients were not reviewed.
+      console.error(
+        "No pude leer las excepciones para la puerta 1",
+        error instanceof Error ? error.message : String(error),
+      )
+      return null
+    }
+    const revisor = prepararRevision(excepciones, diaEnSantiago(Date.now()))
     return revisor.revisar([version.titulo, version.texto].filter(Boolean).join("\n"), cuenta.voz)
   }
 
@@ -109,6 +123,7 @@ export default async function Pieza({
           huella={version.huella}
           texto={version.texto}
           fechaPropuesta={pieza.fechaPropuesta}
+          abiertaEn={abiertaEn}
           ruta={cuenta.ruta}
           cuenta={cuenta.nombre}
           firmar={firmarAccion}

@@ -1,7 +1,14 @@
 import { type Hallazgo, mensajeDe } from "@/lib/clientes/revision"
 
-/** Gate 1 review without AI: it shows, it never blocks. The person signing decides. */
-export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] }) {
+/** Gate 1 review without AI: it shows, it never blocks. The person signing decides. Null: it could not run. */
+export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] | null }) {
+  if (hallazgos === null) {
+    return (
+      <p role="alert" className="rounded-lg border border-borde p-3 text-sm">
+        No pude revisar los clientes. Revísalo tú antes de firmar.
+      </p>
+    )
+  }
   if (hallazgos.length === 0) {
     return (
       <p className="text-sm text-apagado">

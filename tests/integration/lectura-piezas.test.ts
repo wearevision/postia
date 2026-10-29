@@ -5,6 +5,9 @@ import { proponerFecha } from "@/lib/piezas/horarios"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
 import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
 
+/** The gate 1 page render time the form sends with a signature. */
+const ABIERTA = () => new Date().toISOString()
+
 const DIA_MS = 86_400_000
 
 async function huellaVigente(piezaId: string) {
@@ -36,6 +39,7 @@ async function nueva(e: Entorno, texto: string) {
 async function firmada(e: Entorno, texto: string, cuando: Date) {
   const piezaId = await nueva(e, texto)
   const r = await firmarPieza(e.db, {
+    abiertaEn: ABIERTA(),
     piezaId,
     huella: await huellaVigente(piezaId),
     programadaPara: cuando.toISOString(),

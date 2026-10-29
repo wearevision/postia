@@ -10,10 +10,17 @@ interface Props {
   huella: string
   texto: string
   fechaPropuesta: string
+  /** When the server rendered the page: a signature is refused if an exception was marked after it. */
+  abiertaEn: string
   ruta: "api" | "metricool" | "a_mano"
   cuenta: string
-  firmar: (entrada: { piezaId: string; huella: string; programadaPara: string }) => Promise<Resultado>
-  firmarParaReserva: (entrada: { piezaId: string; huella: string }) => Promise<Resultado>
+  firmar: (entrada: {
+    piezaId: string
+    huella: string
+    programadaPara: string
+    abiertaEn: string
+  }) => Promise<Resultado>
+  firmarParaReserva: (entrada: { piezaId: string; huella: string; abiertaEn: string }) => Promise<Resultado>
 }
 
 export function FirmaDePieza({
@@ -21,6 +28,7 @@ export function FirmaDePieza({
   huella,
   texto,
   fechaPropuesta,
+  abiertaEn,
   ruta,
   cuenta,
   firmar,
@@ -36,7 +44,7 @@ export function FirmaDePieza({
     if (!instante) return setError("Elige la fecha y la hora.")
     setError(null)
     iniciar(async () => {
-      const resultado = await firmar({ piezaId, huella, programadaPara: instante })
+      const resultado = await firmar({ piezaId, huella, programadaPara: instante, abiertaEn })
       if (!resultado.ok) setError(resultado.error)
     })
   }
@@ -44,7 +52,7 @@ export function FirmaDePieza({
   function paraLaReserva() {
     setError(null)
     iniciar(async () => {
-      const resultado = await firmarParaReserva({ piezaId, huella })
+      const resultado = await firmarParaReserva({ piezaId, huella, abiertaEn })
       if (!resultado.ok) setError(resultado.error)
     })
   }

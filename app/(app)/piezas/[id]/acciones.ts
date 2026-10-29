@@ -29,6 +29,7 @@ export async function firmarAccion(entrada: {
   piezaId: string
   huella: string
   programadaPara: string
+  abiertaEn: string
 }): Promise<Resultado> {
   return despues(entrada.piezaId, await firmarPieza(await createActionClient(), entrada))
 }
@@ -53,7 +54,11 @@ export async function planearAccion(entrada: { piezaId: string; planeadaPara: st
   return despues(entrada.piezaId, await planearPieza(await createActionClient(), entrada))
 }
 
-export async function firmarParaReservaAccion(entrada: { piezaId: string; huella: string }): Promise<Resultado> {
+export async function firmarParaReservaAccion(entrada: {
+  piezaId: string
+  huella: string
+  abiertaEn: string
+}): Promise<Resultado> {
   return despues(entrada.piezaId, await firmarParaReserva(await createActionClient(), entrada))
 }
 

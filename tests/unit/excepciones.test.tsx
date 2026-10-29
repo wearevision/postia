@@ -13,10 +13,12 @@ const CLIENTE: ClienteConCasos = {
   excepciones: [{ id: "e1", tipo: "sin_logo", casoSlug: null, alias: [], hasta: null }],
 }
 
+const HOY = "2026-11-02"
+
 function montar(cliente: ClienteConCasos = CLIENTE) {
   const marcar = vi.fn<Marcar>(async () => ({ ok: true, id: "e2" }))
   const quitar = vi.fn<Quitar>(async () => ({ ok: true }))
-  render(<ExcepcionesDeCliente abierto cliente={cliente} marcar={marcar} quitar={quitar} />)
+  render(<ExcepcionesDeCliente abierto cliente={cliente} hoy={HOY} marcar={marcar} quitar={quitar} />)
   return { marcar, quitar }
 }
 
@@ -74,18 +76,14 @@ describe("ExcepcionesDeCliente", () => {
     expect(screen.getByRole("button", { name: "Quitar Sin logo de Copec 85 años" })).toBeVisible()
   })
 
-  test("the end date starts at today in Chile", () => {
-    vi.useFakeTimers({ toFake: ["Date"] })
-    // 23:00 of November 2 in Chile.
-    vi.setSystemTime(new Date("2026-11-03T02:00:00Z"))
+  test("the end date starts at the day the server gives, so server and browser render the same", () => {
     montar()
-    expect(screen.getByLabelText("Hasta (opcional)")).toHaveAttribute("min", "2026-11-02")
-    vi.useRealTimers()
+    expect(screen.getByLabelText("Hasta (opcional)")).toHaveAttribute("min", HOY)
   })
 
   test("shows the server's error", async () => {
     const marcar = vi.fn<Marcar>(async () => ({ ok: false, error: "Ese cliente ya tiene esa excepción." }))
-    render(<ExcepcionesDeCliente abierto cliente={CLIENTE} marcar={marcar} quitar={vi.fn<Quitar>()} />)
+    render(<ExcepcionesDeCliente abierto cliente={CLIENTE} hoy={HOY} marcar={marcar} quitar={vi.fn<Quitar>()} />)
     fireEvent.click(screen.getByRole("button", { name: "Marcar excepción" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Ese cliente ya tiene esa excepción.")
   })
@@ -111,7 +109,7 @@ describe("ExcepcionesDeCliente", () => {
 describe("ClienteFueraDeLaLista", () => {
   test("marks an exception for a client that has no case", async () => {
     const marcar = vi.fn<Marcar>(async () => ({ ok: true, id: "e3" }))
-    render(<ClienteFueraDeLaLista marcar={marcar} />)
+    render(<ClienteFueraDeLaLista hoy={HOY} marcar={marcar} />)
     fireEvent.change(screen.getByLabelText("Nombre del cliente"), { target: { value: "Estudio WR3" } })
     fireEvent.change(screen.getByLabelText("Tipo de excepción"), { target: { value: "confidencial" } })
     fireEvent.click(screen.getByRole("button", { name: "Marcar excepción" }))

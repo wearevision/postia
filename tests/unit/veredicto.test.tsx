@@ -25,4 +25,10 @@ describe("Veredicto", () => {
     expect(screen.getByText("«$100»: nunca se publican precios ni presupuestos.")).toBeVisible()
     expect(screen.getByText("Puedes firmar igual: tú decides.")).toBeVisible()
   })
+
+  test("says the clients were not reviewed when the exceptions could not be read, without claiming nothing was found", () => {
+    render(<Veredicto hallazgos={null} />)
+    expect(screen.getByRole("alert")).toHaveTextContent("No pude revisar los clientes. Revísalo tú antes de firmar.")
+    expect(screen.queryByText(/no encontré clientes/)).toBeNull()
+  })
 })

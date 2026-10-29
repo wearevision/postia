@@ -5,7 +5,6 @@ import { esPalabraComun, variantesDelNombre } from "@/lib/clientes/alias"
 import { type ClienteConCasos, TIPOS_DE_EXCEPCION } from "@/lib/clientes/lectura"
 import type { TipoDeExcepcion } from "@/lib/clientes/revision"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { diaEnSantiago } from "@/lib/piezas/calendario"
 
 type Marcar = (entrada: unknown) => Promise<Resultado<{ id: string }>>
 type Quitar = (id: string) => Promise<Resultado>
@@ -31,10 +30,11 @@ interface FormularioProps {
   /** Null when the person types the client's name (a client without cases, such as a WR3 study). */
   cliente: string | null
   casos: ClienteConCasos["casos"]
+  hoy: string
   marcar: Marcar
 }
 
-function FormularioDeExcepcion({ cliente, casos, marcar }: FormularioProps) {
+function FormularioDeExcepcion({ cliente, casos, hoy, marcar }: FormularioProps) {
   const id = useId()
   const [nombreEscrito, setNombreEscrito] = useState("")
   const [tipo, setTipo] = useState<TipoDeExcepcion>("no_nombrar")
@@ -145,13 +145,7 @@ function FormularioDeExcepcion({ cliente, casos, marcar }: FormularioProps) {
       )}
       <label className="block space-y-1">
         <span className="text-sm">Hasta (opcional)</span>
-        <input
-          type="date"
-          value={hasta}
-          min={diaEnSantiago(Date.now())}
-          onChange={(e) => setHasta(e.target.value)}
-          className={CAMPO}
-        />
+        <input type="date" value={hasta} min={hoy} onChange={(e) => setHasta(e.target.value)} className={CAMPO} />
       </label>
       <button
         type="submit"
@@ -172,12 +166,14 @@ function FormularioDeExcepcion({ cliente, casos, marcar }: FormularioProps) {
 
 interface Props {
   cliente: ClienteConCasos
+  /** Today in Chile, from the server: computing it here would differ between server and browser render. */
+  hoy: string
   marcar: Marcar
   quitar: Quitar
   abierto?: boolean
 }
 
-export function ExcepcionesDeCliente({ cliente, marcar, quitar, abierto = false }: Props) {
+export function ExcepcionesDeCliente({ cliente, hoy, marcar, quitar, abierto = false }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [porQuitar, setPorQuitar] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -264,19 +260,19 @@ export function ExcepcionesDeCliente({ cliente, marcar, quitar, abierto = false 
           {error}
         </p>
       )}
-      <FormularioDeExcepcion cliente={cliente.cliente} casos={cliente.casos} marcar={marcar} />
+      <FormularioDeExcepcion cliente={cliente.cliente} casos={cliente.casos} hoy={hoy} marcar={marcar} />
     </details>
   )
 }
 
-export function ClienteFueraDeLaLista({ marcar }: { marcar: Marcar }) {
+export function ClienteFueraDeLaLista({ hoy, marcar }: { hoy: string; marcar: Marcar }) {
   return (
     <details className="rounded-lg border border-borde px-4 py-1">
       <summary className="flex min-h-11 cursor-pointer items-center py-2 font-medium">
         Cliente que no está en la lista
       </summary>
       <p className="text-sm text-apagado">Por ejemplo, un estudio confidencial de WR3.</p>
-      <FormularioDeExcepcion cliente={null} casos={[]} marcar={marcar} />
+      <FormularioDeExcepcion cliente={null} casos={[]} hoy={hoy} marcar={marcar} />
     </details>
   )
 }
