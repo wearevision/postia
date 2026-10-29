@@ -25,7 +25,11 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "invitar:prod": "tsx --env-file=.env.produccion scripts/invitar.ts",
     "cargar:wr3": "tsx --env-file=.env.local scripts/cargar-wr3.ts",
-    "cargar:wr3:prod": "tsx --env-file=.env.produccion scripts/cargar-wr3.ts"
+    "cargar:wr3:prod": "tsx --env-file=.env.produccion scripts/cargar-wr3.ts",
+    "cargar:casos": "tsx --env-file=.env.local scripts/cargar-casos.ts",
+    "cargar:casos:prod": "tsx --env-file=.env.produccion scripts/cargar-casos.ts",
+    "cargar:linea": "tsx --env-file=.env.local scripts/cargar-linea.ts",
+    "cargar:linea:prod": "tsx --env-file=.env.produccion scripts/cargar-linea.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

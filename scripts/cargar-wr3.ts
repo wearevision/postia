@@ -13,6 +13,7 @@ import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { Db } from "@/lib/supabase/database"
+import { buscarUsuario } from "./usuario"
 
 const CARPETA_POR_DEFECTO = join(homedir(), "Projects/wr3-web/social/linkedin/out")
 const MARCA = "WAV"
@@ -73,15 +74,6 @@ async function buscarCuenta(db: Db): Promise<Cuenta> {
     throw new Error(`No pude buscar la cuenta ${CUENTA}: ${errorDeCuenta.message}`, { cause: errorDeCuenta })
   if (!cuenta) throw new Falla(`La marca «${MARCA}» no tiene la cuenta «${CUENTA}».`)
   return { id: cuenta.id, marcaId: marca.id, tipo: leerTipo(cuenta.tipo) }
-}
-
-async function buscarUsuario(db: Db, correo: string): Promise<string> {
-  // The admin API has no lookup by email; the team is a handful of people, so one page holds everyone.
-  const { data, error } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  if (error) throw new Error(`No pude listar usuarios: ${error.message}`, { cause: error })
-  const usuario = data.users.find((u) => u.email?.toLowerCase() === correo)
-  if (!usuario) throw new Falla(`No existe un usuario con el correo ${correo}.`)
-  return usuario.id
 }
 
 interface PiezaExistente {
