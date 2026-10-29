@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest"
 import { vigilarConexiones } from "@/lib/avisos/conexiones"
 import type { ServicioPush, SuscripcionPush } from "@/lib/avisos/push"
 import type { MensajePush } from "@/lib/avisos/tipos"
+import { diaEnSantiago, sumarDias } from "@/lib/piezas/calendario"
+import { instanteDesdeValorLocal } from "@/lib/piezas/fechas"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
 const DIA = 86_400_000
@@ -18,7 +20,7 @@ function servicio() {
 }
 
 /** An api account of a fresh owner, linked to a connection that expires `diasRestantes` from now. */
-async function conConexion(diasRestantes: number) {
+async function conConexion(diasRestantes: number, expiraEn?: string) {
   const { userId } = await personaConSesion("vigilar")
   const marca = await marcaConDueno(userId)
   const cuenta = await cuentaDe(marca, "persona", "api")
@@ -32,7 +34,7 @@ async function conConexion(diasRestantes: number) {
       app: "estudio_wav_perfil",
       titular: `urn:li:person:${crypto.randomUUID().replaceAll("-", "")}`,
       scopes: ["w_member_social"],
-      expira_en: new Date(Date.now() + diasRestantes * DIA).toISOString(),
+      expira_en: expiraEn ?? new Date(Date.now() + diasRestantes * DIA).toISOString(),
       conectada_por: userId,
     })
     .select("id")
@@ -58,7 +60,11 @@ describe("vigilarConexiones", () => {
   })
 
   test("a connection with 14 days left queues one digest line and pushes nothing", async () => {
-    const c = await conConexion(13.5)
+    // Noon in Chile, 14 calendar days from today, whatever time of day the test runs.
+    const c = await conConexion(
+      14,
+      instanteDesdeValorLocal(`${sumarDias(diaEnSantiago(Date.now()), 14)}T12:00`) ?? undefined,
+    )
     const { falso, de } = servicio()
     await vigilarConexiones(admin(), falso, Date.now())
     expect(de(c.endpoint)).toEqual([])
