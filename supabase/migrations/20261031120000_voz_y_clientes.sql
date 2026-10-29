@@ -1,0 +1,132 @@
+-- D: editorial lines with versions, pillars (D20), the corrected cases and client exceptions (D13).
+-- Plano: «Voz y línea editorial», «líneas editoriales», «Clientes», «excepciones de clientes», «Confidencialidad de
+-- clientes». The C1 and C2 migrations are in production: anything they defined is changed here with alter.
+
+-- Pillars keep their id across versions so pieces keep pointing at them; a pillar dropped from the line is retired.
+create table public.pilares (
+  id uuid primary key default gen_random_uuid(),
+  marca_id uuid not null references public.marcas (id) on delete cascade,
+  nombre text not null check (length(btrim(nombre)) between 1 and 60),
+  de_que_habla text not null default '' check (length(de_que_habla) <= 400),
+  material text not null default '' check (length(material) <= 400),
+  -- Pieces per week the brand's account aims for: 0.5 is one every two weeks (D20).
+  por_semana numeric(3, 1) not null check (por_semana > 0 and por_semana <= 7),
+  orden smallint not null check (orden between 1 and 8),
+  activo boolean not null default true,
+  creado_en timestamptz not null default now()
+);
+create index pilares_marca on public.pilares (marca_id) where activo;
+
+-- One row per version, never updated: a piece written later can say which version it followed.
+create table public.lineas_editoriales (
+  id uuid primary key default gen_random_uuid(),
+  marca_id uuid not null references public.marcas (id) on delete cascade,
+  version integer not null check (version >= 1),
+  de_que_hablamos text not null default '' check (length(de_que_hablamos) <= 6000),
+  tono text not null default '' check (length(tono) <= 6000),
+  formatos text not null default '' check (length(formatos) <= 6000),
+  temas_vetados text not null default '' check (length(temas_vetados) <= 6000),
+  temas_a_vigilar text not null default '' check (length(temas_a_vigilar) <= 6000),
+  ejemplos text not null default '' check (length(ejemplos) <= 20000),
+  -- The pillars as they were when this version was saved, with their row ids.
+  pilares jsonb not null check (jsonb_typeof(pilares) = 'array'),
+  creada_por uuid not null references auth.users (id),
+  creada_en timestamptz not null default now(),
+  unique (marca_id, version)
+);
+
+create function public.lineas_inmutables() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  raise exception using errcode = '23514', message = 'linea_inmutable';
+end $$;
+create trigger lineas_editoriales_inmutables before update on public.lineas_editoriales
+  for each row execute function public.lineas_inmutables();
+
+-- Service role only (scripts/cargar-linea.ts passes the author); owners go through guardar_linea_editorial.
+create function public.guardar_linea(p_marca uuid, p_base integer, p_secciones jsonb, p_pilares jsonb, p_autor uuid)
+returns integer
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_actual integer;
+  v_pilar jsonb;
+  v_id uuid;
+  v_ids uuid[] := '{}';
+  v_orden smallint := 0;
+  v_foto jsonb := '[]'::jsonb;
+begin
+  -- Two saves of one brand queue here, so the base check below sees the other one's version.
+  perform 1 from public.marcas where id = p_marca for update;
+  if not found then
+    raise exception using errcode = '22023', message = 'marca_no_existe';
+  end if;
+  select coalesce(max(version), 0) into v_actual from public.lineas_editoriales where marca_id = p_marca;
+  if v_actual <> p_base then
+    -- Not 40001: PostgREST retries serialization failures, so the request would hang instead of answering.
+    raise exception using errcode = '22023', message = 'linea_cambio';
+  end if;
+  if jsonb_typeof(p_pilares) <> 'array' or jsonb_array_length(p_pilares) not between 1 and 8 then
+    raise exception using errcode = '22023', message = 'pilares_invalidos';
+  end if;
+  if (select count(distinct lower(btrim(e->>'nombre'))) from jsonb_array_elements(p_pilares) e)
+     <> jsonb_array_length(p_pilares) then
+    raise exception using errcode = '22023', message = 'pilares_repetidos';
+  end if;
+
+  for v_pilar in select value from jsonb_array_elements(p_pilares) loop
+    v_orden := v_orden + 1;
+    v_id := nullif(v_pilar->>'id', '')::uuid;
+    if v_id is null then
+      insert into public.pilares (marca_id, nombre, de_que_habla, material, por_semana, orden)
+      values (p_marca, btrim(v_pilar->>'nombre'), coalesce(v_pilar->>'deQueHabla', ''), coalesce(v_pilar->>'material', ''),
+              (v_pilar->>'porSemana')::numeric, v_orden)
+      returning id into v_id;
+    else
+      update public.pilares
+         set nombre = btrim(v_pilar->>'nombre'), de_que_habla = coalesce(v_pilar->>'deQueHabla', ''),
+             material = coalesce(v_pilar->>'material', ''), por_semana = (v_pilar->>'porSemana')::numeric,
+             orden = v_orden, activo = true
+       where id = v_id and marca_id = p_marca;
+      if not found then
+        raise exception using errcode = '22023', message = 'pilar_de_otra_marca';
+      end if;
+    end if;
+    v_ids := v_ids || v_id;
+    v_foto := v_foto || jsonb_build_object(
+      'id', v_id, 'nombre', btrim(v_pilar->>'nombre'), 'deQueHabla', coalesce(v_pilar->>'deQueHabla', ''),
+      'material', coalesce(v_pilar->>'material', ''), 'porSemana', (v_pilar->>'porSemana')::numeric
+    );
+  end loop;
+  update public.pilares set activo = false where marca_id = p_marca and activo and not (id = any (v_ids));
+
+  insert into public.lineas_editoriales
+    (marca_id, version, de_que_hablamos, tono, formatos, temas_vetados, temas_a_vigilar, ejemplos, pilares, creada_por)
+  values (p_marca, v_actual + 1, coalesce(p_secciones->>'deQueHablamos', ''), coalesce(p_secciones->>'tono', ''),
+          coalesce(p_secciones->>'formatos', ''), coalesce(p_secciones->>'temasVetados', ''),
+          coalesce(p_secciones->>'temasAVigilar', ''), coalesce(p_secciones->>'ejemplos', ''), v_foto, p_autor);
+  return v_actual + 1;
+end $$;
+
+create function public.guardar_linea_editorial(p_marca uuid, p_base integer, p_secciones jsonb, p_pilares jsonb)
+returns integer
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.es_dueno(p_marca) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_edita_la_linea';
+  end if;
+  return public.guardar_linea(p_marca, p_base, p_secciones, p_pilares, auth.uid());
+end $$;
+
+alter table public.pilares enable row level security;
+alter table public.lineas_editoriales enable row level security;
+create policy "miembros ven los pilares" on public.pilares for select to authenticated using (public.es_miembro(marca_id));
+create policy "miembros ven las lineas" on public.lineas_editoriales for select to authenticated
+  using (public.es_miembro(marca_id));
+revoke all on public.pilares, public.lineas_editoriales from anon, authenticated;
+grant select on public.pilares, public.lineas_editoriales to authenticated;
+
+revoke execute on function public.guardar_linea(uuid, integer, jsonb, jsonb, uuid) from public, anon, authenticated;
+grant execute on function public.guardar_linea(uuid, integer, jsonb, jsonb, uuid) to service_role;
+revoke execute on function public.guardar_linea_editorial(uuid, integer, jsonb, jsonb) from public, anon;
+grant execute on function public.guardar_linea_editorial(uuid, integer, jsonb, jsonb) to authenticated;
+revoke execute on function public.lineas_inmutables() from public, anon, authenticated;

@@ -248,6 +248,59 @@ export type Database = {
           },
         ]
       }
+      lineas_editoriales: {
+        Row: {
+          creada_en: string
+          creada_por: string
+          de_que_hablamos: string
+          ejemplos: string
+          formatos: string
+          id: string
+          marca_id: string
+          pilares: Json
+          temas_a_vigilar: string
+          temas_vetados: string
+          tono: string
+          version: number
+        }
+        Insert: {
+          creada_en?: string
+          creada_por: string
+          de_que_hablamos?: string
+          ejemplos?: string
+          formatos?: string
+          id?: string
+          marca_id: string
+          pilares: Json
+          temas_a_vigilar?: string
+          temas_vetados?: string
+          tono?: string
+          version: number
+        }
+        Update: {
+          creada_en?: string
+          creada_por?: string
+          de_que_hablamos?: string
+          ejemplos?: string
+          formatos?: string
+          id?: string
+          marca_id?: string
+          pilares?: Json
+          temas_a_vigilar?: string
+          temas_vetados?: string
+          tono?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lineas_editoriales_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marcas: {
         Row: {
           creada_en: string
@@ -350,6 +403,50 @@ export type Database = {
             columns: ["cuenta_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilares: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          de_que_habla: string
+          id: string
+          marca_id: string
+          material: string
+          nombre: string
+          orden: number
+          por_semana: number
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          de_que_habla?: string
+          id?: string
+          marca_id: string
+          material?: string
+          nombre: string
+          orden: number
+          por_semana: number
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          de_que_habla?: string
+          id?: string
+          marca_id?: string
+          material?: string
+          nombre?: string
+          orden?: number
+          por_semana?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilares_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
             referencedColumns: ["id"]
           },
         ]
@@ -554,6 +651,25 @@ export type Database = {
       firmar_pieza: {
         Args: { p_huella: string; p_pieza: string; p_programada_para: string }
         Returns: string
+      }
+      guardar_linea: {
+        Args: {
+          p_autor: string
+          p_base: number
+          p_marca: string
+          p_pilares: Json
+          p_secciones: Json
+        }
+        Returns: number
+      }
+      guardar_linea_editorial: {
+        Args: {
+          p_base: number
+          p_marca: string
+          p_pilares: Json
+          p_secciones: Json
+        }
+        Returns: number
       }
       marca_de_pieza: { Args: { p_pieza: string }; Returns: string }
       normalizar_texto: { Args: { p: string }; Returns: string }
