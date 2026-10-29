@@ -4,9 +4,19 @@ import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { createClient } from "@/lib/supabase/server"
 import { PublicarAMano } from "./a-mano"
-import { cerrarAManoAccion, descartarAccion, desprogramarAccion, dudosoAManoAccion, firmarAccion } from "./acciones"
-import { Descartar, Desprogramar, EnvioDudoso } from "./controles"
+import {
+  cerrarAManoAccion,
+  descartarAccion,
+  desprogramarAccion,
+  dudosoAManoAccion,
+  firmarAccion,
+  firmarParaReservaAccion,
+  planearAccion,
+  sacarDeReservaAccion,
+} from "./acciones"
+import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
+import { PlanDePieza } from "./plan"
 
 const ESTADOS: Record<EstadoDePieza, string> = {
   por_aprobar: "Por firmar",
@@ -20,7 +30,7 @@ const ESTADOS: Record<EstadoDePieza, string> = {
   descartada: "Descartada",
 }
 
-const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "programada", "a_mano", "error"]
+const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano", "error"]
 
 export default async function Pieza({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -47,6 +57,9 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       )}
 
       {estado === "por_aprobar" && (
+        <PlanDePieza piezaId={pieza.id} planeadaPara={pieza.planeadaPara} planear={planearAccion} />
+      )}
+      {estado === "por_aprobar" && (
         <FirmaDePieza
           piezaId={pieza.id}
           huella={version.huella}
@@ -54,7 +67,14 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
           fechaPropuesta={pieza.fechaPropuesta}
           ruta={cuenta.ruta}
           firmar={firmarAccion}
+          firmarParaReserva={firmarParaReservaAccion}
         />
+      )}
+      {estado === "en_reserva" && (
+        <div className="space-y-3">
+          <p>En reserva. La app le pone fecha cuando a {cuenta.nombre} le falte una pieza firmada.</p>
+          <SacarDeReserva piezaId={pieza.id} sacar={sacarDeReservaAccion} />
+        </div>
       )}
       {estado === "programada" && pieza.programadaPara && (
         <div className="space-y-3">

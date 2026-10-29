@@ -1,12 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
+import type { Resultado } from "@/lib/marcas/acciones"
 
 const HUELLA = "a".repeat(64)
 const PIEZA = "11111111-1111-4111-8111-111111111111"
 
 function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
   const firmar = vi.fn(async () => ({ ok: true as const }))
+  const firmarParaReserva = vi.fn(async (): Promise<Resultado> => ({ ok: true }))
   render(
     <FirmaDePieza
       piezaId={PIEZA}
@@ -15,6 +17,7 @@ function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
       fechaPropuesta="2026-11-03T14:00:00.000Z"
       ruta="api"
       firmar={firmar}
+      firmarParaReserva={firmarParaReserva}
       {...sobre}
     />,
   )
@@ -71,5 +74,31 @@ describe("FirmaDePieza", () => {
     expect(
       screen.getByRole("button", { name: "Firmar: te aviso a la hora para publicarla a mano" }),
     ).toBeInTheDocument()
+  })
+})
+
+describe("signing for the reserve", () => {
+  test("offers it as a secondary action with one line that explains it", () => {
+    montar()
+    expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeInTheDocument()
+    expect(
+      screen.getByText("Sin fecha: la app se la pone cuando a esta cuenta le falte una pieza firmada."),
+    ).toBeInTheDocument()
+  })
+
+  test("signs the exact version without a date", async () => {
+    const firmarParaReserva = vi.fn(async () => ({ ok: true as const }))
+    const firmar = montar({ firmarParaReserva })
+    fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
+    await waitFor(() => expect(firmarParaReserva).toHaveBeenCalledWith({ piezaId: PIEZA, huella: HUELLA }))
+    expect(firmar).not.toHaveBeenCalled()
+  })
+
+  test("shows its error as an alert", async () => {
+    montar({
+      firmarParaReserva: vi.fn(async () => ({ ok: false as const, error: "Esta pieza ya no espera tu firma." })),
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Esta pieza ya no espera tu firma.")
   })
 })

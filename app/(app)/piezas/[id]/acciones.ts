@@ -2,7 +2,16 @@
 
 import { revalidatePath } from "next/cache"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { cerrarAMano, descartar, desprogramar, dudosoAMano, firmarPieza } from "@/lib/piezas/acciones"
+import {
+  cerrarAMano,
+  descartar,
+  desprogramar,
+  dudosoAMano,
+  firmarParaReserva,
+  firmarPieza,
+  planearPieza,
+  sacarDeReserva,
+} from "@/lib/piezas/acciones"
 import { RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
@@ -36,4 +45,19 @@ export async function cerrarAManoAccion(entrada: { piezaId: string; enlace: stri
 
 export async function dudosoAManoAccion(piezaId: string): Promise<Resultado> {
   return despues(piezaId, await dudosoAMano(await createActionClient(), piezaId))
+}
+
+export async function planearAccion(entrada: { piezaId: string; planeadaPara: string }): Promise<Resultado> {
+  return despues(entrada.piezaId, await planearPieza(await createActionClient(), entrada))
+}
+
+export async function firmarParaReservaAccion(entrada: { piezaId: string; huella: string }): Promise<Resultado> {
+  return despues(entrada.piezaId, await firmarParaReserva(await createActionClient(), entrada))
+}
+
+// sacarDeReserva re-plans the piece itself; a failed plan comes back in the result after the take-out already happened.
+export async function sacarDeReservaAccion(piezaId: string): Promise<Resultado> {
+  const resultado = await sacarDeReserva(await createActionClient(), piezaId)
+  if (!resultado.ok) console.error("No pude planear la pieza al sacarla de la reserva", piezaId, resultado.error)
+  return despues(piezaId, resultado)
 }
