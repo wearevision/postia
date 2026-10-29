@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest"
 import { crearPieza, firmarPieza } from "@/lib/piezas/acciones"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
-import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
+import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
 
 const DIA_MS = 86_400_000
 
@@ -96,7 +96,14 @@ describe("tray", () => {
     const e = await entorno("lec-dueno")
     await nueva(e, "Privada")
     const extrano = await personaConSesion("lec-extrano")
-    expect(await bandeja(extrano.db)).toEqual({ porFirmar: [], aMano: [], revisar: [], proximas: [], masAdelante: [] })
+    expect(await bandeja(extrano.db)).toEqual({
+      porFirmar: [],
+      enReserva: [],
+      aMano: [],
+      revisar: [],
+      proximas: [],
+      masAdelante: [],
+    })
   })
 })
 
@@ -190,5 +197,67 @@ describe("detail", () => {
     const e = await entorno("lec-orden")
     const ids = [await nueva(e, "uno"), await nueva(e, "dos"), await nueva(e, "tres")]
     expect((await bandeja(e.db)).porFirmar.map((t) => t.id)).toEqual(ids)
+  })
+})
+
+describe("plans and the reserve", () => {
+  test("the tray keeps a reserve piece apart from the ones to sign and carries the plan of a planned card", async () => {
+    const e = await entorno("lec-reserva")
+    const reserva = await nueva(e, "Para la reserva")
+    const planeada = await nueva(e, "Planeada")
+    const plan = enDias(3)
+    const pasos = [
+      await e.db.rpc("firmar_para_reserva", { p_pieza: reserva, p_huella: (await versionVigente(reserva)).huella }),
+      await e.db.rpc("planear_pieza", { p_pieza: planeada, p_fecha: plan }),
+    ]
+    for (const paso of pasos) if (paso.error) throw paso.error
+
+    const b = await bandeja(e.db)
+
+    expect(b.enReserva.map((t) => t.id)).toEqual([reserva])
+    expect(b.porFirmar.map((t) => t.id)).toEqual([planeada])
+    expect(Date.parse(b.porFirmar[0]?.planeadaPara ?? "")).toBe(Date.parse(plan))
+    expect(b.enReserva[0]?.planeadaPara).toBeNull()
+  })
+
+  test("detail of a piece planned in the future proposes that very slot", async () => {
+    const e = await entorno("lec-plan-propio")
+    const piezaId = await nueva(e, "Con plan")
+    const plan = enDias(5)
+    const { error } = await e.db.rpc("planear_pieza", { p_pieza: piezaId, p_fecha: plan })
+    expect(error).toBeNull()
+
+    const d = await detalle(e.db, piezaId)
+
+    expect(Date.parse(d?.planeadaPara ?? "")).toBe(Date.parse(plan))
+    expect(d?.fechaPropuesta).toBe(new Date(plan).toISOString())
+  })
+
+  test("detail of an unplanned piece skips the slot another piece plans", async () => {
+    const e = await entorno("lec-plan-ajeno")
+    const ahora = Date.now()
+    const primero = proponerFecha("persona", [], ahora)
+    const segundo = proponerFecha("persona", [primero.getTime()], ahora)
+    const otra = await nueva(e, "Otra")
+    const libre = await nueva(e, "Libre")
+    const { error } = await e.db.rpc("planear_pieza", { p_pieza: otra, p_fecha: primero.toISOString() })
+    expect(error).toBeNull()
+
+    expect((await detalle(e.db, libre, ahora))?.fechaPropuesta).toBe(segundo.toISOString())
+  })
+
+  test("detail replaces a plan that is about to be due with the next free slot, never with the plan itself", async () => {
+    const e = await entorno("lec-plan-vencido")
+    const ahora = Date.now()
+    const primero = proponerFecha("persona", [], ahora)
+    const propia = await nueva(e, "Propia")
+    const { error } = await e.db.rpc("planear_pieza", { p_pieza: propia, p_fecha: primero.toISOString() })
+    expect(error).toBeNull()
+    // Seen from 30 seconds before its slot, the plan is no longer a usable proposal.
+    const casiVencido = primero.getTime() - 30_000
+
+    const propuesta = (await detalle(e.db, propia, casiVencido))?.fechaPropuesta
+    expect(Date.parse(propuesta ?? "")).toBeGreaterThanOrEqual(casiVencido + 30 * 60_000)
+    expect(propuesta).not.toBe(primero.toISOString())
   })
 })

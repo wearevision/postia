@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { explicacionDeReserva } from "@/lib/piezas/textos"
 
 interface Props {
   piezaId: string
@@ -10,10 +11,21 @@ interface Props {
   texto: string
   fechaPropuesta: string
   ruta: "api" | "metricool" | "a_mano"
+  cuenta: string
   firmar: (entrada: { piezaId: string; huella: string; programadaPara: string }) => Promise<Resultado>
+  firmarParaReserva: (entrada: { piezaId: string; huella: string }) => Promise<Resultado>
 }
 
-export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, firmar }: Props) {
+export function FirmaDePieza({
+  piezaId,
+  huella,
+  texto,
+  fechaPropuesta,
+  ruta,
+  cuenta,
+  firmar,
+  firmarParaReserva,
+}: Props) {
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -25,6 +37,14 @@ export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, fir
     setError(null)
     iniciar(async () => {
       const resultado = await firmar({ piezaId, huella, programadaPara: instante })
+      if (!resultado.ok) setError(resultado.error)
+    })
+  }
+
+  function paraLaReserva() {
+    setError(null)
+    iniciar(async () => {
+      const resultado = await firmarParaReserva({ piezaId, huella })
       if (!resultado.ok) setError(resultado.error)
     })
   }
@@ -54,6 +74,18 @@ export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, fir
       >
         {ruta === "a_mano" ? "Firmar: te aviso a la hora para publicarla a mano" : "Firmar y programar"}
       </button>
+      <button
+        type="button"
+        disabled={pendiente}
+        onClick={paraLaReserva}
+        aria-describedby="explicacion-de-reserva"
+        className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+      >
+        Firmar para la reserva
+      </button>
+      <p id="explicacion-de-reserva" className="text-sm text-apagado">
+        {explicacionDeReserva(ruta, cuenta)}
+      </p>
       {error && (
         <p role="alert" className="text-sm text-peligro">
           {error}

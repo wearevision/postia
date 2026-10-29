@@ -2,14 +2,24 @@
 
 import { revalidatePath } from "next/cache"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { cerrarAMano, descartar, desprogramar, dudosoAMano, firmarPieza } from "@/lib/piezas/acciones"
-import { RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
+import {
+  cerrarAMano,
+  descartar,
+  desprogramar,
+  dudosoAMano,
+  firmarParaReserva,
+  firmarPieza,
+  planearPieza,
+  sacarDeReserva,
+} from "@/lib/piezas/acciones"
+import { RUTA_DE_CALENDARIO, RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
 function despues(piezaId: string, resultado: Resultado): Resultado {
   if (resultado.ok) {
     revalidatePath(rutaDePieza(piezaId))
     revalidatePath(RUTA_DE_INICIO)
+    revalidatePath(RUTA_DE_CALENDARIO)
   }
   return resultado
 }
@@ -36,4 +46,17 @@ export async function cerrarAManoAccion(entrada: { piezaId: string; enlace: stri
 
 export async function dudosoAManoAccion(piezaId: string): Promise<Resultado> {
   return despues(piezaId, await dudosoAMano(await createActionClient(), piezaId))
+}
+
+export async function planearAccion(entrada: { piezaId: string; planeadaPara: string }): Promise<Resultado> {
+  return despues(entrada.piezaId, await planearPieza(await createActionClient(), entrada))
+}
+
+export async function firmarParaReservaAccion(entrada: { piezaId: string; huella: string }): Promise<Resultado> {
+  return despues(entrada.piezaId, await firmarParaReserva(await createActionClient(), entrada))
+}
+
+// sacarDeReserva re-plans the piece itself and logs a failed plan; only a refused take-out is an error here.
+export async function sacarDeReservaAccion(piezaId: string): Promise<Resultado> {
+  return despues(piezaId, await sacarDeReserva(await createActionClient(), piezaId))
 }

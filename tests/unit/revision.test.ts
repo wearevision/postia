@@ -22,15 +22,15 @@ describe("revisarAntesDeEnviar", () => {
     })
   })
   test("sends it back to the gate when there is no signature", () => {
-    expect(revisarAntesDeEnviar({ ...BASE, firmaHuella: null }, AHORA)).toMatchObject({
-      ok: false,
-      destino: "por_aprobar",
-    })
+    const revision = revisarAntesDeEnviar({ ...BASE, firmaHuella: null }, AHORA)
+    expect(revision).toMatchObject({ ok: false, destino: "por_aprobar" })
+    expect(revision).not.toHaveProperty("porHorario")
   })
   test("does not go late: back to the gate past its window", () => {
     expect(revisarAntesDeEnviar(BASE, Date.parse("2026-11-03T14:31:00Z"))).toMatchObject({
       ok: false,
       destino: "por_aprobar",
+      porHorario: true,
     })
   })
   test("goes by hand when the account is a hand account", () => {

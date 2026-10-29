@@ -9,6 +9,8 @@ import {
 } from "@/lib/linkedin/api"
 import { esperarDocumento } from "@/lib/linkedin/documento"
 import { aLittleText, enlaceDePost } from "@/lib/linkedin/dominio"
+import { fechaLarga } from "@/lib/piezas/fechas"
+import { proponerFecha } from "@/lib/piezas/horarios"
 import { sha256 } from "@/lib/piezas/huella"
 import { type Ruta, revisarAntesDeEnviar } from "./revision"
 
@@ -32,6 +34,16 @@ export interface PiezaParaPublicar {
   firma: { id: string; huella: string } | null
 }
 
+export interface PendienteSinFirma {
+  id: string
+  marcaId: string
+  cuentaId: string
+  cuentaNombre: string
+  tipo: "persona" | "empresa"
+  planeadaPara: string
+  extracto: string
+}
+
 export interface Credencial {
   token: string
   titular: string
@@ -48,7 +60,15 @@ export interface PuertosDePublicacion {
   reservarEnvio(pieza: PiezaParaPublicar): Promise<"reservado" | "ya_enviado">
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
   mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<void>
+  /** Timing causes only: a piece that came out of the reserve goes back to it. Says where the piece ended. */
+  devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio">
   avisar(marcaId: string, aviso: Aviso): Promise<void>
+  vencidasSinFirma(): Promise<PendienteSinFirma[]>
+  horariosOcupados(cuentaId: string, desde: number): Promise<number[]>
+  cubrirConReserva(pendienteId: string, siguiente: string): Promise<string | null>
+  anotarAviso(marcaId: string, aviso: Aviso): Promise<void>
+  /** Marks a piece whose slot could not be covered; true the first time, so the digest says it only once. */
+  registrarFallaDeEspacio(piezaId: string, motivo: string): Promise<boolean>
   linkedin: {
     crearPost: typeof crearPost
     subirDocumento: typeof subirDocumento
@@ -79,8 +99,23 @@ async function devolver(
   pieza: PiezaParaPublicar,
   a: "por_aprobar" | "a_mano" | "envio_dudoso",
   motivo: string,
+  porHorario = false,
 ): Promise<ResultadoDePublicacion> {
-  await p.mover(pieza.id, a, motivo)
+  if (a === "por_aprobar" && porHorario) {
+    const destino = await p.devolverALaReserva(pieza.id, motivo)
+    // Someone else already moved the piece: the decision of this run is stale and there is nothing to tell.
+    if (destino === "sin_cambio") return "reintentar"
+    if (destino === "en_reserva") {
+      await avisarSiPuede(p, pieza.marcaId, {
+        titulo: `Volvió a la reserva · ${pieza.cuentaNombre}`,
+        cuerpo: "No alcanzó a salir a su hora; la app la usará en el próximo espacio sin firma.",
+        url: `/piezas/${pieza.id}`,
+      })
+      return a
+    }
+  } else {
+    await p.mover(pieza.id, a, motivo)
+  }
   const titulos = { por_aprobar: "No salió", a_mano: "Publica a mano", envio_dudoso: "Revisa LinkedIn" } as const
   await avisarSiPuede(p, pieza.marcaId, aviso(pieza, titulos[a], motivo))
   return a
@@ -116,7 +151,7 @@ export async function publicarPieza(
 ): Promise<ResultadoDePublicacion> {
   const credencial = pieza.ruta === "api" ? await p.credencial(pieza.cuentaId) : null
   const revision = revisar(p, pieza, credencial)
-  if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo)
+  if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo, revision.porHorario === true)
   // revisarAntesDeEnviar already refuses a missing connection; this only narrows the type for what follows.
   if (!credencial) return devolver(p, pieza, "a_mano", "No encontré la conexión de LinkedIn de esta cuenta.")
 
@@ -154,7 +189,7 @@ export async function publicarPieza(
 
   // The document wait can take minutes: the window is checked again at the last moment before reserving.
   const ultima = revisar(p, pieza, credencial)
-  if (!ultima.ok) return devolver(p, pieza, ultima.destino, ultima.motivo)
+  if (!ultima.ok) return devolver(p, pieza, ultima.destino, ultima.motivo, ultima.porHorario === true)
 
   let reserva: "reservado" | "ya_enviado"
   try {
@@ -208,9 +243,69 @@ export async function publicarPieza(
   return "publicada"
 }
 
-/** One run of the scheduled task: due pieces one by one, then sends left without an answer. */
+/** A slot that cannot be covered is written on the piece and told once, so it is not a log line nobody reads. */
+async function registrarFalla(p: PuertosDePublicacion, pendiente: PendienteSinFirma): Promise<void> {
+  try {
+    const primera = await p.registrarFallaDeEspacio(
+      pendiente.id,
+      "No encontré un espacio para correr esta pieza: elige su fecha a mano.",
+    )
+    if (primera) {
+      await p.anotarAviso(pendiente.marcaId, {
+        titulo: pendiente.cuentaNombre,
+        cuerpo: `«${pendiente.extracto}» no salió en su espacio y no encontré otro: elige su fecha a mano.`,
+        url: `/piezas/${pendiente.id}`,
+      })
+    }
+  } catch (error) {
+    console.error(`No pude registrar la falla de la pieza ${pendiente.id}: ${describir(error)}`)
+  }
+}
+
+/**
+ * D21 (plano: usarReserva): a planned piece nobody signed in time gives its slot to the reserve and moves to the next
+ * free slot. Not urgent: it goes to the digest (D26). Runs before taking due pieces so the reserve piece goes out now.
+ * A reserve piece of an account published by hand is covered the same way; the publisher then asks for the manual post.
+ */
+export async function cubrirSinFirma(p: PuertosDePublicacion): Promise<number> {
+  let cubiertas = 0
+  for (const pendiente of await p.vencidasSinFirma()) {
+    try {
+      const ahora = p.ahora()
+      const ocupados = await p.horariosOcupados(pendiente.cuentaId, ahora)
+      const siguiente = proponerFecha(pendiente.tipo, ocupados, ahora).toISOString()
+      const reserva = await p.cubrirConReserva(pendiente.id, siguiente)
+      const cuerpo = reserva
+        ? `Una pieza salió de la reserva de ${pendiente.cuentaNombre} para el ${fechaLarga(pendiente.planeadaPara)}; «${pendiente.extracto}» pasó al ${fechaLarga(siguiente)}.`
+        : `«${pendiente.extracto}» no salió en su espacio; la corrí al ${fechaLarga(siguiente)}.`
+      if (reserva) cubiertas++
+      try {
+        await p.anotarAviso(pendiente.marcaId, {
+          titulo: pendiente.cuentaNombre,
+          cuerpo,
+          url: `/piezas/${reserva ?? pendiente.id}`,
+        })
+      } catch (error) {
+        // The move already happened; a lost digest line must not undo or hide it.
+        console.error(`No pude anotar el aviso de la pieza ${pendiente.id}: ${describir(error)}`)
+      }
+    } catch (error) {
+      console.error(`No pude correr la pieza sin firma ${pendiente.id}: ${describir(error)}`)
+      await registrarFalla(p, pendiente)
+    }
+  }
+  return cubiertas
+}
+
+/** One run of the scheduled task: unsigned slots, due pieces one by one, then sends left without an answer. */
 export async function publicarPendientes(p: PuertosDePublicacion): Promise<Record<ResultadoDePublicacion, number>> {
   const cuenta = { publicada: 0, por_aprobar: 0, a_mano: 0, envio_dudoso: 0, reintentar: 0 }
+  try {
+    await cubrirSinFirma(p)
+  } catch (error) {
+    // Covering is a convenience; publishing what is signed must happen anyway.
+    console.error(`No pude revisar las piezas sin firma: ${describir(error)}`)
+  }
   try {
     for (const pieza of await p.tomarPendientes()) {
       try {

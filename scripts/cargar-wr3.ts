@@ -5,8 +5,11 @@ import { join } from "node:path"
 import { parseArgs } from "node:util"
 import { Falla } from "@/lib/dominio/falla"
 import { leerPdf } from "@/lib/fase0/pdf-de-prueba"
+import { fechaLarga } from "@/lib/piezas/fechas"
+import { proponerFecha } from "@/lib/piezas/horarios"
 import { huellaDe, sha256 } from "@/lib/piezas/huella"
 import { type EntradaDeCopy, leerCopy } from "@/lib/piezas/importar"
+import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { Db } from "@/lib/supabase/database"
@@ -18,6 +21,12 @@ const CUENTA = "Página de WAV"
 interface Cuenta {
   id: string
   marcaId: string
+  tipo: "persona" | "empresa"
+}
+
+interface Plan {
+  ocupados: number[]
+  ahora: number
 }
 
 async function main() {
@@ -32,9 +41,13 @@ async function main() {
   const cuenta = await buscarCuenta(db)
   const userId = await buscarUsuario(db, correo)
 
+  // Each piece takes the next free slot of the page: slots already held count, and so do the ones taken in this run.
+  const plan: Plan = { ocupados: await horariosOcupados(db, cuenta.id, Date.now()), ahora: Date.now() }
+
   for (const entrada of entradas) {
-    const resultado = await cargar(db, cuenta, userId, entrada, carpeta)
-    console.log(`${resultado === "nueva" ? "nueva    " : "ya estaba"}  ${entrada.titulo}`)
+    const { resultado, planeadaPara } = await cargar(db, cuenta, userId, entrada, carpeta, plan)
+    const cuando = planeadaPara ? fechaLarga(planeadaPara) : "sin fecha"
+    console.log(`${resultado === "nueva" ? "nueva    " : "ya estaba"}  ${cuando}  ${entrada.titulo}`)
   }
 }
 
@@ -52,14 +65,14 @@ async function buscarCuenta(db: Db): Promise<Cuenta> {
   if (!marca) throw new Falla(`No existe la marca «${MARCA}». Créala con pnpm invitar antes de cargar.`)
   const { data: cuenta, error: errorDeCuenta } = await db
     .from("cuentas")
-    .select("id")
+    .select("id, tipo")
     .eq("marca_id", marca.id)
     .eq("nombre", CUENTA)
     .maybeSingle()
   if (errorDeCuenta)
     throw new Error(`No pude buscar la cuenta ${CUENTA}: ${errorDeCuenta.message}`, { cause: errorDeCuenta })
   if (!cuenta) throw new Falla(`La marca «${MARCA}» no tiene la cuenta «${CUENTA}».`)
-  return { id: cuenta.id, marcaId: marca.id }
+  return { id: cuenta.id, marcaId: marca.id, tipo: leerTipo(cuenta.tipo) }
 }
 
 async function buscarUsuario(db: Db, correo: string): Promise<string> {
@@ -71,13 +84,19 @@ async function buscarUsuario(db: Db, correo: string): Promise<string> {
   return usuario.id
 }
 
-async function yaEstaba(db: Db, cuentaId: string, hash: string): Promise<boolean> {
-  const { data: piezas, error } = await db.from("piezas").select("id").eq("cuenta_id", cuentaId)
+interface PiezaExistente {
+  id: string
+  estado: string
+  planeadaPara: string | null
+}
+
+async function piezaExistente(db: Db, cuentaId: string, hash: string): Promise<PiezaExistente | null> {
+  const { data: piezas, error } = await db.from("piezas").select("id, estado, planeada_para").eq("cuenta_id", cuentaId)
   if (error) throw new Error(`No pude leer las piezas: ${error.message}`, { cause: error })
-  if (piezas.length === 0) return false
+  if (piezas.length === 0) return null
   const { data, error: errorDeVersiones } = await db
     .from("versiones")
-    .select("id")
+    .select("pieza_id")
     .eq("archivo_sha256", hash)
     .in(
       "pieza_id",
@@ -86,7 +105,15 @@ async function yaEstaba(db: Db, cuentaId: string, hash: string): Promise<boolean
     .limit(1)
   if (errorDeVersiones)
     throw new Error(`No pude leer las versiones: ${errorDeVersiones.message}`, { cause: errorDeVersiones })
-  return data.length > 0
+  const pieza = piezas.find((p) => p.id === data[0]?.pieza_id)
+  return pieza ? { id: pieza.id, estado: pieza.estado, planeadaPara: pieza.planeada_para } : null
+}
+
+/** The next free slot of the page. It is reserved in `plan` so the next piece of this run takes the one after. */
+function siguienteHueco(cuenta: Cuenta, plan: Plan): string {
+  const hueco = proponerFecha(cuenta.tipo, plan.ocupados, plan.ahora)
+  plan.ocupados.push(hueco.getTime())
+  return hueco.toISOString()
 }
 
 async function cargar(
@@ -95,7 +122,8 @@ async function cargar(
   userId: string,
   entrada: EntradaDeCopy,
   carpeta: string,
-): Promise<"nueva" | "ya estaba"> {
+  plan: Plan,
+): Promise<{ resultado: "nueva" | "ya estaba"; planeadaPara: string | null }> {
   let datos: Uint8Array
   try {
     datos = new Uint8Array(await readFile(join(carpeta, entrada.pdf)))
@@ -111,7 +139,17 @@ async function cargar(
   }
   await leerPdf(datos)
   const hash = sha256(datos)
-  if (await yaEstaba(db, cuenta.id, hash)) return "ya estaba"
+  const existente = await piezaExistente(db, cuenta.id, hash)
+  if (existente) {
+    // Only a piece still waiting for its signature and with no slot gets one; the guard watches state, not this column.
+    if (existente.estado === "por_aprobar" && existente.planeadaPara === null) {
+      const planeadaPara = siguienteHueco(cuenta, plan)
+      const { error } = await db.from("piezas").update({ planeada_para: planeadaPara }).eq("id", existente.id)
+      if (error) throw new Error(`«${entrada.titulo}»: no pude planear la pieza: ${error.message}`, { cause: error })
+      return { resultado: "ya estaba", planeadaPara }
+    }
+    return { resultado: "ya estaba", planeadaPara: existente.planeadaPara }
+  }
 
   const ruta = `${cuenta.marcaId}/${randomUUID()}.pdf`
   const { error: errorDeSubida } = await db.storage
@@ -120,8 +158,9 @@ async function cargar(
   if (errorDeSubida)
     throw new Error(`«${entrada.titulo}»: no pude subir el PDF: ${errorDeSubida.message}`, { cause: errorDeSubida })
 
+  const planeadaPara = siguienteHueco(cuenta, plan)
   try {
-    await crearPieza(db, cuenta.id, userId, entrada, ruta, hash)
+    await crearPieza(db, cuenta.id, userId, entrada, ruta, hash, planeadaPara)
   } catch (error) {
     const { error: errorAlBorrar } = await db.storage.from("piezas").remove([ruta])
     console.error(
@@ -131,7 +170,7 @@ async function cargar(
     )
     throw error
   }
-  return "nueva"
+  return { resultado: "nueva", planeadaPara }
 }
 
 async function crearPieza(
@@ -141,10 +180,11 @@ async function crearPieza(
   entrada: EntradaDeCopy,
   ruta: string,
   hash: string,
+  planeadaPara: string,
 ): Promise<void> {
   const { data: pieza, error } = await db
     .from("piezas")
-    .insert({ cuenta_id: cuentaId, formato: "carrusel_pdf", creada_por: userId })
+    .insert({ cuenta_id: cuentaId, formato: "carrusel_pdf", creada_por: userId, planeada_para: planeadaPara })
     .select("id")
     .single()
   if (error) throw new Error(`«${entrada.titulo}»: no pude crear la pieza: ${error.message}`, { cause: error })

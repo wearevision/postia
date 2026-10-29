@@ -51,6 +51,18 @@ export function Desprogramar({
   )
 }
 
+export function SacarDeReserva({ piezaId, sacar }: { piezaId: string; sacar: (id: string) => Promise<Resultado> }) {
+  const { error, pendiente, ejecutar } = useAccion()
+  return (
+    <div className="space-y-2">
+      <button type="button" disabled={pendiente} onClick={() => ejecutar(() => sacar(piezaId))} className={BOTON}>
+        Sacar de la reserva
+      </button>
+      <Alerta error={error} />
+    </div>
+  )
+}
+
 export function Descartar({
   piezaId,
   descartar,

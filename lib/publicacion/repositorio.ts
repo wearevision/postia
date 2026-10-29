@@ -1,17 +1,40 @@
+import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
+import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
-import type { PiezaParaPublicar, PuertosDePublicacion } from "./publicar"
+import type { PendienteSinFirma, PiezaParaPublicar, PuertosDePublicacion } from "./publicar"
 import type { Ruta } from "./revision"
 
 type PuertosDeBase = Pick<
   PuertosDePublicacion,
-  "tomarPendientes" | "sinRespuesta" | "credencial" | "descargar" | "reservarEnvio" | "cerrarEnvio" | "mover"
+  | "tomarPendientes"
+  | "sinRespuesta"
+  | "credencial"
+  | "descargar"
+  | "reservarEnvio"
+  | "cerrarEnvio"
+  | "mover"
+  | "devolverALaReserva"
+  | "vencidasSinFirma"
+  | "horariosOcupados"
+  | "cubrirConReserva"
+  | "anotarAviso"
+  | "registrarFallaDeEspacio"
 >
+
+const LARGO_DE_EXTRACTO = 40
+const PENDIENTES_POR_CORRIDA = 10
+const UNA_HORA_MS = 3_600_000
 
 const MOTIVO_ILEGIBLE = "No pude leer la pieza para publicarla. Revísala y fírmala de nuevo."
 
 function fallo(accion: string, error: { message: string }): never {
   throw new Error(`${accion}: ${error.message}`, { cause: error })
+}
+
+function extractoDe(texto: string): string {
+  const letras = [...texto.replace(/\s+/g, " ").trim()]
+  return letras.length > LARGO_DE_EXTRACTO ? `${letras.slice(0, LARGO_DE_EXTRACTO - 1).join("")}…` : letras.join("")
 }
 
 function comoRuta(valor: string): Ruta {
@@ -26,7 +49,30 @@ function comoFormato(valor: string): PiezaParaPublicar["formato"] {
 
 /** The publisher's ports over the service role. The state guard still applies: an illegal move throws. */
 export function repositorioDePublicacion(db: Db): PuertosDeBase {
+  async function devolver(
+    piezaId: string,
+    motivo: string,
+    aLaReserva: boolean,
+  ): Promise<"por_aprobar" | "en_reserva" | "sin_cambio"> {
+    const { data, error } = await db.rpc("devolver_pieza", {
+      p_pieza: piezaId,
+      p_motivo: motivo,
+      p_a_la_reserva: aLaReserva,
+    })
+    if (error) fallo("No pude devolver la pieza a la puerta 1", error)
+    if (data === "por_aprobar" || data === "en_reserva") return data
+    if (!data.startsWith("sin_cambio:")) throw new Error(`Respuesta inesperada al devolver la pieza: ${data}`)
+    // The database only moves a piece that is still scheduled; this one was already somewhere else.
+    console.error(`La pieza ${piezaId} ya estaba en ${data.slice("sin_cambio:".length)}: no la moví a la puerta 1.`)
+    return "sin_cambio"
+  }
+
   async function mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string) {
+    if (a === "por_aprobar") {
+      // The cause is in the piece: a reserve signature is dropped so the piece cannot be picked again and fail again.
+      await devolver(piezaId, motivo, false)
+      return
+    }
     const { error } = await db
       .from("piezas")
       .update({ estado: a, motivo, arrendada_hasta: null })
@@ -142,5 +188,50 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       if (error) fallo("No pude cerrar el envío", error)
     },
     mover,
+    devolverALaReserva: (piezaId, motivo) => devolver(piezaId, motivo, true),
+
+    async vencidasSinFirma() {
+      const { data, error } = await db
+        .from("piezas")
+        .select("id, planeada_para, cuentas!inner(id, nombre, tipo, marca_id), versiones(numero, texto)")
+        .eq("estado", "por_aprobar")
+        .lte("planeada_para", new Date().toISOString())
+        // A piece that failed in the last hour waits its turn: a few stuck ones must not fill the whole batch.
+        .or(`plan_fallo_en.is.null,plan_fallo_en.lt.${new Date(Date.now() - UNA_HORA_MS).toISOString()}`)
+        .order("planeada_para")
+        .limit(PENDIENTES_POR_CORRIDA)
+      if (error) fallo("No pude buscar las piezas sin firma vencidas", error)
+      return data.flatMap((p): PendienteSinFirma[] => {
+        const ultima = [...p.versiones].sort((a, b) => b.numero - a.numero)[0]
+        if (!p.planeada_para || !ultima) return []
+        return [
+          {
+            id: p.id,
+            marcaId: p.cuentas.marca_id,
+            cuentaId: p.cuentas.id,
+            cuentaNombre: p.cuentas.nombre,
+            tipo: leerTipo(p.cuentas.tipo),
+            planeadaPara: p.planeada_para,
+            extracto: extractoDe(ultima.texto),
+          },
+        ]
+      })
+    },
+
+    horariosOcupados: (cuentaId, desde) => horariosOcupados(db, cuentaId, desde),
+
+    async cubrirConReserva(pendienteId, siguiente) {
+      const { data, error } = await db.rpc("cubrir_con_reserva", { p_pendiente: pendienteId, p_siguiente: siguiente })
+      if (error) fallo("No pude cubrir el espacio con la reserva", error)
+      return data
+    },
+
+    anotarAviso: (marcaId, aviso) => anotarAviso(db, marcaId, aviso),
+
+    async registrarFallaDeEspacio(piezaId, motivo) {
+      const { data, error } = await db.rpc("registrar_falla_de_espacio", { p_pieza: piezaId, p_motivo: motivo })
+      if (error) fallo("No pude registrar la falla de la pieza", error)
+      return data
+    },
   }
 }

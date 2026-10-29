@@ -34,6 +34,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      avisos_pendientes: {
+        Row: {
+          creado_en: string
+          cuerpo: string
+          enviado_en: string | null
+          id: string
+          marca_id: string
+          titulo: string
+          url: string
+        }
+        Insert: {
+          creado_en?: string
+          cuerpo: string
+          enviado_en?: string | null
+          id?: string
+          marca_id: string
+          titulo: string
+          url: string
+        }
+        Update: {
+          creado_en?: string
+          cuerpo?: string
+          enviado_en?: string | null
+          id?: string
+          marca_id?: string
+          titulo?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_pendientes_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conexiones: {
         Row: {
           app: string
@@ -165,8 +203,9 @@ export type Database = {
           firmada_por: string
           huella: string
           id: string
+          para_reserva: boolean
           pieza_id: string
-          programada_para: string
+          programada_para: string | null
           version_id: string
           vigente: boolean
         }
@@ -175,8 +214,9 @@ export type Database = {
           firmada_por: string
           huella: string
           id?: string
+          para_reserva?: boolean
           pieza_id: string
-          programada_para: string
+          programada_para?: string | null
           version_id: string
           vigente?: boolean
         }
@@ -185,8 +225,9 @@ export type Database = {
           firmada_por?: string
           huella?: string
           id?: string
+          para_reserva?: boolean
           pieza_id?: string
-          programada_para?: string
+          programada_para?: string | null
           version_id?: string
           vigente?: boolean
         }
@@ -268,6 +309,8 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          plan_fallo_en: string | null
+          planeada_para: string | null
           programada_para: string | null
           ventana_minutos: number
         }
@@ -281,6 +324,8 @@ export type Database = {
           formato: string
           id?: string
           motivo?: string | null
+          plan_fallo_en?: string | null
+          planeada_para?: string | null
           programada_para?: string | null
           ventana_minutos?: number
         }
@@ -294,6 +339,8 @@ export type Database = {
           formato?: string
           id?: string
           motivo?: string | null
+          plan_fallo_en?: string | null
+          planeada_para?: string | null
           programada_para?: string | null
           ventana_minutos?: number
         }
@@ -483,15 +530,27 @@ export type Database = {
           token: string
         }[]
       }
+      cubrir_con_reserva: {
+        Args: { p_pendiente: string; p_siguiente: string }
+        Returns: string
+      }
       descartar_pieza: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: undefined
       }
       desconectar_cuenta: { Args: { p_cuenta: string }; Returns: undefined }
       desprogramar_pieza: { Args: { p_pieza: string }; Returns: undefined }
+      devolver_pieza: {
+        Args: { p_a_la_reserva: boolean; p_motivo: string; p_pieza: string }
+        Returns: string
+      }
       dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
+      firmar_para_reserva: {
+        Args: { p_huella: string; p_pieza: string }
+        Returns: string
+      }
       firmar_pieza: {
         Args: { p_huella: string; p_pieza: string; p_programada_para: string }
         Returns: string
@@ -508,10 +567,19 @@ export type Database = {
         }
         Returns: string
       }
+      planear_pieza: {
+        Args: { p_fecha: string; p_pieza: string }
+        Returns: undefined
+      }
+      registrar_falla_de_espacio: {
+        Args: { p_motivo: string; p_pieza: string }
+        Returns: boolean
+      }
       reservar_envio: {
         Args: { p_firma: string; p_pieza: string; p_version: string }
         Returns: string
       }
+      sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_para_publicar: {
         Args: never
@@ -525,6 +593,8 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          plan_fallo_en: string | null
+          planeada_para: string | null
           programada_para: string | null
           ventana_minutos: number
         }[]

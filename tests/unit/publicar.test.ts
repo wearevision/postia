@@ -4,6 +4,8 @@ import { enlaceDePost } from "@/lib/linkedin/dominio"
 import { type EstadoDePieza, transicionPermitida } from "@/lib/piezas/estados"
 import { sha256 } from "@/lib/piezas/huella"
 import {
+  cubrirSinFirma,
+  type PendienteSinFirma,
   type PiezaParaPublicar,
   type PuertosDePublicacion,
   publicarPendientes,
@@ -67,7 +69,16 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     }),
     cerrarEnvio: vi.fn(async (id: string) => pasar(id, "publicada")),
     mover: vi.fn(async (id: string, a: "por_aprobar" | "a_mano" | "envio_dudoso") => pasar(id, a)),
+    devolverALaReserva: vi.fn(async (id: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio"> => {
+      pasar(id, "por_aprobar")
+      return "por_aprobar"
+    }),
     avisar: vi.fn(async () => {}),
+    vencidasSinFirma: vi.fn(async (): Promise<PendienteSinFirma[]> => []),
+    horariosOcupados: vi.fn(async (): Promise<number[]> => []),
+    cubrirConReserva: vi.fn(async (): Promise<string | null> => null),
+    anotarAviso: vi.fn(async () => {}),
+    registrarFallaDeEspacio: vi.fn(async (): Promise<boolean> => true),
     linkedin: {
       crearPost: vi.fn(async () => {
         orden.push("crearPost")
@@ -220,6 +231,51 @@ describe("publicarPieza", () => {
     expect(m.linkedin.crearPost).not.toHaveBeenCalled()
   })
 
+  test("a missed window is a timing cause: the database may send the piece back to the reserve, and the notice says so", async () => {
+    const { p, m } = puertos({
+      ahora: () => Date.parse("2026-11-03T14:40:00Z"),
+      devolverALaReserva: vi.fn(async () => "en_reserva" as const),
+    })
+    expect(await publicarPieza(p, pieza())).toBe("por_aprobar")
+    expect(p.devolverALaReserva).toHaveBeenCalledWith("pieza-1", expect.stringContaining("30 minutos"))
+    expect(m.mover).not.toHaveBeenCalled()
+    expect(m.avisar).toHaveBeenCalledWith("marca-1", {
+      titulo: "Volvió a la reserva · Federico",
+      cuerpo: "No alcanzó a salir a su hora; la app la usará en el próximo espacio sin firma.",
+      url: "/piezas/pieza-1",
+    })
+  })
+
+  test("a piece that is no longer scheduled is left alone: no notice and nothing counted as moved", async () => {
+    const { p, m } = puertos({
+      ahora: () => Date.parse("2026-11-03T14:40:00Z"),
+      devolverALaReserva: vi.fn(async () => "sin_cambio" as const),
+    })
+    silenciar()
+    expect(await publicarPieza(p, pieza())).toBe("reintentar")
+    expect(m.avisar).not.toHaveBeenCalled()
+  })
+
+  test("a missed window on a piece that was not in the reserve keeps the plain notice", async () => {
+    const { p, m } = puertos({ ahora: () => Date.parse("2026-11-03T14:40:00Z") })
+    await publicarPieza(p, pieza())
+    expect(m.avisar).toHaveBeenCalledWith("marca-1", expect.objectContaining({ titulo: "No salió · Federico" }))
+  })
+
+  test("a cause in the piece itself never goes back to the reserve", async () => {
+    const { p, m } = puertos({ descargar: vi.fn(async () => new Uint8Array([9, 9])) })
+    await publicarPieza(p, carrusel())
+    expect(m.devolverALaReserva).not.toHaveBeenCalled()
+    expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", "El archivo cambió después de la firma.")
+  })
+
+  test("a signature of another version is a cause in the piece, not timing", async () => {
+    const { p, m } = puertos()
+    await publicarPieza(p, pieza({ firma: { id: "f1", huella: "b".repeat(64) } }))
+    expect(m.devolverALaReserva).not.toHaveBeenCalled()
+    expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", expect.any(String))
+  })
+
   test("re-checks the window right before reserving: a slow document wait can push it past the window", async () => {
     let ahora = AHORA
     const { p, m, estadoDe } = puertos({
@@ -338,5 +394,137 @@ describe("publicarPendientes", () => {
     const cuenta = await publicarPendientes(p)
     expect(estadoDe("h1")).toBe("envio_dudoso")
     expect(cuenta.envio_dudoso).toBe(1)
+  })
+})
+
+const PENDIENTE: PendienteSinFirma = {
+  id: "pendiente-1",
+  marcaId: "marca-1",
+  cuentaId: "cuenta-1",
+  cuentaNombre: "Federico",
+  tipo: "persona",
+  planeadaPara: "2026-11-03T14:00:00.000Z",
+  extracto: "Hola",
+}
+
+describe("cubrirSinFirma (D21)", () => {
+  test("uses the reserve, moves the unsigned piece to the next free slot and queues a digest line", async () => {
+    const { p, m } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      horariosOcupados: vi.fn(async () => [Date.parse("2026-11-04T14:00:00Z")]),
+      cubrirConReserva: vi.fn(async () => "reserva-1"),
+    })
+    expect(await cubrirSinFirma(p)).toBe(1)
+    expect(p.cubrirConReserva).toHaveBeenCalledWith("pendiente-1", "2026-11-05T14:00:00.000Z")
+    expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
+      titulo: "Federico",
+      cuerpo:
+        "Una pieza salió de la reserva de Federico para el martes 3 de noviembre, 11:00; «Hola» pasó al jueves 5 de noviembre, 11:00.",
+      url: "/piezas/reserva-1",
+    })
+    expect(m.avisar).not.toHaveBeenCalled()
+  })
+
+  test("without a reserve the line says the piece was moved", async () => {
+    const { p } = puertos({ vencidasSinFirma: vi.fn(async () => [PENDIENTE]) })
+    expect(await cubrirSinFirma(p)).toBe(0)
+    expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
+      titulo: "Federico",
+      cuerpo: "«Hola» no salió en su espacio; la corrí al miércoles 4 de noviembre, 11:00.",
+      url: "/piezas/pendiente-1",
+    })
+  })
+
+  test("a piece that cannot be moved is recorded once and its digest line asks for a date by hand", async () => {
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      cubrirConReserva: vi.fn(async () => {
+        throw new Error("23505")
+      }),
+    })
+    silenciar()
+    await cubrirSinFirma(p)
+    expect(p.registrarFallaDeEspacio).toHaveBeenCalledWith(
+      "pendiente-1",
+      "No encontré un espacio para correr esta pieza: elige su fecha a mano.",
+    )
+    expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
+      titulo: "Federico",
+      cuerpo: "«Hola» no salió en su espacio y no encontré otro: elige su fecha a mano.",
+      url: "/piezas/pendiente-1",
+    })
+  })
+
+  test("a repeated failure is recorded but does not queue the line again", async () => {
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      cubrirConReserva: vi.fn(async () => {
+        throw new Error("23505")
+      }),
+      registrarFallaDeEspacio: vi.fn(async () => false),
+    })
+    silenciar()
+    await cubrirSinFirma(p)
+    expect(p.anotarAviso).not.toHaveBeenCalled()
+  })
+
+  test("failing to record the failure is logged and the next piece is still covered", async () => {
+    const otra = { ...PENDIENTE, id: "pendiente-2" }
+    const cubrir = vi.fn(async (): Promise<string | null> => {
+      throw new Error("sin base")
+    })
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE, otra]),
+      cubrirConReserva: cubrir,
+      registrarFallaDeEspacio: vi.fn(async () => {
+        throw new Error("sin base")
+      }),
+    })
+    silenciar()
+    await cubrirSinFirma(p)
+    expect(cubrir).toHaveBeenCalledTimes(2)
+  })
+
+  test("one failing piece is logged and the next is still covered", async () => {
+    const otra = { ...PENDIENTE, id: "pendiente-2" }
+    const cubrir = vi.fn(async (id: string) => {
+      if (id === "pendiente-1") throw new Error("23505")
+      return null
+    })
+    const { p } = puertos({ vencidasSinFirma: vi.fn(async () => [PENDIENTE, otra]), cubrirConReserva: cubrir })
+    const error = silenciar()
+    await cubrirSinFirma(p)
+    expect(cubrir).toHaveBeenCalledTimes(2)
+    expect(error).toHaveBeenCalled()
+  })
+
+  test("a lost digest line is logged and does not undo the cover", async () => {
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      cubrirConReserva: vi.fn(async () => "reserva-1"),
+      anotarAviso: vi.fn(async () => {
+        throw new Error("sin base")
+      }),
+    })
+    const error = silenciar()
+    expect(await cubrirSinFirma(p)).toBe(1)
+    expect(error).toHaveBeenCalled()
+  })
+
+  test("publicarPendientes covers first, so the reserve piece goes out in the same run, and a failed cover never blocks publishing", async () => {
+    const orden: string[] = []
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => {
+        orden.push("cubrir")
+        throw new Error("sin base")
+      }),
+      tomarPendientes: vi.fn(async () => {
+        orden.push("tomar")
+        return []
+      }),
+    })
+    silenciar()
+    await publicarPendientes(p)
+    expect(orden).toEqual(["cubrir", "tomar"])
   })
 })

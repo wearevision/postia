@@ -1,6 +1,8 @@
 import { z } from "zod"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { proponerFecha } from "@/lib/piezas/horarios"
 import { normalizarTexto } from "@/lib/piezas/huella"
+import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
 
@@ -26,9 +28,18 @@ const MENSAJES: Record<string, string> = {
   pieza_no_espera_enlace: "Esta pieza no está esperando un enlace.",
   falta_el_enlace: "Pega el enlace de la publicación en LinkedIn.",
   pieza_no_esta_dudosa: "Esta pieza no está en duda.",
+  solo_el_dueno_planea: "Solo el dueño de la marca puede mover la fecha planeada.",
+  solo_el_dueno_saca_de_la_reserva: "Solo el dueño de la marca puede sacar piezas de la reserva.",
+  pieza_no_esta_en_reserva: "Esta pieza ya no está en la reserva.",
+  pieza_no_espera_reserva: "Esta pieza ya no espera una pieza de la reserva.",
 }
 
-const MENSAJES_DE_LA_GUARDIA = ["transicion_no_permitida", "programar_sin_firma_vigente", "publicar_sin_firma_vigente"]
+const MENSAJES_DE_LA_GUARDIA = [
+  "transicion_no_permitida",
+  "programar_sin_firma_vigente",
+  "reservar_sin_firma_vigente",
+  "publicar_sin_firma_vigente",
+]
 
 function falla(error: { code?: string; message: string }): { ok: false; error: string } {
   if (error.code === "23505") return { ok: false, error: "Esa cuenta ya tiene una pieza a esa hora. Elige otra." }
@@ -37,7 +48,7 @@ function falla(error: { code?: string; message: string }): { ok: false; error: s
   }
   const mensaje = MENSAJES[error.message]
   if (mensaje) return { ok: false, error: mensaje }
-  console.error("Falla inesperada al guardar una pieza", error)
+  console.error("Falla inesperada al guardar una pieza", error.code, error.message)
   return { ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." }
 }
 
@@ -83,7 +94,11 @@ async function revisarArchivo(db: Db, ruta: string): Promise<Resultado> {
   const lector = respuesta.body.getReader()
   const { value } = await lector.read()
   // Not awaited: under Next's patched fetch, awaiting cancel() never resolves and hangs the Server Action.
-  lector.cancel().catch((error: unknown) => console.error("No pude cerrar la lectura del PDF", error))
+  lector
+    .cancel()
+    .catch((error: unknown) =>
+      console.error("No pude cerrar la lectura del PDF", error instanceof Error ? error.message : String(error)),
+    )
   const cabecera = new TextDecoder().decode(value?.slice(0, 5))
   return cabecera === "%PDF-" ? { ok: true } : { ok: false, error: PDF_INVALIDO }
 }
@@ -168,4 +183,90 @@ export async function dudosoAMano(db: Db, piezaId: string): Promise<Resultado> {
   if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
   const { error } = await db.rpc("dudoso_a_mano", { p_pieza: piezaId })
   return error ? falla(error) : { ok: true }
+}
+
+const Plan = z.object({ piezaId: z.uuid(), planeadaPara: z.iso.datetime({ offset: true }) })
+
+export async function planearPieza(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = Plan.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: "Revisa la fecha y la hora." }
+  const { error } = await db.rpc("planear_pieza", { p_pieza: leida.data.piezaId, p_fecha: leida.data.planeadaPara })
+  return error ? falla(error) : { ok: true }
+}
+
+// Two pieces created at once can race for the same proposed slot; the slot index refuses the second (23505).
+const INTENTOS_DE_PLAN = 3
+
+/** Plans an unsigned piece in the first free slot of its account (D19). Never throws: a failure comes back in the result. */
+export async function planearConFechaPropuesta(
+  db: Db,
+  piezaId: string,
+  ahora = Date.now(),
+): Promise<Resultado<{ planeadaPara: string }>> {
+  if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { data: pieza, error } = await db
+    .from("piezas")
+    .select("cuenta_id, cuentas(tipo)")
+    .eq("id", piezaId)
+    .maybeSingle()
+  if (error) return falla(error)
+  if (!pieza?.cuentas) return { ok: false, error: DATOS_DE_PIEZA }
+  try {
+    const tipo = leerTipo(pieza.cuentas.tipo)
+    const ocupados = await horariosOcupados(db, pieza.cuenta_id, ahora, piezaId)
+    for (let intento = 0; intento < INTENTOS_DE_PLAN; intento++) {
+      const fecha = proponerFecha(tipo, ocupados, ahora)
+      const { error: errorDePlan } = await db.rpc("planear_pieza", { p_pieza: piezaId, p_fecha: fecha.toISOString() })
+      if (!errorDePlan) return { ok: true, planeadaPara: fecha.toISOString() }
+      if (errorDePlan.code !== "23505") return falla(errorDePlan)
+      ocupados.push(fecha.getTime())
+    }
+    return { ok: false, error: "No encontré un horario libre. Elige la fecha a mano." }
+  } catch (causa) {
+    console.error("No pude proponer un horario", causa instanceof Error ? causa.message : String(causa))
+    const sinHorario = causa instanceof Error && causa.message.startsWith("No encontré un horario libre")
+    return { ok: false, error: sinHorario ? causa.message : "No pude proponer un horario. Elige la fecha a mano." }
+  }
+}
+
+/** Plans a piece waiting for a signature that holds no slot yet; anything else is left as it is. */
+export async function asegurarPlan(db: Db, piezaId: string): Promise<Resultado> {
+  if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { data, error } = await db.from("piezas").select("estado, planeada_para").eq("id", piezaId).maybeSingle()
+  if (error) return falla(error)
+  if (!data || data.estado !== "por_aprobar" || data.planeada_para !== null) return { ok: true }
+  const plan = await planearConFechaPropuesta(db, piezaId)
+  return plan.ok ? { ok: true } : plan
+}
+
+const FirmaDeReserva = z.object({ piezaId: z.uuid(), huella: z.string().regex(/^[0-9a-f]{64}$/) })
+
+export async function firmarParaReserva(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = FirmaDeReserva.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { error } = await db.rpc("firmar_para_reserva", { p_pieza: leida.data.piezaId, p_huella: leida.data.huella })
+  return error ? falla(error) : { ok: true }
+}
+
+interface PuertosDeSacar {
+  sacar(piezaId: string): PromiseLike<{ error: { code?: string; message: string } | null }>
+  planear(piezaId: string): Promise<Resultado>
+}
+
+export async function sacarDeReservaCon(puertos: PuertosDeSacar, piezaId: string): Promise<Resultado> {
+  if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
+  const { error } = await puertos.sacar(piezaId)
+  if (error) return falla(error)
+  // Out of the reserve it is a piece to sign again, and a piece to sign holds a slot. The take-out already happened,
+  // so a failed plan is not a failure of this action: the piece shows «Sin fecha planeada» and offers «Mover fecha».
+  const plan = await puertos.planear(piezaId)
+  if (!plan.ok) console.error("No pude planear la pieza al sacarla de la reserva", piezaId, plan.error)
+  return { ok: true }
+}
+
+export function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
+  return sacarDeReservaCon(
+    { sacar: (id) => db.rpc("sacar_de_reserva", { p_pieza: id }), planear: (id) => asegurarPlan(db, id) },
+    piezaId,
+  )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { enSantiago, proponerFecha } from "@/lib/piezas/horarios"
+import { enSantiago, proponerFecha, repartirFechas } from "@/lib/piezas/horarios"
 
 describe("enSantiago", () => {
   test("converts Chile wall time to UTC across daylight saving", () => {
@@ -25,5 +25,17 @@ describe("proponerFecha", () => {
   test("never a weekend, and never less than 30 minutes ahead", () => {
     const juevesTarde = Date.parse("2026-10-29T14:45:00Z") // Thursday 11:45 in Chile, past the profile slot
     expect(proponerFecha("persona", [], juevesTarde).toISOString()).toBe("2026-11-03T14:00:00.000Z")
+  })
+})
+
+describe("repartirFechas", () => {
+  test("gives consecutive free slots of one account, never reusing one (plano: repartir)", () => {
+    const AHORA = Date.parse("2026-10-28T13:00:00Z") // Wednesday 10:00 in Chile
+    const ocupado = [Date.parse("2026-10-29T18:00:00Z")]
+    expect(repartirFechas("empresa", ocupado, 3, AHORA).map((f) => f.toISOString())).toEqual([
+      "2026-10-28T18:00:00.000Z",
+      "2026-11-03T18:00:00.000Z",
+      "2026-11-04T18:00:00.000Z",
+    ])
   })
 })
