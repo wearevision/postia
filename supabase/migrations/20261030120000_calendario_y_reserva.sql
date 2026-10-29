@@ -244,16 +244,22 @@ end $$;
 --    any other piece goes to por_aprobar.
 --  * p_a_la_reserva = false (the piece itself: file changed, unreadable, missing PDF): the piece goes to por_aprobar and
 --    a reserve signature is dropped, so it cannot be picked again and fail again.
--- Two moves in one transaction because the state table has no programada -> en_reserva edge. Returns the new state.
+-- Two moves in one transaction because the state table has no programada -> en_reserva edge. Only a piece that is still
+-- programada is touched: if something else moved it meanwhile, nothing changes. Returns the resulting state.
 create function public.devolver_pieza(p_pieza uuid, p_motivo text, p_a_la_reserva boolean) returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   v_huella text;
   v_firma_de_reserva boolean;
+  v_estado text;
 begin
-  perform 1 from public.piezas where id = p_pieza for update;
+  perform 1 from public.piezas where id = p_pieza and estado = 'programada' for update;
   if not found then
-    raise exception using errcode = '22023', message = 'pieza_no_existe';
+    select estado into v_estado from public.piezas where id = p_pieza;
+    if v_estado is null then
+      raise exception using errcode = '22023', message = 'pieza_no_existe';
+    end if;
+    return 'sin_cambio:' || v_estado;
   end if;
   update public.piezas set estado = 'por_aprobar', motivo = p_motivo, arrendada_hasta = null where id = p_pieza;
   select v.huella into v_huella from public.versiones v where v.pieza_id = p_pieza order by v.numero desc limit 1;

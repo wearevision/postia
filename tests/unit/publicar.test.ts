@@ -69,7 +69,7 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     }),
     cerrarEnvio: vi.fn(async (id: string) => pasar(id, "publicada")),
     mover: vi.fn(async (id: string, a: "por_aprobar" | "a_mano" | "envio_dudoso") => pasar(id, a)),
-    devolverALaReserva: vi.fn(async (id: string): Promise<"por_aprobar" | "en_reserva"> => {
+    devolverALaReserva: vi.fn(async (id: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio"> => {
       pasar(id, "por_aprobar")
       return "por_aprobar"
     }),
@@ -244,6 +244,16 @@ describe("publicarPieza", () => {
       cuerpo: "No alcanzó a salir a su hora; la app la usará en el próximo espacio sin firma.",
       url: "/piezas/pieza-1",
     })
+  })
+
+  test("a piece that is no longer scheduled is left alone: no notice and nothing counted as moved", async () => {
+    const { p, m } = puertos({
+      ahora: () => Date.parse("2026-11-03T14:40:00Z"),
+      devolverALaReserva: vi.fn(async () => "sin_cambio" as const),
+    })
+    silenciar()
+    expect(await publicarPieza(p, pieza())).toBe("reintentar")
+    expect(m.avisar).not.toHaveBeenCalled()
   })
 
   test("a missed window on a piece that was not in the reserve keeps the plain notice", async () => {

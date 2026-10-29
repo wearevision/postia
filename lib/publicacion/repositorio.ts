@@ -49,7 +49,11 @@ function comoFormato(valor: string): PiezaParaPublicar["formato"] {
 
 /** The publisher's ports over the service role. The state guard still applies: an illegal move throws. */
 export function repositorioDePublicacion(db: Db): PuertosDeBase {
-  async function devolver(piezaId: string, motivo: string, aLaReserva: boolean): Promise<"por_aprobar" | "en_reserva"> {
+  async function devolver(
+    piezaId: string,
+    motivo: string,
+    aLaReserva: boolean,
+  ): Promise<"por_aprobar" | "en_reserva" | "sin_cambio"> {
     const { data, error } = await db.rpc("devolver_pieza", {
       p_pieza: piezaId,
       p_motivo: motivo,
@@ -57,7 +61,10 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
     })
     if (error) fallo("No pude devolver la pieza a la puerta 1", error)
     if (data === "por_aprobar" || data === "en_reserva") return data
-    throw new Error(`Respuesta inesperada al devolver la pieza: ${data}`)
+    if (!data.startsWith("sin_cambio:")) throw new Error(`Respuesta inesperada al devolver la pieza: ${data}`)
+    // The database only moves a piece that is still scheduled; this one was already somewhere else.
+    console.error(`La pieza ${piezaId} ya estaba en ${data.slice("sin_cambio:".length)}: no la moví a la puerta 1.`)
+    return "sin_cambio"
   }
 
   async function mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string) {

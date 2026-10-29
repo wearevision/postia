@@ -61,7 +61,7 @@ export interface PuertosDePublicacion {
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
   mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<void>
   /** Timing causes only: a piece that came out of the reserve goes back to it. Says where the piece ended. */
-  devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva">
+  devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio">
   avisar(marcaId: string, aviso: Aviso): Promise<void>
   vencidasSinFirma(): Promise<PendienteSinFirma[]>
   horariosOcupados(cuentaId: string, desde: number): Promise<number[]>
@@ -103,6 +103,8 @@ async function devolver(
 ): Promise<ResultadoDePublicacion> {
   if (a === "por_aprobar" && porHorario) {
     const destino = await p.devolverALaReserva(pieza.id, motivo)
+    // Someone else already moved the piece: the decision of this run is stale and there is nothing to tell.
+    if (destino === "sin_cambio") return "reintentar"
     if (destino === "en_reserva") {
       await avisarSiPuede(p, pieza.marcaId, {
         titulo: `Volvió a la reserva · ${pieza.cuentaNombre}`,

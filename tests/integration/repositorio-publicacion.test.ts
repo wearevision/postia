@@ -183,7 +183,7 @@ describe("repositorioDePublicacion", () => {
     })
 
     await admin().from("piezas").update({ estado: "descartada" }).eq("id", c.pieza)
-    await expect(repo().mover(c.pieza, "por_aprobar", "no debería")).rejects.toThrow(/transicion_no_permitida/)
+    await expect(repo().mover(c.pieza, "a_mano", "no debería")).rejects.toThrow(/transicion_no_permitida/)
   })
 
   test("sinRespuesta finds a piece being sent with no URN whose send is older than the cut", async () => {
@@ -399,6 +399,28 @@ describe("covering unsigned slots from the reserve", () => {
     await repo().tomarPendientes()
     expect(await repo().devolverALaReserva(normal.pieza, "Tarde.")).toBe("por_aprobar")
     expect((await estadoDe(normal.pieza))?.estado).toBe("por_aprobar")
+  })
+
+  test("a late move to the gate leaves a piece that is no longer scheduled exactly as it is", async () => {
+    const c = await reservaYPendiente()
+    await repo().cubrirConReserva(c.pendiente, enTresDias())
+    await repo().tomarPendientes()
+    expect(await repo().devolverALaReserva(c.reserva, "Tarde.")).toBe("en_reserva")
+
+    // The owner or an earlier step already moved it: the publisher's stale decision must not undo that.
+    expect(await repo().devolverALaReserva(c.reserva, "Otra falla.")).toBe("sin_cambio")
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {})
+    await repo().mover(c.reserva, "por_aprobar", "Otra falla.")
+    registro.mockRestore()
+    expect(await estadoDe(c.reserva)).toMatchObject({ estado: "en_reserva" })
+    const { data: firmas } = await admin().from("firmas").select("vigente, para_reserva").eq("pieza_id", c.reserva)
+    expect(firmas).toEqual([{ vigente: true, para_reserva: true }])
+    const { data: crudo } = await admin().rpc("devolver_pieza", {
+      p_pieza: c.reserva,
+      p_motivo: "x",
+      p_a_la_reserva: false,
+    })
+    expect(crudo).toBe("sin_cambio:en_reserva")
   })
 
   test("a reserve piece of an account published by hand is covered and then handed to a person", async () => {
