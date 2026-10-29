@@ -1,9 +1,11 @@
+import { createClient } from "@supabase/supabase-js"
 import { describe, expect, test, vi } from "vitest"
 import { enviarResumenes } from "@/lib/avisos/enviar-resumen"
 import type { ServicioPush, SuscripcionPush } from "@/lib/avisos/push"
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
 import type { MensajePush } from "@/lib/avisos/tipos"
-import { admin, cuentaDe, marcaConDueno, personaConSesion, piezaDe } from "./entorno"
+import type { Database } from "@/lib/supabase/database.types"
+import { admin, cuentaDe, entornoLocal, marcaConDueno, personaConSesion, piezaDe } from "./entorno"
 
 function servicio() {
   const enviados: { suscripcion: SuscripcionPush; mensaje: MensajePush; urgente: boolean }[] = []
@@ -57,6 +59,33 @@ describe("enviarResumenes", () => {
     expect(push?.mensaje.cuerpo).toContain(`Línea de ${marcaB}`)
     expect((await lineaSinEnviar(marcaA))?.every((e) => e !== null)).toBe(true)
     expect((await lineaSinEnviar(marcaB))?.every((e) => e !== null)).toBe(true)
+  })
+
+  test("the digest still goes, without pillar lines, when the pillar balance cannot be read", async () => {
+    const { db, userId } = await personaConSesion("resumen-pilares")
+    const marca = await marcaConDueno(userId)
+    await piezaDe(db, await cuentaConRitmo(marca, 3))
+    const endpoint = await aparato(userId)
+    const { falso, de } = servicio()
+    const { url, servicio: llave } = entornoLocal()
+    // The network is the boundary: only the pillars table fails to answer.
+    const sinPilares = createClient<Database>(url, llave, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (entrada, init) =>
+          String(entrada).includes("/rest/v1/pilares")
+            ? Promise.resolve(new Response(JSON.stringify({ message: "caída" }), { status: 500 }))
+            : fetch(entrada, init),
+      },
+    })
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    await enviarResumenes(sinPilares, falso, Date.now())
+
+    expect(registro).toHaveBeenCalled()
+    registro.mockRestore()
+    expect(de(endpoint)).toHaveLength(1)
+    expect(de(endpoint)[0]?.mensaje.cuerpo.startsWith("1 pieza espera tu firma.")).toBe(true)
   })
 
   test("a second run still counts what waits but never repeats a queued line", async () => {

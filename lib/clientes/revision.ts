@@ -1,3 +1,8 @@
+/** The text a verdict reviews: title and body, as the piece reads. */
+export function textoARevisar(titulo: string | null, texto: string): string {
+  return [titulo, texto].filter(Boolean).join("\n")
+}
+
 export type TipoDeExcepcion = "no_nombrar" | "sin_fotos" | "sin_logo" | "confidencial"
 
 export interface Excepcion {

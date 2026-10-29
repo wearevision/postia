@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
-import { type Excepcion, prepararRevision } from "@/lib/clientes/revision"
+import { type Excepcion, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
@@ -142,6 +142,9 @@ export async function crearPieza(db: Db, entrada: unknown): Promise<Resultado<{ 
 
 export const EXCEPCIONES_NUEVAS = "Hay excepciones nuevas desde que abriste la pieza. Recarga para revisarlas."
 
+// Errs toward blocking: covers the ms between this check and the signing RPC and any Worker/DB clock skew.
+const MARGEN_DE_APERTURA_MS = 5_000
+
 interface PuertosDeApertura {
   /** Active exceptions marked after `desde`. */
   nuevasDesde(desde: string): Promise<Excepcion[]>
@@ -164,7 +167,7 @@ export async function revisarApertura(p: PuertosDeApertura, abiertaEn: unknown, 
   if (!leida.success) return { ok: false, error: "Recarga la pieza antes de firmar." }
   let nombrados: number
   try {
-    const nuevas = await p.nuevasDesde(leida.data)
+    const nuevas = await p.nuevasDesde(new Date(Date.parse(leida.data) - MARGEN_DE_APERTURA_MS).toISOString())
     if (nuevas.length === 0) return { ok: true }
     const texto = await p.texto()
     if (texto === null) return { ok: true }
@@ -197,7 +200,7 @@ function puertosDeApertura(db: Db, piezaId: string, huella: string): PuertosDeAp
         .maybeSingle()
       if (error) throw new Error(`No pude leer la versión: ${error.message}`, { cause: error })
       // The same text the gate 1 verdict reviewed (app/(app)/piezas/[id]/page.tsx).
-      return data ? [data.titulo, data.texto].filter(Boolean).join("\n") : null
+      return data ? textoARevisar(data.titulo, data.texto) : null
     },
   }
 }

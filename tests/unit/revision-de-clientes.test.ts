@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { type Excepcion, mensajeDe, prepararRevision } from "@/lib/clientes/revision"
+import { type Excepcion, mensajeDe, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 
 const HOY = "2026-11-02"
 
@@ -173,5 +173,13 @@ describe("CPU budget", () => {
     for (const texto of adversarios) r.revisar(texto, "nosotros")
     // 50 ms leaves room for a loaded CI runner; a quadratic regression takes seconds.
     expect(performance.now() - inicio).toBeLessThan(50)
+  })
+})
+
+describe("textoARevisar", () => {
+  test("joins the title and the text with a line break, and leaves out a missing or empty title", () => {
+    expect(textoARevisar("Título", "Cuerpo")).toBe("Título\nCuerpo")
+    expect(textoARevisar(null, "Cuerpo")).toBe("Cuerpo")
+    expect(textoARevisar("", "Cuerpo")).toBe("Cuerpo")
   })
 })

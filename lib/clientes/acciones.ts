@@ -10,6 +10,8 @@ const MENSAJES: Record<string, string> = {
   excepcion_invalida: "Revisa el cliente, el tipo y los alias: sin alias repetidos.",
 }
 
+/** The same cap as marcar_excepcion in the database. */
+const MAX_ALIAS = 20
 const FECHA_PASADA = "La fecha ya pasó."
 
 /** `hoy` is Chile's calendar day: an end date is inclusive, so today is still allowed. */
@@ -49,7 +51,7 @@ export async function marcarExcepcion(
     .split(",")
     .map((a) => a.trim())
     .filter(Boolean)
-  if (alias.length > 10) return { ok: false, error: "Hasta 10 alias por excepción." }
+  if (alias.length > MAX_ALIAS) return { ok: false, error: `Hasta ${MAX_ALIAS} alias por excepción.` }
   // Optional arguments are left out (undefined), never null: the RPC's defaults apply.
   const { data, error } = await db.rpc("marcar_excepcion", {
     p_cliente: e.cliente,

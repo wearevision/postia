@@ -273,6 +273,7 @@ begin
     raise exception using errcode = '42501', message = 'solo_el_dueno_marca_excepciones';
   end if;
   if p_tipo is null or p_tipo not in ('no_nombrar', 'sin_fotos', 'sin_logo', 'confidencial')
+     or (p_hasta is not null and p_hasta < (now() at time zone 'America/Santiago')::date)
      or length(btrim(coalesce(p_cliente, ''))) not between 1 and 120
      or cardinality(coalesce(p_alias, '{}')) > 20
      or exists (select 1 from unnest(coalesce(p_alias, '{}')) a where length(btrim(coalesce(a, ''))) not between 1 and 120)

@@ -1,5 +1,5 @@
 import type { MensajePush } from "@/lib/avisos/tipos"
-import { type Excepcion, prepararRevision } from "@/lib/clientes/revision"
+import { type Excepcion, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import {
   type crearPost,
   type estadoDelDocumento,
@@ -61,7 +61,7 @@ export interface PuertosDePublicacion {
   descargar(ruta: string): Promise<Uint8Array>
   reservarEnvio(pieza: PiezaParaPublicar): Promise<"reservado" | "ya_enviado">
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
-  /** "sin_cambio": the piece was no longer scheduled (someone already moved it), so nothing changed. */
+  /** "sin_cambio": only for "por_aprobar", when the piece was no longer scheduled (someone already moved it). */
   mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<"movida" | "sin_cambio">
   /** Timing causes only: a piece that came out of the reserve goes back to it. Says where the piece ended. */
   devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio">
@@ -159,7 +159,7 @@ async function clienteConExcepcionNueva(p: PuertosDePublicacion, pieza: PiezaPar
   if (!pieza.firma) return null
   const nuevas = await p.excepcionesPuestasDespues(pieza.firma.firmadaEn)
   if (nuevas.length === 0) return null
-  const texto = [pieza.version.titulo, pieza.version.texto].filter(Boolean).join("\n")
+  const texto = textoARevisar(pieza.version.titulo, pieza.version.texto)
   const [nombrado] = prepararRevision(nuevas, diaEnSantiago(p.ahora())).clientes(texto)
   return nombrado?.tipo === "cliente" ? nombrado.cliente : null
 }

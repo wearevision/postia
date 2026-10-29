@@ -202,6 +202,29 @@ describe("lib/clientes", () => {
     ).toEqual({ ok: false, error: "Revisa el cliente, el tipo y los alias: sin alias repetidos." })
   })
 
+  test("marcarExcepcion takes up to twenty aliases, as the database does, and refuses the twenty-first", async () => {
+    const { db } = await duenoDeAlguna("cli-veinte")
+    const entrada = (cuantos: number) => ({
+      cliente: `Cliente ${randomUUID().slice(0, 6)}`,
+      tipo: "sin_logo",
+      alias: Array.from({ length: cuantos }, (_, i) => `Alias ${i}`).join(", "),
+      hasta: "",
+    })
+    expect(await marcarExcepcion(db, entrada(20))).toMatchObject({ ok: true })
+    expect(await marcarExcepcion(db, entrada(21))).toEqual({ ok: false, error: "Hasta 20 alias por excepción." })
+  })
+
+  test("marcar_excepcion refuses an end date before today in Chile and takes today", async () => {
+    const { db } = await duenoDeAlguna("cli-hasta")
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const hoyEnChile = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date())
+    const ayer = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(
+      new Date(Date.now() - 36 * 3600_000),
+    )
+    expect((await marcar(db, cliente, { p_hasta: ayer })).error?.message).toBe("excepcion_invalida")
+    expect((await marcar(db, cliente, { p_hasta: hoyEnChile })).error).toBeNull()
+  })
+
   test("marcarExcepcion refuses an end date that already passed in Chile and takes today", async () => {
     const { db } = await duenoDeAlguna("cli-fecha")
     // 23:00 of November 2 in Chile.

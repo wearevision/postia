@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
-import { type Excepcion, type Hallazgo, prepararRevision } from "@/lib/clientes/revision"
+import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
@@ -65,7 +65,7 @@ export default async function Pieza({
       return null
     }
     const revisor = prepararRevision(excepciones, diaEnSantiago(Date.now()))
-    return revisor.revisar([version.titulo, version.texto].filter(Boolean).join("\n"), cuenta.voz)
+    return revisor.revisar(textoARevisar(version.titulo, version.texto), cuenta.voz)
   }
 
   const [pilares, hallazgos] = await Promise.all([

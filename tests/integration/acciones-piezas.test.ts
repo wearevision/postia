@@ -507,9 +507,11 @@ describe("an exception marked while the piece was open at gate 1", () => {
     expect(await firmarParaReserva(db, { abiertaEn, piezaId, huella })).toEqual({ ok: false, error: RECARGA })
     expect((await admin().from("piezas").select("estado").eq("id", piezaId).single()).data?.estado).toBe("por_aprobar")
 
-    // Reloaded once the exception was marked (its own database time, so no clock gap): the verdict now covers it.
-    const { data: marcada } = await admin().from("excepciones").select("puesta_en").eq("cliente", cliente).single()
-    const recargada = marcada?.puesta_en as string
+    // Reloaded well after the exception was marked (more than the safety margin): the verdict now covers it.
+    // A reload inside the margin is still refused, on purpose.
+    const marcada = new Date(Date.now() - 30_000).toISOString()
+    await admin().from("excepciones").update({ puesta_en: marcada }).eq("cliente", cliente)
+    const recargada = new Date(Date.now() - 10_000).toISOString()
     expect(await firmarPieza(db, { abiertaEn: recargada, piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual({
       ok: true,
     })

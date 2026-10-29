@@ -56,10 +56,18 @@ async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMar
   }
 
   // D20: only the alerts; the whole balance lives in the calendar.
-  for (const { marcaId, cuenta, balance } of await balancePorCuenta(db, ahora)) {
-    for (const f of balance.filas.filter((f) => f.alerta)) {
-      de(marcaId).pilares.push({ cuenta, pilar: f.nombre, dias: f.diasSinSalir })
+  // A failure here must not drop the rest of the digest: it just goes without pillar lines.
+  try {
+    for (const { marcaId, cuenta, balance } of await balancePorCuenta(db, ahora)) {
+      for (const f of balance.filas.filter((f) => f.alerta)) {
+        de(marcaId).pilares.push({ cuenta, pilar: f.nombre, dias: f.diasSinSalir })
+      }
     }
+  } catch (error) {
+    console.error(
+      "No pude calcular el balance de pilares para el resumen",
+      error instanceof Error ? error.message : error,
+    )
   }
   return porMarca
 }

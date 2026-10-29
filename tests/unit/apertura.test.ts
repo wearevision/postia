@@ -17,7 +17,13 @@ describe("revisarApertura (gate 1: exceptions marked while the piece was open)",
   test("lets the signature through when nothing was marked since the page was rendered", async () => {
     const p = puertos([])
     expect(await revisarApertura(p, ABIERTA_EN, AHORA)).toEqual({ ok: true })
-    expect(p.nuevasDesde).toHaveBeenCalledWith(ABIERTA_EN)
+    expect(p.nuevasDesde).toHaveBeenCalledWith("2026-11-03T13:54:55.000Z")
+  })
+
+  test("looks five seconds before the render time, so an exception marked in the same instant still counts", async () => {
+    const p = puertos([])
+    await revisarApertura(p, "2026-11-03T13:55:00.250Z", AHORA)
+    expect(p.nuevasDesde).toHaveBeenCalledWith("2026-11-03T13:54:55.250Z")
   })
 
   test("refuses when an exception marked after the render names a client in the piece", async () => {
