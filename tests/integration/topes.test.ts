@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { describe, expect, test } from "vitest"
+import { guardarTope } from "@/lib/gasto/acciones"
+import { resumenDeGasto } from "@/lib/gasto/lectura"
 import { admin, marcaConDueno, personaConSesion } from "./entorno"
 
 const HACE_DOS_DIAS = () => new Date(Date.now() - 2 * 86_400_000).toISOString()
@@ -96,5 +98,20 @@ describe("guardar_tope", () => {
   test("a person without a brand cannot change any cap", async () => {
     const { db } = await personaConSesion("tope-extrano")
     expect((await db.rpc("guardar_tope", { p_monto_micro: 50_000_000 })).error?.code).toBe("42501")
+  })
+})
+
+describe("resumenDeGasto and guardarTope", () => {
+  test("an owner reads the month in micro-dollars and saves caps in dollars", async () => {
+    const { db, userId } = await personaConSesion("gasto-lib")
+    const marca = await marcaConDueno(userId)
+    expect(await guardarTope(db, { marcaId: marca, dolares: 12 })).toEqual({ ok: true })
+    const resumen = await resumenDeGasto(db)
+    expect(resumen.filas).toContainEqual(expect.objectContaining({ marcaId: marca, topeMicro: 12_000_000 }))
+    expect(await guardarTope(db, { marcaId: marca, dolares: null })).toEqual({ ok: true })
+    expect(await guardarTope(db, { marcaId: null, dolares: 0.5 })).toEqual({
+      ok: false,
+      error: "El tope va entre US$1 y US$1.000.",
+    })
   })
 })
