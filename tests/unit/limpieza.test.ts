@@ -31,20 +31,25 @@ describe("limpiarCarpetas", () => {
 })
 
 describe("mantenimientoNocturno", () => {
-  test("old notices are deleted even when the files step fails, and the failure still surfaces", async () => {
+  test("every step runs even when another fails, and the failure still surfaces", async () => {
     const avisos = vi.fn(async () => {})
+    const gastos = vi.fn(async () => 2)
     await expect(
       mantenimientoNocturno({
         archivos: async () => {
           throw new Error("sin storage")
         },
         avisos,
+        gastos,
       }),
     ).rejects.toThrow("sin storage")
     expect(avisos).toHaveBeenCalledTimes(1)
+    expect(gastos).toHaveBeenCalledTimes(1)
   })
 
-  test("returns how many files were removed", async () => {
-    expect(await mantenimientoNocturno({ archivos: async () => 3, avisos: async () => {} })).toEqual({ archivos: 3 })
+  test("returns how many files were removed and how many reservations expired", async () => {
+    expect(
+      await mantenimientoNocturno({ archivos: async () => 3, avisos: async () => {}, gastos: async () => 2 }),
+    ).toEqual({ archivos: 3, gastosVencidos: 2 })
   })
 })

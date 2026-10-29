@@ -90,14 +90,15 @@ export async function limpiarArchivos(
   })
 }
 
-/** The two nightly jobs are independent: old notices go even if the files step fails, and the failure still shows. */
+/** The nightly jobs are independent: each runs even if another fails, and the first failure still shows. */
 export async function mantenimientoNocturno(pasos: {
   archivos(): Promise<number>
   avisos(): Promise<void>
-}): Promise<{ archivos: number }> {
-  try {
-    return { archivos: await pasos.archivos() }
-  } finally {
-    await pasos.avisos()
-  }
+  gastos(): Promise<number>
+}): Promise<{ archivos: number; gastosVencidos: number }> {
+  const [archivos, avisos, gastos] = await Promise.allSettled([pasos.archivos(), pasos.avisos(), pasos.gastos()])
+  if (archivos.status === "rejected") throw archivos.reason
+  if (avisos.status === "rejected") throw avisos.reason
+  if (gastos.status === "rejected") throw gastos.reason
+  return { archivos: archivos.value, gastosVencidos: gastos.value }
 }
