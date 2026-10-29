@@ -1,9 +1,14 @@
 import Link from "next/link"
+import { resumenDeGasto } from "@/lib/gasto/lectura"
 import { RUTA_DE_CLIENTES, RUTA_DE_SALIR, RUTA_DE_VOZ } from "@/lib/sesion/rutas"
-import { guardarSuscripcionAccion, probarAvisoAccion } from "./acciones"
+import { createClient } from "@/lib/supabase/server"
+import { guardarSuscripcionAccion, guardarTopeAccion, probarAvisoAccion } from "./acciones"
 import { AvisosDelCelular } from "./avisos-del-celular"
+import { GastoDelMes } from "./gasto"
 
-export default function Ajustes() {
+export default async function Ajustes() {
+  // A person without a brand never reaches the app shell, so a failing read is a real error and should surface.
+  const resumen = await resumenDeGasto(await createClient())
   return (
     <section className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Ajustes</h1>
@@ -12,6 +17,7 @@ export default function Ajustes() {
         guardar={guardarSuscripcionAccion}
         probar={probarAvisoAccion}
       />
+      <GastoDelMes resumen={resumen} guardar={guardarTopeAccion} />
       <nav aria-label="Más" className="space-y-2">
         <Link href={RUTA_DE_VOZ} className="block min-h-11 rounded-lg border border-borde px-4 py-3">
           Voz y línea editorial
