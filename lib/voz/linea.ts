@@ -24,7 +24,13 @@ export const LARGO_DE_SECCION: Record<Seccion, number> = {
 }
 
 export const MAXIMO_DE_PILARES = 8
-export const POR_SEMANA = [0.5, 1, 1.5, 2, 3] as const
+
+/** Same rule as public.guardar_linea and pilares.por_semana numeric(3, 1): positive, at most one decimal, up to 7. */
+export const PorSemana = z
+  .number()
+  .positive()
+  .max(7)
+  .refine((n) => Math.abs(n * 10 - Math.round(n * 10)) < 1e-9, { message: "a_lo_mas_un_decimal" })
 
 export interface PilarDeLinea {
   id?: string
@@ -39,7 +45,7 @@ const Pilar = z.object({
   nombre: z.string().trim().min(1).max(60),
   deQueHabla: z.string().max(400),
   material: z.string().max(400),
-  porSemana: z.number().positive().max(7).multipleOf(0.5),
+  porSemana: PorSemana,
 })
 
 export const Secciones = z.object(

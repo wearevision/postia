@@ -16,7 +16,8 @@ const Caso = z.object({
   role: z.string().max(2000),
   citableClaim: z.string().max(600).nullable(),
   era: z.enum(["trayectoria", "wav"]),
-  exception: z.string().nullable(),
+  // A new value must fail here, not slip past excepcionesIniciales as «no exception».
+  exception: z.enum(["evento privado"]).nullable(),
 })
 type CasoDelArchivo = z.infer<typeof Caso>
 
@@ -32,7 +33,11 @@ export function leerCasos(json: unknown): CasoParaCargar[] {
   return archivo.data.cases.map((crudo, i) => {
     const leido = Caso.safeParse(crudo)
     const nombre = (crudo as { slug?: unknown })?.slug ?? `#${i + 1}`
-    if (!leido.success) throw new Falla(`El caso ${String(nombre)} no es válido: ${leido.error.issues[0]?.message}`)
+    if (!leido.success) {
+      const problema = leido.error.issues[0]
+      const campo = problema?.path.join(".") || "caso"
+      throw new Falla(`El caso ${String(nombre)} no es válido en «${campo}»: ${problema?.message}`)
+    }
     const c = leido.data
     if (vistos.has(c.slug)) throw new Falla(`El caso ${c.slug} está repetido.`)
     vistos.add(c.slug)

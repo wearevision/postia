@@ -45,6 +45,14 @@ describe("leerCasos", () => {
     expect(() => leerCasos({ cases: [{ ...CASO, era: "otra" }] })).toThrow(/51-ice-auspicio-2020/)
   })
 
+  test("names the failing field and the reason", () => {
+    expect(() => leerCasos({ cases: [{ ...CASO, year: "2020" }] })).toThrow(/year/)
+  })
+
+  test("fails loudly on an exception it does not know", () => {
+    expect(() => leerCasos({ cases: [{ ...CASO, exception: "evento secreto" }] })).toThrow(/exception/)
+  })
+
   test("throws a Falla on a repeated slug", () => {
     expect(() => leerCasos({ cases: [CASO, CASO] })).toThrow(/repetido/)
   })
@@ -52,7 +60,10 @@ describe("leerCasos", () => {
 
 describe("excepcionesIniciales", () => {
   test("a private event becomes a «no nombrar» exception on that case", () => {
-    const casos = [CASO, { ...CASO, slug: "boda-2018", client: "Edwards y Matte", exception: "evento privado" }]
+    const casos = [
+      CASO,
+      { ...CASO, slug: "boda-2018", client: "Edwards y Matte", exception: "evento privado" as const },
+    ]
     expect(excepcionesIniciales(casos)).toEqual([
       { cliente: "Edwards y Matte", caso_slug: "boda-2018", tipo: "no_nombrar" },
     ])

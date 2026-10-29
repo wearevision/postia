@@ -80,6 +80,25 @@ describe("leerLinea", () => {
     expect(() => leerLinea("## Tono y voz\n\nNosotros.\n")).toThrow(Falla)
   })
 
+  test("strips emphasis from pillar names and keeps an escaped pipe inside its cell", () => {
+    const tabla = LINEA.replace(
+      "| 1. Detrás del trabajo | Cómo se pensó |",
+      "| **1. Detrás del trabajo** | Antes \\| después |",
+    ).replace("| 2. Oficio |", "| _Oficio_ |")
+    expect(leerLinea(tabla).pilares).toEqual([
+      expect.objectContaining({ nombre: "Detrás del trabajo", deQueHabla: "Antes | después", porSemana: 1 }),
+      expect.objectContaining({ nombre: "Oficio", porSemana: 0.5 }),
+    ])
+  })
+
+  test("validates the pillars with the same rules as saving them", () => {
+    const repetidos = LINEA.replace("| 2. Oficio |", "| 2. Detrás del trabajo |")
+    expect(() => leerLinea(repetidos)).toThrow(Falla)
+    expect(() => leerLinea(repetidos)).toThrow(/repetid/)
+    const sinNombre = LINEA.replace("| 2. Oficio |", "| 2. |")
+    expect(() => leerLinea(sinNombre)).toThrow(/nombre/)
+  })
+
   test("throws a Falla naming the section that passes its limit", () => {
     expect(() => leerLinea(`${LINEA}\n## Formatos\n\n${"a".repeat(6001)}\n`)).toThrow(/Formatos/)
   })
@@ -94,7 +113,17 @@ describe("leerPorSemana", () => {
     expect(leerPorSemana("1 cada 2 semanas")).toBe(0.5)
   })
 
+  test("reads a half written as ½, 1/2 or «una cada dos semanas»", () => {
+    expect(leerPorSemana("½")).toBe(0.5)
+    expect(leerPorSemana("1/2")).toBe(0.5)
+    expect(leerPorSemana("Una cada dos semanas")).toBe(0.5)
+    expect(leerPorSemana("1 cada dos semanas")).toBe(0.5)
+  })
+
   test("throws a Falla on anything else", () => {
     expect(() => leerPorSemana("a veces")).toThrow(Falla)
+    expect(() => leerPorSemana("0")).toThrow(Falla)
+    expect(() => leerPorSemana("8")).toThrow(Falla)
+    expect(() => leerPorSemana("1,25")).toThrow(Falla)
   })
 })

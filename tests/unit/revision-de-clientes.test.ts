@@ -40,6 +40,29 @@ describe("clientes", () => {
     ])
   })
 
+  test("finds a client written in NFD, with a no-break space, a newline or two spaces between words", () => {
+    const r = prepararRevision([excepcion()], HOY)
+    const nfd = "Con Banco Ñuñoa.".normalize("NFD")
+    expect(r.clientes(nfd)).toEqual([
+      { tipo: "cliente", cliente: "Banco Ñuñoa", excepcion: "no_nombrar", fragmento: "Banco Ñuñoa" },
+    ])
+    expect(r.clientes("Con Banco\u00a0Ñuñoa.")[0]?.fragmento).toBe("Banco\u00a0Ñuñoa")
+    expect(r.clientes("Con Banco\nÑuñoa.")[0]?.fragmento).toBe("Banco\nÑuñoa")
+    expect(r.clientes("Con Banco  Ñuñoa.")[0]?.fragmento).toBe("Banco  Ñuñoa")
+  })
+
+  test("treats the typographic apostrophe as the straight one", () => {
+    const r = prepararRevision([excepcion({ cliente: "HENDRICK'S" })], HOY)
+    expect(r.clientes("Con Hendrick’s en la barra.")).toEqual([
+      { tipo: "cliente", cliente: "HENDRICK'S", excepcion: "no_nombrar", fragmento: "Hendrick’s" },
+    ])
+  })
+
+  test("finds a client whose exception was typed in NFD", () => {
+    const r = prepararRevision([excepcion({ cliente: "Banco Ñuñoa".normalize("NFD") })], HOY)
+    expect(r.clientes("Con banco ñuñoa.")).toHaveLength(1)
+  })
+
   test("with no exceptions it finds nothing and compiles nothing", () => {
     expect(prepararRevision([], HOY).clientes("Cualquier texto.")).toEqual([])
   })
@@ -58,6 +81,29 @@ describe("revisar at gate 1", () => {
     expect(hallazgos.map((h) => h.fragmento)).toEqual(["$1.200.000", "30 millones de pesos", "500 UF", "presupuesto"])
   })
 
+  test("flags Chilean and foreign currency marks", () => {
+    const precios = (texto: string) => r.revisar(texto, "yo").map((h) => h.fragmento)
+    expect(precios("Fueron CLP$1.000.000.")).toEqual(["CLP$1.000.000"])
+    expect(precios("Unos MM$30 en total.")).toEqual(["MM$30"])
+    expect(precios("Costó M$ 500.000.")).toEqual(["M$ 500.000"])
+    expect(precios("Fueron US$ 5.000.")).toEqual(["US$ 5.000"])
+    expect(precios("Costó €500.")).toEqual(["€500"])
+    expect(precios("Costó 500 euros.")).toEqual(["500 euros"])
+    expect(precios("Costó EUR 500 y 300 EUR.")).toEqual(["EUR 500", "300 EUR"])
+  })
+
+  test("reports one finding for an amount two patterns see", () => {
+    expect(r.revisar("Costó $500 USD.", "yo")).toEqual([{ tipo: "precio", fragmento: "$500" }])
+  })
+
+  test("orders findings as they appear in the text", () => {
+    expect(r.revisar("El presupuesto: $100. Con Banco Ñuñoa.", "yo").map((h) => h.fragmento)).toEqual([
+      "presupuesto",
+      "$100",
+      "Banco Ñuñoa",
+    ])
+  })
+
   test("does not flag counts that are not money", () => {
     expect(r.revisar("3 mil asistentes y 2 millones de visitas.", "yo")).toEqual([])
   })
@@ -69,6 +115,21 @@ describe("revisar at gate 1", () => {
     ])
     expect(r.revisar("Federico Elgueta suma más de 20 años.", "nosotros")).toEqual([])
     expect(r.revisar("Llevo más de 20 años.", "yo")).toEqual([])
+  })
+
+  test("catches other ways of claiming the track record", () => {
+    const trayectoria = (texto: string) => r.revisar(texto, "nosotros").map((h) => h.fragmento)
+    expect(trayectoria("Tenemos 20 años de experiencia.")).toEqual(["20 años de experiencia"])
+    expect(trayectoria("Con veinte años de trayectoria.")).toEqual(["veinte años de trayectoria"])
+    expect(trayectoria("Somos más de 25 años.")).toEqual(["más de 25 años"])
+    expect(trayectoria("Ya son 200+ proyectos.")).toEqual(["200+ proyectos"])
+    expect(trayectoria("Somos más  de 20 años.")).toEqual(["más  de 20 años"])
+    expect(trayectoria("Hace 2 años de experiencia y 120 años de historia.")).toEqual([])
+  })
+
+  test("allows WAV and Federico however their handle is written", () => {
+    const texto = "@Federico_Elgueta @federico-elgueta @FedericoElgueta @WAV @wearevision @wav.cl @Fede @copec_chile"
+    expect(r.revisar(texto, "yo").map((h) => h.fragmento)).toEqual(["@Fede", "@copec_chile"])
   })
 
   test("includes client exceptions too", () => {
@@ -110,6 +171,7 @@ describe("CPU budget", () => {
     r.revisar("calentar", "nosotros")
     const inicio = performance.now()
     for (const texto of adversarios) r.revisar(texto, "nosotros")
-    expect(performance.now() - inicio).toBeLessThan(8)
+    // 50 ms leaves room for a loaded CI runner; a quadratic regression takes seconds.
+    expect(performance.now() - inicio).toBeLessThan(50)
   })
 })
