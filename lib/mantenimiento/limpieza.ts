@@ -52,6 +52,22 @@ async function rutasReferenciadas(db: Db, carpeta: string): Promise<Set<string>>
   }
 }
 
+/** One brand folder at a time: a failing folder is logged and the others still get cleaned. Returns files removed. */
+export async function limpiarCarpetas(
+  carpetas: readonly string[],
+  limpiar: (carpeta: string) => Promise<number>,
+): Promise<number> {
+  let borrados = 0
+  for (const carpeta of carpetas) {
+    try {
+      borrados += await limpiar(carpeta)
+    } catch (error) {
+      console.error(`No pude limpiar la carpeta ${carpeta}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  return borrados
+}
+
 /** Removes orphan files of the «piezas» bucket, one brand folder at a time. Returns how many it removed. */
 export async function limpiarArchivos(
   db: Db,
@@ -60,8 +76,7 @@ export async function limpiarArchivos(
   const bucket = db.storage.from("piezas")
   // Storage lists a folder as an entry without id.
   const carpetas = opciones.carpetas ?? (await listarTodo(bucket, "")).filter((o) => o.id === null).map((o) => o.name)
-  let borrados = 0
-  for (const carpeta of carpetas) {
+  return limpiarCarpetas(carpetas, async (carpeta) => {
     // Everything is listed before removing: removing while paging would shift the offsets.
     const objetos = (await listarTodo(bucket, carpeta))
       .filter((o) => o.id !== null)
@@ -71,7 +86,18 @@ export async function limpiarArchivos(
       const { error } = await bucket.remove(sobran.slice(i, i + PAGINA_DE_STORAGE))
       if (error) throw new Error(`No pude borrar archivos de ${carpeta}: ${error.message}`, { cause: error })
     }
-    borrados += sobran.length
+    return sobran.length
+  })
+}
+
+/** The two nightly jobs are independent: old notices go even if the files step fails, and the failure still shows. */
+export async function mantenimientoNocturno(pasos: {
+  archivos(): Promise<number>
+  avisos(): Promise<void>
+}): Promise<{ archivos: number }> {
+  try {
+    return { archivos: await pasos.archivos() }
+  } finally {
+    await pasos.avisos()
   }
-  return borrados
 }

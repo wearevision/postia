@@ -1,6 +1,6 @@
 import { schedules } from "@trigger.dev/sdk"
 import { borrarAvisosEnviados } from "@/lib/avisos/repositorio-de-avisos"
-import { limpiarArchivos } from "@/lib/mantenimiento/limpieza"
+import { limpiarArchivos, mantenimientoNocturno } from "@/lib/mantenimiento/limpieza"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 // Plano «Mantenimiento», nightly part: orphan files and digest lines sent over a month ago. 3:00, when nothing is published.
@@ -12,8 +12,9 @@ export const limpieza = schedules.task({
   run: async () => {
     const db = createAdminClient()
     const ahora = Date.now()
-    const archivos = await limpiarArchivos(db, { ahora })
-    await borrarAvisosEnviados(db, ahora)
-    return { archivos }
+    return mantenimientoNocturno({
+      archivos: () => limpiarArchivos(db, { ahora }),
+      avisos: () => borrarAvisosEnviados(db, ahora),
+    })
   },
 })
