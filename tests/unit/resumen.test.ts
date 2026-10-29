@@ -57,7 +57,25 @@ describe("armarResumen", () => {
     const aviso = armarResumen({ ...VACIO, porFirmar: 2, lineas })
     const filas = aviso?.cuerpo.split("\n") ?? []
     expect(filas).toHaveLength(7)
-    expect(filas.at(-1)).toBe("Y 15 avisos más en Inicio.")
+    expect(filas.at(-1)).toBe("Y 15 más.")
     expect(Buffer.byteLength(JSON.stringify(aviso))).toBeLessThan(3000)
+  })
+
+  test("a body of wide characters is trimmed by bytes, not by characters, and says how many lines it dropped", () => {
+    const lineas = Array.from({ length: 6 }, (_, i) => ({ titulo: "X", cuerpo: `${"😀".repeat(150)}${i}`, url: "/" }))
+    const aviso = armarResumen({ ...VACIO, lineas })
+    expect(Buffer.byteLength(JSON.stringify(aviso))).toBeLessThan(3000)
+    const filas = aviso?.cuerpo.split("\n") ?? []
+    expect(filas.length).toBeLessThan(6)
+    expect(filas.at(-1)).toMatch(/^Y \d+ más\.$/)
+  })
+
+  test("one more line says «Y 1 más.»", () => {
+    const lineas = Array.from({ length: 7 }, (_, i) => ({ titulo: "X", cuerpo: `Línea ${i}`, url: "/" }))
+    expect(
+      armarResumen({ ...VACIO, lineas })
+        ?.cuerpo.split("\n")
+        .at(-1),
+    ).toBe("Y 1 más.")
   })
 })

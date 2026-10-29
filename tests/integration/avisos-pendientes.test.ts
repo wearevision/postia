@@ -41,4 +41,16 @@ describe("avisos_pendientes", () => {
       .insert({ marca_id: marca, ...AVISO, url: "https://ejemplo.com" })
     expect(error?.code).toBe("23514")
   })
+
+  test("an unsent line is ignored after three days and deleted after thirty", async () => {
+    const { userId } = await personaConSesion("cola-vieja")
+    const marca = await marcaConDueno(userId)
+    const db = admin()
+    await anotarAviso(db, marca, AVISO)
+    const ahora = Date.now()
+    expect((await avisosSinEnviar(db, ahora + 2 * 86_400_000)).filter((l) => l.marcaId === marca)).toHaveLength(1)
+    expect((await avisosSinEnviar(db, ahora + 4 * 86_400_000)).filter((l) => l.marcaId === marca)).toHaveLength(0)
+    await borrarAvisosEnviados(db, ahora + 31 * 86_400_000)
+    expect((await db.from("avisos_pendientes").select("id").eq("marca_id", marca)).data).toHaveLength(0)
+  })
 })

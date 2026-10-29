@@ -14,6 +14,9 @@ const TITULO = "Pendientes en PostIA"
 const MAXIMO_DE_LINEAS = 6
 // Six lines of 160 characters stay far below the 3000-byte payload limit of lib/avisos/push.ts, even with accents.
 const LARGO_DE_LINEA = 160
+// Under the 3000-byte limit of lib/avisos/push.ts with room for the JSON envelope; measured in bytes because
+// emoji and accents take more than one.
+const MAXIMO_DE_BYTES = 2800
 
 function plural(n: number, uno: string, varios: string): string {
   return `${n} ${n === 1 ? uno : varios}`
@@ -37,11 +40,15 @@ export function armarResumen(e: EstadoDelResumen): MensajePush | null {
     ),
   ].map(recortar)
   if (filas.length === 0) return null
-  const visibles = filas.length > MAXIMO_DE_LINEAS ? filas.slice(0, MAXIMO_DE_LINEAS) : filas
-  const resto = filas.length - visibles.length
-  const cuerpo = [...visibles, ...(resto > 0 ? [`Y ${plural(resto, "aviso", "avisos")} más en Inicio.`] : [])].join(
-    "\n",
-  )
   const unicaLinea = filas.length === 1 && e.lineas.length === 1 ? e.lineas[0] : null
-  return { titulo: TITULO, cuerpo, url: unicaLinea?.url ?? "/" }
+  const url = unicaLinea?.url ?? "/"
+  // Inicio shows the current state, not the queued lines, so what does not fit is only counted.
+  let visibles = Math.min(filas.length, MAXIMO_DE_LINEAS)
+  for (;;) {
+    const resto = filas.length - visibles
+    const cuerpo = [...filas.slice(0, visibles), ...(resto > 0 ? [`Y ${resto} más.`] : [])].join("\n")
+    const aviso = { titulo: TITULO, cuerpo, url }
+    if (visibles <= 1 || Buffer.byteLength(JSON.stringify(aviso)) <= MAXIMO_DE_BYTES) return aviso
+    visibles--
+  }
 }

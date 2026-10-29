@@ -65,13 +65,16 @@ export async function enviarResumenes(
   const { data: miembros, error } = await db.from("miembros").select("user_id, marca_id")
   if (error) throw new Error(`No pude leer los miembros: ${error.message}`, { cause: error })
   const porMarca = await estadoPorMarca(db, ahora)
-  const lineas = await avisosSinEnviar(db)
+  const lineas = await avisosSinEnviar(db, ahora)
   const marcasDe = new Map<string, string[]>()
   for (const m of miembros) marcasDe.set(m.user_id, [...(marcasDe.get(m.user_id) ?? []), m.marca_id])
 
   let avisos = 0
+  // Only lines that reached at least one device are marked: a failed or absent device keeps them for the next window.
+  const recibidas = new Set<string>()
   for (const [userId, marcas] of marcasDe) {
     const estado: EstadoDelResumen = { ...vacio(), lineas: [] }
+    const suyas: LineaPendiente[] = []
     for (const marcaId of marcas) {
       const e = porMarca.get(marcaId)
       if (e) {
@@ -81,18 +84,15 @@ export async function enviarResumenes(
         estado.reservas.push(...e.reservas)
         estado.huecos.push(...e.huecos)
       }
-      estado.lineas.push(...lineas.filter((l: LineaPendiente) => l.marcaId === marcaId))
+      suyas.push(...lineas.filter((l) => l.marcaId === marcaId))
     }
+    estado.lineas.push(...suyas)
     const aviso = armarResumen(estado)
     if (!aviso) continue
-    await avisarPersona(db, servicio, userId, aviso, false)
+    if ((await avisarPersona(db, servicio, userId, aviso, false)) === 0) continue
     avisos++
+    for (const l of suyas) recibidas.add(l.id)
   }
-  // Marked sent even for a brand nobody receives on a device: otherwise its lines would pile up forever.
-  await marcarEnviados(
-    db,
-    lineas.map((l) => l.id),
-    ahora,
-  )
+  await marcarEnviados(db, [...recibidas], ahora)
   return { avisos, lineas: lineas.length }
 }

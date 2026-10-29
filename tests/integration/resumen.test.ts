@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { enviarResumenes } from "@/lib/avisos/enviar-resumen"
 import type { ServicioPush, SuscripcionPush } from "@/lib/avisos/push"
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
@@ -86,5 +86,50 @@ describe("enviarResumenes", () => {
     await enviarResumenes(admin(), falso, Date.now())
 
     expect(de(endpoint)).toEqual([])
+  })
+
+  test("a queued line is not marked sent when no device received the digest", async () => {
+    const { userId } = await personaConSesion("resumen-fallo")
+    const marca = await marcaConDueno(userId)
+    await anotarAviso(admin(), marca, { titulo: "Cuenta", cuerpo: "Línea que no debe perderse", url: "/piezas/x" })
+    await aparato(userId)
+    const fallido: ServicioPush = { enviar: async () => ({ estado: "fallo", detalle: "HTTP 500" }) }
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {})
+    await enviarResumenes(admin(), fallido, Date.now())
+    registro.mockRestore()
+    expect(await lineaSinEnviar(marca)).toEqual([null])
+
+    const { falso } = servicio()
+    await enviarResumenes(admin(), falso, Date.now())
+    expect((await lineaSinEnviar(marca))?.every((e) => e !== null)).toBe(true)
+  })
+
+  test("a person without any device keeps the lines queued for when one appears", async () => {
+    const { userId } = await personaConSesion("resumen-sin-aparato")
+    const marca = await marcaConDueno(userId)
+    await anotarAviso(admin(), marca, { titulo: "Cuenta", cuerpo: "Para cuando haya aparato", url: "/piezas/x" })
+    const { falso } = servicio()
+    await enviarResumenes(admin(), falso, Date.now())
+    expect(await lineaSinEnviar(marca)).toEqual([null])
+    const endpoint = await aparato(userId)
+    const { falso: otro, de } = servicio()
+    await enviarResumenes(admin(), otro, Date.now())
+    expect(de(endpoint)[0]?.mensaje.cuerpo).toContain("Para cuando haya aparato")
+    expect((await lineaSinEnviar(marca))?.every((e) => e !== null)).toBe(true)
+  })
+
+  test("a line older than three days is neither sent nor marked", async () => {
+    const { userId } = await personaConSesion("resumen-vieja")
+    const marca = await marcaConDueno(userId)
+    await anotarAviso(admin(), marca, { titulo: "Cuenta", cuerpo: "Línea vieja", url: "/piezas/x" })
+    await admin()
+      .from("avisos_pendientes")
+      .update({ creado_en: new Date(Date.now() - 4 * 86_400_000).toISOString() })
+      .eq("marca_id", marca)
+    const endpoint = await aparato(userId)
+    const { falso, de } = servicio()
+    await enviarResumenes(admin(), falso, Date.now())
+    expect(de(endpoint)).toEqual([])
+    expect(await lineaSinEnviar(marca)).toEqual([null])
   })
 })
