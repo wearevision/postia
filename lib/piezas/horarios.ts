@@ -33,7 +33,7 @@ export function enSantiago(anio: number, mes: number, dia: number, hora: number,
   return instante
 }
 
-function fechaEnSantiago(instante: number): { anio: number; mes: number; dia: number; diaSemana: number } {
+export function fechaEnSantiago(instante: number): { anio: number; mes: number; dia: number; diaSemana: number } {
   const corrido = new Date(instante + desfaseMs(new Date(instante)))
   return {
     anio: corrido.getUTCFullYear(),
@@ -54,4 +54,21 @@ export function proponerFecha(tipo: "persona" | "empresa", ocupados: readonly nu
     return candidato
   }
   throw new Error("No encontré un horario libre en los próximos 60 días.")
+}
+
+/** Consecutive free slots for `cuantas` new pieces of one account (plano: repartir). */
+export function repartirFechas(
+  tipo: "persona" | "empresa",
+  ocupados: readonly number[],
+  cuantas: number,
+  ahora: number,
+): Date[] {
+  const tomados = [...ocupados]
+  const fechas: Date[] = []
+  for (let i = 0; i < cuantas; i++) {
+    const fecha = proponerFecha(tipo, tomados, ahora)
+    fechas.push(fecha)
+    tomados.push(fecha.getTime())
+  }
+  return fechas
 }
