@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+import type { Json } from "@/lib/supabase/database.types"
 import { admin, marcaConDueno, personaConSesion } from "./entorno"
 
 const SECCIONES = {
@@ -123,5 +124,108 @@ describe("guardar_linea_editorial", () => {
     expect((await db.from("lineas_editoriales").select("version").eq("marca_id", marca)).data).toEqual([{ version: 1 }])
     const cambio = await admin().from("lineas_editoriales").update({ tono: "otro" }).eq("marca_id", marca)
     expect(cambio.error?.message).toBe("linea_inmutable")
+  })
+})
+
+describe("guardar_linea_editorial refuses bad input", () => {
+  async function conVersionUno() {
+    const persona = await dueno("voz-mal")
+    await persona.db.rpc("guardar_linea_editorial", {
+      p_marca: persona.marca,
+      p_base: 0,
+      p_secciones: SECCIONES,
+      p_pilares: [pilar("Uno"), pilar("Dos")],
+    })
+    return persona
+  }
+
+  test("handles a missing base as a stale one instead of skipping the check", async () => {
+    const { db, marca } = await conVersionUno()
+    // NaN is serialized as JSON null: the RPC receives p_base = NULL.
+    const { error } = await db.rpc("guardar_linea_editorial", {
+      p_marca: marca,
+      p_base: Number.NaN,
+      p_secciones: SECCIONES,
+      p_pilares: [pilar("Uno")],
+    })
+    expect(error?.message).toBe("linea_cambio")
+    expect((await pilaresDe(marca)).every((f) => f.activo)).toBe(true)
+  })
+
+  test("refuses missing or non-array pillars without retiring the current ones", async () => {
+    const { db, marca } = await conVersionUno()
+    for (const pilares of [null, { nombre: "Uno" }, "Uno"]) {
+      const { error } = await db.rpc("guardar_linea_editorial", {
+        p_marca: marca,
+        p_base: 1,
+        p_secciones: SECCIONES,
+        p_pilares: pilares,
+      })
+      expect(error?.message).toBe("pilares_invalidos")
+    }
+    expect((await pilaresDe(marca)).every((f) => f.activo)).toBe(true)
+  })
+
+  test("refuses the same pillar id twice", async () => {
+    const { db, marca } = await conVersionUno()
+    const [uno] = await pilaresDe(marca)
+    const { error } = await db.rpc("guardar_linea_editorial", {
+      p_marca: marca,
+      p_base: 1,
+      p_secciones: SECCIONES,
+      p_pilares: [pilar("Uno", 1, uno?.id), pilar("Otro nombre", 1, uno?.id)],
+    })
+    expect(error?.message).toBe("pilares_repetidos")
+  })
+
+  test("handles malformed pillars as pilares_invalidos instead of raw database errors", async () => {
+    const { db, marca } = await conVersionUno()
+    const malos: Json[] = [
+      "Uno",
+      { nombre: null, porSemana: 1 },
+      { nombre: "   ", porSemana: 1 },
+      { nombre: 7, porSemana: 1 },
+      { nombre: "x".repeat(61), porSemana: 1 },
+      { nombre: "Sin ritmo" },
+      { nombre: "Ritmo texto", porSemana: "mucho" },
+      { nombre: "Ritmo con centésimas", porSemana: 1.25 },
+      { nombre: "Ritmo cero", porSemana: 0 },
+      { nombre: "Ritmo de más", porSemana: 8 },
+      { nombre: "Id roto", porSemana: 1, id: "no-es-uuid" },
+      { nombre: "Id número", porSemana: 1, id: 5 },
+      { nombre: "Tema largo", porSemana: 1, deQueHabla: "x".repeat(401) },
+      { nombre: "Material número", porSemana: 1, material: 3 },
+    ]
+    for (const malo of malos) {
+      const { error } = await db.rpc("guardar_linea_editorial", {
+        p_marca: marca,
+        p_base: 1,
+        p_secciones: SECCIONES,
+        p_pilares: [pilar("Bueno"), malo],
+      })
+      expect({ malo, mensaje: error?.message }).toEqual({ malo, mensaje: "pilares_invalidos" })
+    }
+  })
+
+  test("an owner of another brand neither reads nor saves this brand's line", async () => {
+    const { marca } = await conVersionUno()
+    const otro = await dueno("voz-otro-dueno")
+    expect((await otro.db.from("pilares").select("id").eq("marca_id", marca)).data).toEqual([])
+    expect((await otro.db.from("lineas_editoriales").select("id").eq("marca_id", marca)).data).toEqual([])
+    const { error } = await otro.db.rpc("guardar_linea_editorial", {
+      p_marca: marca,
+      p_base: 1,
+      p_secciones: SECCIONES,
+      p_pilares: [pilar("Intruso")],
+    })
+    expect(error?.code).toBe("42501")
+  })
+
+  test("refuses deleting a version, but deleting the brand removes its versions", async () => {
+    const { marca } = await conVersionUno()
+    const borrado = await admin().from("lineas_editoriales").delete().eq("marca_id", marca)
+    expect(borrado.error?.message).toBe("linea_inmutable")
+    expect((await admin().from("marcas").delete().eq("id", marca)).error).toBeNull()
+    expect((await admin().from("lineas_editoriales").select("id").eq("marca_id", marca)).data).toEqual([])
   })
 })

@@ -16,9 +16,19 @@ async function limpiarDatosDePrueba(): Promise<void> {
   const dePrueba = lista.users.filter((u) => u.email?.endsWith(DOMINIO_DE_PRUEBA)).map((u) => u.id)
   const reales = lista.users.filter((u) => !u.email?.endsWith(DOMINIO_DE_PRUEBA)).map((u) => u.id)
 
-  // conexiones.conectada_por has no cascade: they go before their users.
-  if (dePrueba.length > 0) {
-    const { error: errorDeConexiones } = await db.from("conexiones").delete().in("conectada_por", dePrueba)
+  // Exceptions outlive their author (set null) and block their case (restrict): test ones go before both.
+  const { error: errorDeExcepcionesDeCasos } = await db.from("excepciones").delete().like("caso_slug", "prueba-%")
+  if (errorDeExcepcionesDeCasos) {
+    throw new Error(`No pude borrar excepciones de prueba: ${errorDeExcepcionesDeCasos.message}`)
+  }
+
+  // conexiones.conectada_por has no cascade: they go before their users. In batches: a full run leaves hundreds of
+  // test users, too many ids for one URL.
+  for (let i = 0; i < dePrueba.length; i += 50) {
+    const lote = dePrueba.slice(i, i + 50)
+    const { error: errorDeExcepciones } = await db.from("excepciones").delete().in("puesta_por", lote)
+    if (errorDeExcepciones) throw new Error(`No pude borrar excepciones de prueba: ${errorDeExcepciones.message}`)
+    const { error: errorDeConexiones } = await db.from("conexiones").delete().in("conectada_por", lote)
     if (errorDeConexiones) throw new Error(`No pude borrar conexiones de prueba: ${errorDeConexiones.message}`)
   }
 

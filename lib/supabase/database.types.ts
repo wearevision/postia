@@ -256,7 +256,7 @@ export type Database = {
           hasta: string | null
           id: string
           puesta_en: string
-          puesta_por: string
+          puesta_por: string | null
           quitada_en: string | null
           quitada_por: string | null
           tipo: string
@@ -268,7 +268,7 @@ export type Database = {
           hasta?: string | null
           id?: string
           puesta_en?: string
-          puesta_por: string
+          puesta_por?: string | null
           quitada_en?: string | null
           quitada_por?: string | null
           tipo: string
@@ -280,7 +280,7 @@ export type Database = {
           hasta?: string | null
           id?: string
           puesta_en?: string
-          puesta_por?: string
+          puesta_por?: string | null
           quitada_en?: string | null
           quitada_por?: string | null
           tipo?: string

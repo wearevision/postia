@@ -73,4 +73,31 @@ describe("poner_pilar", () => {
       "pieza_ya_cerrada",
     )
   })
+
+  test("an old piece keeps a retired pillar, but nobody sets a retired pillar anew", async () => {
+    const { db, marca, cuenta, pilares } = await conPilares()
+    const vieja = await piezaDe(db, cuenta)
+    const nueva = await piezaDe(db, cuenta)
+    const retirado = pilares[1]?.id ?? null
+    await db.rpc("poner_pilar", { p_pieza: vieja, p_pilar: retirado })
+    await db.rpc("guardar_linea_editorial", {
+      p_marca: marca,
+      p_base: 1,
+      p_secciones: SECCIONES,
+      p_pilares: [{ id: pilares[0]?.id, nombre: "Uno", deQueHabla: "", material: "", porSemana: 1 }],
+    })
+    const mantener = await admin().from("piezas").update({ pilar_id: retirado }).eq("id", vieja)
+    expect(mantener.error).toBeNull()
+    expect(await pilarDe(vieja)).toBe(retirado)
+    const directo = await admin().from("piezas").update({ pilar_id: retirado }).eq("id", nueva)
+    expect(directo.error?.message).toBe("pilar_inactivo")
+  })
+
+  test("an owner of another brand cannot set a pillar on this brand's piece", async () => {
+    const uno = await conPilares()
+    const otra = await conPilares("pilar-otro-dueno")
+    const pieza = await piezaDe(uno.db, uno.cuenta)
+    const { error } = await otra.db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: uno.pilares[0]?.id ?? null })
+    expect(error?.code).toBe("42501")
+  })
 })

@@ -35,12 +35,17 @@ create table public.lineas_editoriales (
   unique (marca_id, version)
 );
 
+-- A version is only deleted by the cascade of its brand: the foreign key's own trigger runs that delete, so this one
+-- fires nested (depth 2). A direct delete, even by the service role, is depth 1.
 create function public.lineas_inmutables() returns trigger
 language plpgsql set search_path = '' as $$
 begin
+  if tg_op = 'DELETE' and pg_trigger_depth() > 1 then
+    return old;
+  end if;
   raise exception using errcode = '23514', message = 'linea_inmutable';
 end $$;
-create trigger lineas_editoriales_inmutables before update on public.lineas_editoriales
+create trigger lineas_editoriales_inmutables before update or delete on public.lineas_editoriales
   for each row execute function public.lineas_inmutables();
 
 -- Service role only (scripts/cargar-linea.ts passes the author); owners go through guardar_linea_editorial.
@@ -54,22 +59,54 @@ declare
   v_ids uuid[] := '{}';
   v_orden smallint := 0;
   v_foto jsonb := '[]'::jsonb;
+  v_por_semana numeric;
 begin
-  -- Two saves of one brand queue here, so the base check below sees the other one's version.
-  perform 1 from public.marcas where id = p_marca for update;
+  -- Two saves of one brand queue here, so the base check below sees the other one's version. No key update: it
+  -- does not block inserts that only reference the brand (cuentas, miembros, piezas).
+  perform 1 from public.marcas where id = p_marca for no key update;
   if not found then
     raise exception using errcode = '22023', message = 'marca_no_existe';
   end if;
   select coalesce(max(version), 0) into v_actual from public.lineas_editoriales where marca_id = p_marca;
-  if v_actual <> p_base then
+  if v_actual is distinct from p_base then
     -- Not 40001: PostgREST retries serialization failures, so the request would hang instead of answering.
     raise exception using errcode = '22023', message = 'linea_cambio';
   end if;
-  if jsonb_typeof(p_pilares) <> 'array' or jsonb_array_length(p_pilares) not between 1 and 8 then
+  -- A null or non-array would loop zero times and retire every pillar.
+  if p_pilares is null or jsonb_typeof(p_pilares) <> 'array' then
     raise exception using errcode = '22023', message = 'pilares_invalidos';
   end if;
+  if jsonb_array_length(p_pilares) not between 1 and 8 then
+    raise exception using errcode = '22023', message = 'pilares_invalidos';
+  end if;
+  -- Every element is checked before any cast, so bad input answers pilares_invalidos instead of a raw 22P02/23502.
+  -- Separate ifs: plpgsql does not promise to short-circuit `or`, and the casts below need the type checks first.
+  for v_pilar in select value from jsonb_array_elements(p_pilares) loop
+    if jsonb_typeof(v_pilar) <> 'object'
+       or jsonb_typeof(v_pilar->'nombre') is distinct from 'string'
+       or jsonb_typeof(v_pilar->'porSemana') is distinct from 'number'
+       or coalesce(jsonb_typeof(v_pilar->'id'), 'null') not in ('string', 'null')
+       or coalesce(jsonb_typeof(v_pilar->'deQueHabla'), 'null') not in ('string', 'null')
+       or coalesce(jsonb_typeof(v_pilar->'material'), 'null') not in ('string', 'null') then
+      raise exception using errcode = '22023', message = 'pilares_invalidos';
+    end if;
+    v_por_semana := (v_pilar->>'porSemana')::numeric;
+    if length(btrim(v_pilar->>'nombre')) not between 1 and 60
+       or length(coalesce(v_pilar->>'deQueHabla', '')) > 400
+       or length(coalesce(v_pilar->>'material', '')) > 400
+       or v_por_semana <= 0 or v_por_semana > 7
+       -- numeric(3, 1) would round a second decimal silently.
+       or v_por_semana <> round(v_por_semana, 1)
+       or coalesce(v_pilar->>'id', '') !~ '^([0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})?$' then
+      raise exception using errcode = '22023', message = 'pilares_invalidos';
+    end if;
+  end loop;
   if (select count(distinct lower(btrim(e->>'nombre'))) from jsonb_array_elements(p_pilares) e)
      <> jsonb_array_length(p_pilares) then
+    raise exception using errcode = '22023', message = 'pilares_repetidos';
+  end if;
+  if (select count(distinct lower(e->>'id')) from jsonb_array_elements(p_pilares) e where e->>'id' <> '')
+     <> (select count(*) from jsonb_array_elements(p_pilares) e where e->>'id' <> '') then
     raise exception using errcode = '22023', message = 'pilares_repetidos';
   end if;
 
@@ -135,15 +172,23 @@ revoke execute on function public.lineas_inmutables() from public, anon, authent
 alter table public.piezas add column pilar_id uuid references public.pilares (id);
 create index piezas_pilar on public.piezas (pilar_id) where pilar_id is not null;
 
--- Also guards the service role (scripts/cargar-wr3.ts): a pillar belongs to the brand of the piece's account.
+-- Also guards the service role (scripts/cargar-wr3.ts): a pillar belongs to the brand of the piece's account, and a
+-- retired pillar is only kept, never newly given, so old pieces still say which pillar they served.
 create function public.pilar_de_su_marca() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.pilar_id is not null and not exists (
+  if new.pilar_id is null then
+    return new;
+  end if;
+  if not exists (
     select 1 from public.pilares pi join public.cuentas c on c.marca_id = pi.marca_id
      where pi.id = new.pilar_id and c.id = new.cuenta_id
   ) then
     raise exception using errcode = '23514', message = 'pilar_de_otra_marca';
+  end if;
+  if (tg_op = 'INSERT' or new.pilar_id is distinct from old.pilar_id)
+     and not exists (select 1 from public.pilares where id = new.pilar_id and activo) then
+    raise exception using errcode = '23514', message = 'pilar_inactivo';
   end if;
   return new;
 end $$;
@@ -194,12 +239,14 @@ create index casos_cliente on public.casos (lower(cliente));
 create table public.excepciones (
   id uuid primary key default gen_random_uuid(),
   cliente text not null check (length(btrim(cliente)) between 1 and 120),
-  caso_slug text references public.casos (slug) on delete cascade,
+  -- Restrict: reloading the cases must never drop an exception silently.
+  caso_slug text references public.casos (slug) on delete restrict,
   tipo text not null check (tipo in ('no_nombrar', 'sin_fotos', 'sin_logo', 'confidencial')),
-  alias text[] not null default '{}' check (cardinality(alias) <= 10),
+  alias text[] not null default '{}' check (cardinality(alias) <= 20),
   -- Inclusive, Chile calendar; null means until someone removes it.
   hasta date,
-  puesta_por uuid not null references auth.users (id) on delete cascade,
+  -- Set null: deleting a user must never lift an exception.
+  puesta_por uuid references auth.users (id) on delete set null,
   puesta_en timestamptz not null default now(),
   quitada_por uuid references auth.users (id) on delete set null,
   quitada_en timestamptz
@@ -224,13 +271,23 @@ begin
   if not public.es_dueno_de_alguna() then
     raise exception using errcode = '42501', message = 'solo_el_dueno_marca_excepciones';
   end if;
+  if p_tipo is null or p_tipo not in ('no_nombrar', 'sin_fotos', 'sin_logo', 'confidencial')
+     or length(btrim(coalesce(p_cliente, ''))) not between 1 and 120
+     or cardinality(coalesce(p_alias, '{}')) > 20
+     or exists (select 1 from unnest(coalesce(p_alias, '{}')) a where length(btrim(coalesce(a, ''))) not between 1 and 120)
+     or (select count(distinct lower(btrim(a))) from unnest(coalesce(p_alias, '{}')) a)
+        <> cardinality(coalesce(p_alias, '{}')) then
+    raise exception using errcode = '22023', message = 'excepcion_invalida';
+  end if;
   if p_caso is not null and not exists (
     select 1 from public.casos where slug = p_caso and lower(cliente) = lower(btrim(p_cliente))
   ) then
     raise exception using errcode = '22023', message = 'caso_de_otro_cliente';
   end if;
   insert into public.excepciones (cliente, caso_slug, tipo, alias, hasta, puesta_por)
-  values (btrim(p_cliente), p_caso, p_tipo, coalesce(p_alias, '{}'), p_hasta, auth.uid())
+  values (btrim(p_cliente), p_caso, p_tipo,
+          coalesce((select array_agg(btrim(a) order by o) from unnest(p_alias) with ordinality u (a, o)), '{}'),
+          p_hasta, auth.uid())
   returning id into v_id;
   return v_id;
 end $$;

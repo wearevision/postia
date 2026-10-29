@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto"
+import { createClient } from "@supabase/supabase-js"
 import { describe, expect, test } from "vitest"
-import { admin, marcaConDueno, personaConSesion } from "./entorno"
+import type { Database } from "@/lib/supabase/database.types"
+import { admin, entornoLocal, marcaConDueno, personaConSesion } from "./entorno"
 
 async function caso(cliente: string) {
   const slug = `prueba-${randomUUID().slice(0, 8)}`
@@ -38,7 +40,11 @@ describe("casos and excepciones", () => {
     const sinMarca = await personaConSesion("cli-sin-marca")
     expect((await sinMarca.db.from("casos").select("slug").eq("slug", slug)).data).toEqual([])
     expect(
-      (await db.from("casos").insert({ slug: "prueba-x", cliente: "X", titulo: "X", era: "wav" })).error,
+      (
+        await db
+          .from("casos")
+          .insert({ slug: `prueba-${randomUUID().slice(0, 8)}`, cliente: "X", titulo: "X", era: "wav" })
+      ).error,
     ).not.toBeNull()
   })
 
@@ -75,5 +81,66 @@ describe("casos and excepciones", () => {
     expect((await marcar(db, cliente, { p_caso: ajeno })).error?.message).toBe("caso_de_otro_cliente")
     const sinMarca = await personaConSesion("cli-nadie")
     expect((await marcar(sinMarca.db, cliente, { p_tipo: "sin_fotos" })).error?.code).toBe("42501")
+  })
+
+  test("refuses an invalid type and invalid aliases with excepcion_invalida", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const { db } = await duenoDeAlguna()
+    expect((await marcar(db, cliente, { p_tipo: "secreto" })).error?.message).toBe("excepcion_invalida")
+    expect((await marcar(db, "   ")).error?.message).toBe("excepcion_invalida")
+    const malos = [["   "], ["x".repeat(121)], Array.from({ length: 21 }, (_, i) => `Alias ${i}`), ["Alias", " alias "]]
+    for (const alias of malos) {
+      expect((await marcar(db, cliente, { p_alias: alias })).error?.message).toBe("excepcion_invalida")
+    }
+    const veinte = Array.from({ length: 20 }, (_, i) => ` Alias ${i} `)
+    const { data: id, error } = await marcar(db, cliente, { p_alias: veinte })
+    expect(error).toBeNull()
+    const { data: fila } = await db
+      .from("excepciones")
+      .select("alias")
+      .eq("id", id ?? "")
+      .single()
+    expect(fila?.alias).toEqual(veinte.map((a) => a.trim()))
+  })
+
+  test("a stranger cannot remove an exception", async () => {
+    const { db } = await duenoDeAlguna()
+    const { data: id } = await marcar(db, `Cliente ${randomUUID().slice(0, 6)}`)
+    const extrano = await personaConSesion("cli-extrano")
+    expect((await extrano.db.rpc("quitar_excepcion", { p_id: id ?? "" })).error?.code).toBe("42501")
+  })
+
+  test("deleting the person who marked an exception keeps the exception", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const slug = await caso(cliente)
+    const { db, userId } = await duenoDeAlguna()
+    const { data: id } = await marcar(db, cliente, { p_caso: slug })
+    expect((await admin().auth.admin.deleteUser(userId)).error).toBeNull()
+    const { data: fila } = await admin()
+      .from("excepciones")
+      .select("puesta_por")
+      .eq("id", id ?? "")
+      .single()
+    expect(fila).toEqual({ puesta_por: null })
+  })
+
+  test("refuses deleting a case that has exceptions", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const slug = await caso(cliente)
+    const { db } = await duenoDeAlguna()
+    await marcar(db, cliente, { p_caso: slug, p_tipo: "sin_logo" })
+    expect((await admin().from("casos").delete().eq("slug", slug)).error?.code).toBe("23503")
+    expect((await admin().from("casos").select("slug").eq("slug", slug)).data).toEqual([{ slug }])
+  })
+
+  test("anon reads nothing from pillars, lines, cases or exceptions", async () => {
+    await caso(`Cliente ${randomUUID().slice(0, 6)}`)
+    const anonimo = createClient<Database>(entornoLocal().url, entornoLocal().anon, {
+      auth: { persistSession: false },
+    })
+    for (const tabla of ["pilares", "lineas_editoriales", "casos", "excepciones"] as const) {
+      const { data } = await anonimo.from(tabla).select("*").limit(1)
+      expect({ tabla, filas: data ?? [] }).toEqual({ tabla, filas: [] })
+    }
   })
 })
