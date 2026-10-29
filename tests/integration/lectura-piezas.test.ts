@@ -65,6 +65,7 @@ describe("tray", () => {
     const conError = await firmada(e, "Con error", new Date(ahora + 5 * DIA_MS))
     await mover(conError, "publicando", "error")
     const lejana = await firmada(e, "Muy lejana", new Date(ahora + 20 * DIA_MS))
+    const lejisima = await firmada(e, "Más lejana aún", new Date(ahora + 40 * DIA_MS))
     const tardia = await firmada(e, "Cerca pero después", new Date(ahora + 2 * DIA_MS))
     const temprana = await firmada(e, "Cerca y primero", new Date(ahora + 1 * DIA_MS))
     const descartada = await nueva(e, "Descartada")
@@ -77,6 +78,7 @@ describe("tray", () => {
     expect(b.revisar.map((t) => t.id).sort()).toEqual([dudosa, conError].sort())
     expect(b.proximas.map((t) => t.id)).toEqual([temprana, tardia])
     expect([...b.porFirmar, ...b.aMano, ...b.revisar, ...b.proximas].map((t) => t.id)).not.toContain(lejana)
+    expect(b.masAdelante.map((t) => t.id)).toEqual([lejana, lejisima])
     expect(b.porFirmar[0]).toMatchObject({ estado: "por_aprobar", extracto: "Esperando firma", motivo: null })
   })
 
@@ -94,7 +96,7 @@ describe("tray", () => {
     const e = await entorno("lec-dueno")
     await nueva(e, "Privada")
     const extrano = await personaConSesion("lec-extrano")
-    expect(await bandeja(extrano.db)).toEqual({ porFirmar: [], aMano: [], revisar: [], proximas: [] })
+    expect(await bandeja(extrano.db)).toEqual({ porFirmar: [], aMano: [], revisar: [], proximas: [], masAdelante: [] })
   })
 })
 

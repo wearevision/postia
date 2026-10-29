@@ -18,6 +18,7 @@ export interface Bandeja {
   aMano: TarjetaDePieza[]
   revisar: TarjetaDePieza[]
   proximas: TarjetaDePieza[]
+  masAdelante: TarjetaDePieza[]
 }
 
 const CATORCE_DIAS_MS = 14 * 86_400_000
@@ -78,6 +79,12 @@ export async function bandeja(db: Db, ahora = Date.now()): Promise<Bandeja> {
         t.estado === "programada" &&
         t.programadaPara !== null &&
         Date.parse(t.programadaPara) < ahora + CATORCE_DIAS_MS,
+    ),
+    masAdelante: tarjetas.filter(
+      (t) =>
+        t.estado === "programada" &&
+        t.programadaPara !== null &&
+        Date.parse(t.programadaPara) >= ahora + CATORCE_DIAS_MS,
     ),
   }
 }

@@ -28,8 +28,8 @@ function Seccion({ titulo, tarjetas }: { titulo: string; tarjetas: TarjetaDePiez
 }
 
 export default async function Inicio() {
-  const { porFirmar, aMano, revisar, proximas } = await bandeja(await createClient())
-  const vacia = porFirmar.length + aMano.length + revisar.length + proximas.length === 0
+  const { porFirmar, aMano, revisar, proximas, masAdelante } = await bandeja(await createClient())
+  const vacia = porFirmar.length + aMano.length + revisar.length + proximas.length + masAdelante.length === 0
   return (
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Inicio</h1>
@@ -37,6 +37,7 @@ export default async function Inicio() {
       <Seccion titulo="Publicar a mano" tarjetas={aMano} />
       <Seccion titulo="Revisar" tarjetas={revisar} />
       <Seccion titulo="Próximas" tarjetas={proximas} />
+      <Seccion titulo="Más adelante" tarjetas={masAdelante} />
       {vacia && (
         <div className="space-y-3">
           <p className="text-apagado">No hay nada pendiente.</p>
