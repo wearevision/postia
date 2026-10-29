@@ -32,6 +32,9 @@ const MENSAJES: Record<string, string> = {
   solo_el_dueno_saca_de_la_reserva: "Solo el dueño de la marca puede sacar piezas de la reserva.",
   pieza_no_esta_en_reserva: "Esta pieza ya no está en la reserva.",
   pieza_no_espera_reserva: "Esta pieza ya no espera una pieza de la reserva.",
+  // pilar_de_otra_marca arrives with code 23514 but is not a guard message, so falla finds it here.
+  pilar_de_otra_marca: "Ese pilar es de otra marca.",
+  pilar_inactivo: "Ese pilar ya no está en la línea editorial.",
 }
 
 const MENSAJES_DE_LA_GUARDIA = [
@@ -269,4 +272,17 @@ export function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
     { sacar: (id) => db.rpc("sacar_de_reserva", { p_pieza: id }), planear: (id) => asegurarPlan(db, id) },
     piezaId,
   )
+}
+
+const PilarDePieza = z.object({ piezaId: z.uuid(), pilarId: z.uuid().nullable() })
+
+export async function ponerPilar(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = PilarDePieza.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: DATOS_DE_PIEZA }
+  // No pillar is sent as a missing argument, never null: the RPC's default clears it.
+  const { error } = await db.rpc("poner_pilar", {
+    p_pieza: leida.data.piezaId,
+    p_pilar: leida.data.pilarId ?? undefined,
+  })
+  return error ? falla(error) : { ok: true }
 }

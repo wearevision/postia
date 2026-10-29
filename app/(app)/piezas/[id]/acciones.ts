@@ -10,6 +10,7 @@ import {
   firmarParaReserva,
   firmarPieza,
   planearPieza,
+  ponerPilar,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
 import { RUTA_DE_CALENDARIO, RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
@@ -59,4 +60,8 @@ export async function firmarParaReservaAccion(entrada: { piezaId: string; huella
 // sacarDeReserva re-plans the piece itself and logs a failed plan; only a refused take-out is an error here.
 export async function sacarDeReservaAccion(piezaId: string): Promise<Resultado> {
   return despues(piezaId, await sacarDeReserva(await createActionClient(), piezaId))
+}
+
+export async function ponerPilarAccion(entrada: { piezaId: string; pilarId: string | null }): Promise<Resultado> {
+  return despues(entrada.piezaId, await ponerPilar(await createActionClient(), entrada))
 }

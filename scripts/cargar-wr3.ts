@@ -18,11 +18,14 @@ import { buscarUsuario } from "./usuario"
 const CARPETA_POR_DEFECTO = join(homedir(), "Projects/wr3-web/social/linkedin/out")
 const MARCA = "WAV"
 const CUENTA = "Página de WAV"
+// WR3 studies feed WAV's pillar about listening before deciding.
+const PILAR = "Escuchar antes de decidir"
 
 interface Cuenta {
   id: string
   marcaId: string
   tipo: "persona" | "empresa"
+  pilarId: string | null
 }
 
 interface Plan {
@@ -73,17 +76,34 @@ async function buscarCuenta(db: Db): Promise<Cuenta> {
   if (errorDeCuenta)
     throw new Error(`No pude buscar la cuenta ${CUENTA}: ${errorDeCuenta.message}`, { cause: errorDeCuenta })
   if (!cuenta) throw new Falla(`La marca «${MARCA}» no tiene la cuenta «${CUENTA}».`)
-  return { id: cuenta.id, marcaId: marca.id, tipo: leerTipo(cuenta.tipo) }
+  return { id: cuenta.id, marcaId: marca.id, tipo: leerTipo(cuenta.tipo), pilarId: await buscarPilar(db, marca.id) }
+}
+
+async function buscarPilar(db: Db, marcaId: string): Promise<string | null> {
+  const { data, error } = await db
+    .from("pilares")
+    .select("id")
+    .eq("marca_id", marcaId)
+    .eq("nombre", PILAR)
+    .eq("activo", true)
+    .maybeSingle()
+  if (error) throw new Error(`No pude buscar el pilar ${PILAR}: ${error.message}`, { cause: error })
+  if (!data) console.log("Sin pilar: carga primero la línea de WAV (pnpm cargar:linea).")
+  return data?.id ?? null
 }
 
 interface PiezaExistente {
   id: string
   estado: string
   planeadaPara: string | null
+  pilarId: string | null
 }
 
 async function piezaExistente(db: Db, cuentaId: string, hash: string): Promise<PiezaExistente | null> {
-  const { data: piezas, error } = await db.from("piezas").select("id, estado, planeada_para").eq("cuenta_id", cuentaId)
+  const { data: piezas, error } = await db
+    .from("piezas")
+    .select("id, estado, planeada_para, pilar_id")
+    .eq("cuenta_id", cuentaId)
   if (error) throw new Error(`No pude leer las piezas: ${error.message}`, { cause: error })
   if (piezas.length === 0) return null
   const { data, error: errorDeVersiones } = await db
@@ -98,7 +118,9 @@ async function piezaExistente(db: Db, cuentaId: string, hash: string): Promise<P
   if (errorDeVersiones)
     throw new Error(`No pude leer las versiones: ${errorDeVersiones.message}`, { cause: errorDeVersiones })
   const pieza = piezas.find((p) => p.id === data[0]?.pieza_id)
-  return pieza ? { id: pieza.id, estado: pieza.estado, planeadaPara: pieza.planeada_para } : null
+  return pieza
+    ? { id: pieza.id, estado: pieza.estado, planeadaPara: pieza.planeada_para, pilarId: pieza.pilar_id }
+    : null
 }
 
 /** The next free slot of the page. It is reserved in `plan` so the next piece of this run takes the one after. */
@@ -133,6 +155,10 @@ async function cargar(
   const hash = sha256(datos)
   const existente = await piezaExistente(db, cuenta.id, hash)
   if (existente) {
+    if (cuenta.pilarId && existente.pilarId === null) {
+      const { error } = await db.from("piezas").update({ pilar_id: cuenta.pilarId }).eq("id", existente.id)
+      if (error) throw new Error(`«${entrada.titulo}»: no pude poner el pilar: ${error.message}`, { cause: error })
+    }
     // Only a piece still waiting for its signature and with no slot gets one; the guard watches state, not this column.
     if (existente.estado === "por_aprobar" && existente.planeadaPara === null) {
       const planeadaPara = siguienteHueco(cuenta, plan)
@@ -152,7 +178,7 @@ async function cargar(
 
   const planeadaPara = siguienteHueco(cuenta, plan)
   try {
-    await crearPieza(db, cuenta.id, userId, entrada, ruta, hash, planeadaPara)
+    await crearPieza(db, cuenta, userId, entrada, ruta, hash, planeadaPara)
   } catch (error) {
     const { error: errorAlBorrar } = await db.storage.from("piezas").remove([ruta])
     console.error(
@@ -167,7 +193,7 @@ async function cargar(
 
 async function crearPieza(
   db: Db,
-  cuentaId: string,
+  cuenta: Cuenta,
   userId: string,
   entrada: EntradaDeCopy,
   ruta: string,
@@ -176,7 +202,13 @@ async function crearPieza(
 ): Promise<void> {
   const { data: pieza, error } = await db
     .from("piezas")
-    .insert({ cuenta_id: cuentaId, formato: "carrusel_pdf", creada_por: userId, planeada_para: planeadaPara })
+    .insert({
+      cuenta_id: cuenta.id,
+      formato: "carrusel_pdf",
+      creada_por: userId,
+      planeada_para: planeadaPara,
+      pilar_id: cuenta.pilarId,
+    })
     .select("id")
     .single()
   if (error) throw new Error(`«${entrada.titulo}»: no pude crear la pieza: ${error.message}`, { cause: error })

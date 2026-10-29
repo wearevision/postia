@@ -4,6 +4,7 @@ import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { lineaEnReserva } from "@/lib/piezas/textos"
 import { createClient } from "@/lib/supabase/server"
+import { pilaresActivos } from "@/lib/voz/lectura"
 import { PublicarAMano } from "./a-mano"
 import {
   cerrarAManoAccion,
@@ -13,19 +14,26 @@ import {
   firmarAccion,
   firmarParaReservaAccion,
   planearAccion,
+  ponerPilarAccion,
   sacarDeReservaAccion,
 } from "./acciones"
 import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
+import { PilarDePieza } from "./pilar"
 import { PlanDePieza } from "./plan"
 
+const SE_PUEDE_CAMBIAR_EL_PILAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada"]
 const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano", "error"]
 
 export default async function Pieza({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const pieza = await detalle(await createClient(), id)
+  const db = await createClient()
+  const pieza = await detalle(db, id)
   if (!pieza) notFound()
   const { estado, version, cuenta } = pieza
+  const pilares = SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
+    ? (await pilaresActivos(db)).filter((p) => p.marcaId === cuenta.marcaId)
+    : []
 
   return (
     <section className="mx-auto max-w-md space-y-5">
@@ -34,7 +42,20 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
         <h1 className="text-2xl font-semibold">{version.titulo ?? "Post de texto"}</h1>
         <p className="text-apagado">{NOMBRE_DEL_ESTADO[estado]}</p>
         {pieza.motivo && <p className="text-sm">{pieza.motivo}</p>}
+        {!SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && pieza.pilarNombre && (
+          <p className="text-sm text-apagado">Pilar: {pieza.pilarNombre}</p>
+        )}
       </header>
+
+      {SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && (pilares.length > 0 || pieza.pilarId) && (
+        <PilarDePieza
+          piezaId={pieza.id}
+          pilarId={pieza.pilarId}
+          pilarNombre={pieza.pilarNombre}
+          pilares={pilares}
+          poner={ponerPilarAccion}
+        />
+      )}
 
       {estado !== "por_aprobar" && (
         <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{version.texto}</p>

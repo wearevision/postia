@@ -11,6 +11,7 @@ import {
   firmarPieza,
   planearConFechaPropuesta,
   planearPieza,
+  ponerPilar,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
 import { proponerFecha } from "@/lib/piezas/horarios"
@@ -405,5 +406,46 @@ describe("plans and the reserve", () => {
     if (!creada.ok) throw new Error(creada.error)
     const r = await planearConFechaPropuesta(db, creada.piezaId, Number.NaN)
     expect(r.ok).toBe(false)
+  })
+})
+
+describe("pillars", () => {
+  async function conPilar(prefijo: string) {
+    const creada = await piezaCreada(prefijo)
+    const linea = await creada.db.rpc("guardar_linea_editorial", {
+      p_marca: creada.marca,
+      p_base: 0,
+      p_secciones: { deQueHablamos: "", tono: "", formatos: "", temasVetados: "", temasAVigilar: "", ejemplos: "" },
+      p_pilares: [{ nombre: "Uno", deQueHabla: "", material: "", porSemana: 1 }],
+    })
+    if (linea.error) throw linea.error
+    const { data } = await admin().from("pilares").select("id").eq("marca_id", creada.marca).single()
+    if (!data) throw new Error("sin pilar")
+    return { ...creada, pilar: data.id }
+  }
+
+  const pilarDe = async (pieza: string) =>
+    (await admin().from("piezas").select("pilar_id").eq("id", pieza).single()).data?.pilar_id
+
+  test("ponerPilar sets the pillar and answers in Spanish for a pillar of another brand", async () => {
+    const { db, piezaId, pilar } = await conPilar("acc-pilar")
+    const { pilar: ajeno } = await conPilar("acc-pilar-ajeno")
+    expect(await ponerPilar(db, { piezaId, pilarId: pilar })).toEqual({ ok: true })
+    expect(await pilarDe(piezaId)).toBe(pilar)
+    expect(await ponerPilar(db, { piezaId, pilarId: ajeno })).toEqual({
+      ok: false,
+      error: "Ese pilar es de otra marca.",
+    })
+  })
+
+  test("ponerPilar clears the pillar with null and refuses bad input", async () => {
+    const { db, piezaId, pilar } = await conPilar("acc-pilar-quitar")
+    await ponerPilar(db, { piezaId, pilarId: pilar })
+    expect(await ponerPilar(db, { piezaId, pilarId: null })).toEqual({ ok: true })
+    expect(await pilarDe(piezaId)).toBeNull()
+    expect(await ponerPilar(db, { piezaId, pilarId: "no" })).toEqual({
+      ok: false,
+      error: "Revisa los datos de la pieza.",
+    })
   })
 })

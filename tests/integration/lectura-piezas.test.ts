@@ -261,3 +261,24 @@ describe("plans and the reserve", () => {
     expect(propuesta).not.toBe(primero.toISOString())
   })
 })
+
+describe("detalle and pillars", () => {
+  test("knows the piece's pillar, its brand and the brand's voice", async () => {
+    const e = await entorno("lect-pilar")
+    const pieza = await nueva(e, "Con pilar")
+    await e.db.rpc("guardar_linea_editorial", {
+      p_marca: e.marca,
+      p_base: 0,
+      p_secciones: { deQueHablamos: "", tono: "", formatos: "", temasVetados: "", temasAVigilar: "", ejemplos: "" },
+      p_pilares: [{ nombre: "Uno", deQueHabla: "", material: "", porSemana: 1 }],
+    })
+    const { data } = await admin().from("pilares").select("id").eq("marca_id", e.marca).single()
+    expect((await detalle(e.db, pieza))?.pilarId).toBeNull()
+    await e.db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: data?.id })
+    const d = await detalle(e.db, pieza)
+    expect(d?.pilarId).toBe(data?.id)
+    expect(d?.pilarNombre).toBe("Uno")
+    expect(d?.cuenta.marcaId).toBe(e.marca)
+    expect(d?.cuenta.voz).toBe("yo")
+  })
+})

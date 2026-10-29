@@ -1,14 +1,15 @@
 import { createClient } from "@/lib/supabase/server"
+import { pilaresActivos } from "@/lib/voz/lectura"
 import { crearPiezaAccion } from "./acciones"
 import { FormularioDePieza } from "./formulario"
 
 export default async function NuevaPieza() {
   const db = await createClient()
   // Phase 1 has only owners (miembros.rol = 'dueno', D4), so every account RLS lets through belongs to an owned brand.
-  const { data: cuentas, error } = await db
-    .from("cuentas")
-    .select("id, nombre, marca_id, marcas(nombre)")
-    .order("creada_en")
+  const [{ data: cuentas, error }, pilares] = await Promise.all([
+    db.from("cuentas").select("id, nombre, marca_id, marcas(nombre)").order("creada_en"),
+    pilaresActivos(db),
+  ])
   if (error) throw new Error(`No pude leer las cuentas: ${error.message}`, { cause: error })
   return (
     <section className="mx-auto max-w-md space-y-4">
@@ -20,6 +21,7 @@ export default async function NuevaPieza() {
           nombre: c.nombre,
           marca: c.marcas?.nombre ?? "",
         }))}
+        pilares={pilares}
         crear={crearPiezaAccion}
       />
     </section>
