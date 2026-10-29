@@ -34,6 +34,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      avisos_de_tope: {
+        Row: {
+          alcance: string
+          creado_en: string
+          mes: string
+          umbral: number
+        }
+        Insert: {
+          alcance: string
+          creado_en?: string
+          mes: string
+          umbral: number
+        }
+        Update: {
+          alcance?: string
+          creado_en?: string
+          mes?: string
+          umbral?: number
+        }
+        Relationships: []
+      }
       avisos_pendientes: {
         Row: {
           creado_en: string
@@ -346,6 +367,56 @@ export type Database = {
           },
         ]
       }
+      gastos: {
+        Row: {
+          cerrado_en: string | null
+          clave: string
+          creado_en: string
+          estado: string
+          estimado_micro: number
+          id: string
+          marca_id: string | null
+          mes: string
+          paso: string
+          proveedor: string
+          real_micro: number | null
+        }
+        Insert: {
+          cerrado_en?: string | null
+          clave: string
+          creado_en?: string
+          estado?: string
+          estimado_micro: number
+          id?: string
+          marca_id?: string | null
+          mes: string
+          paso: string
+          proveedor: string
+          real_micro?: number | null
+        }
+        Update: {
+          cerrado_en?: string | null
+          clave?: string
+          creado_en?: string
+          estado?: string
+          estimado_micro?: number
+          id?: string
+          marca_id?: string | null
+          mes?: string
+          paso?: string
+          proveedor?: string
+          real_micro?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lineas_editoriales: {
         Row: {
           creada_en: string
@@ -641,6 +712,41 @@ export type Database = {
         }
         Relationships: []
       }
+      topes: {
+        Row: {
+          desde_mes: string
+          id: number
+          marca_id: string | null
+          monto_micro: number | null
+          puesto_en: string
+          puesto_por: string | null
+        }
+        Insert: {
+          desde_mes: string
+          id?: never
+          marca_id?: string | null
+          monto_micro?: number | null
+          puesto_en?: string
+          puesto_por?: string | null
+        }
+        Update: {
+          desde_mes?: string
+          id?: never
+          marca_id?: string | null
+          monto_micro?: number | null
+          puesto_en?: string
+          puesto_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topes_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       versiones: {
         Row: {
           archivo_ruta: string | null
@@ -712,6 +818,10 @@ export type Database = {
         }
         Returns: string
       }
+      confirmar_gasto: {
+        Args: { p_ahora?: string; p_clave: string; p_real_micro: number }
+        Returns: Json
+      }
       crear_marca: {
         Args: { p_nombre: string; p_voz: string }
         Returns: string
@@ -761,6 +871,7 @@ export type Database = {
         Args: { p_huella: string; p_pieza: string; p_programada_para: string }
         Returns: string
       }
+      gastado: { Args: { p_marca?: string; p_mes: string }; Returns: number }
       guardar_linea: {
         Args: {
           p_autor: string
@@ -780,6 +891,10 @@ export type Database = {
         }
         Returns: number
       }
+      liberar_gasto: {
+        Args: { p_ahora?: string; p_clave: string }
+        Returns: string
+      }
       marca_de_pieza: { Args: { p_pieza: string }; Returns: string }
       marcar_excepcion: {
         Args: {
@@ -791,6 +906,7 @@ export type Database = {
         }
         Returns: string
       }
+      mes_de: { Args: { p_ahora: string }; Returns: string }
       normalizar_texto: { Args: { p: string }; Returns: string }
       nueva_version: {
         Args: {
@@ -819,6 +935,17 @@ export type Database = {
         Args: { p_firma: string; p_pieza: string; p_version: string }
         Returns: string
       }
+      reservar_gasto: {
+        Args: {
+          p_ahora?: string
+          p_clave: string
+          p_estimado_micro: number
+          p_marca?: string
+          p_paso: string
+          p_proveedor: string
+        }
+        Returns: Json
+      }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_para_publicar: {
@@ -846,12 +973,20 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      tope_vigente: {
+        Args: { p_marca: string; p_mes: string }
+        Returns: number
+      }
       transiciones_de_pieza: {
         Args: never
         Returns: {
           a: string[]
           de: string
         }[]
+      }
+      umbrales_de: {
+        Args: { p_frenado: boolean; p_marca: string; p_mes: string }
+        Returns: Json
       }
     }
     Enums: {

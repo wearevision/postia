@@ -22,12 +22,22 @@ async function limpiarDatosDePrueba(): Promise<void> {
     throw new Error(`No pude borrar excepciones de prueba: ${errorDeExcepcionesDeCasos.message}`)
   }
 
+  // The spend ledger has no foreign key to test users: test keys and test months are removed by name.
+  const { error: errorDeGastos } = await db.from("gastos").delete().like("clave", "prueba:%")
+  if (errorDeGastos) throw errorDeGastos
+  const { error: errorDeAvisosDeTope } = await db.from("avisos_de_tope").delete().gte("mes", "2400-01-01")
+  if (errorDeAvisosDeTope) throw errorDeAvisosDeTope
+  const { error: errorDeTopes } = await db.from("topes").delete().gte("desde_mes", "2400-01-01")
+  if (errorDeTopes) throw errorDeTopes
+
   // conexiones.conectada_por has no cascade: they go before their users. In batches: a full run leaves hundreds of
   // test users, too many ids for one URL.
   for (let i = 0; i < dePrueba.length; i += 50) {
     const lote = dePrueba.slice(i, i + 50)
     const { error: errorDeExcepciones } = await db.from("excepciones").delete().in("puesta_por", lote)
     if (errorDeExcepciones) throw new Error(`No pude borrar excepciones de prueba: ${errorDeExcepciones.message}`)
+    const { error: errorDeTopesPuestos } = await db.from("topes").delete().in("puesto_por", lote)
+    if (errorDeTopesPuestos) throw errorDeTopesPuestos
     const { error: errorDeConexiones } = await db.from("conexiones").delete().in("conectada_por", lote)
     if (errorDeConexiones) throw new Error(`No pude borrar conexiones de prueba: ${errorDeConexiones.message}`)
   }
