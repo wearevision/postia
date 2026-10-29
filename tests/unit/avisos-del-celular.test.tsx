@@ -5,7 +5,7 @@ import type { DatosDelDispositivo, PuertoDeAvisos } from "@/lib/avisos/navegador
 
 function puerto(datos: Partial<DatosDelDispositivo> = {}) {
   return {
-    leer: vi.fn(async () => ({
+    leer: vi.fn(async (_claveVapid: string | null) => ({
       ios: false,
       instalada: false,
       soportado: true,
@@ -42,5 +42,12 @@ describe("AvisosDelCelular", () => {
     expect(await screen.findByRole("button", { name: "Mandar aviso de prueba" })).toBeInTheDocument()
     expect(p.activar).toHaveBeenCalledWith("k")
     expect(guardar).toHaveBeenCalledWith({ endpoint: "https://p.test/1", p256dh: "k", auth: "a", userAgent: "x" })
+  })
+
+  test("offers to activate again when the device subscription does not match the server key", async () => {
+    const p = puerto({ suscrito: false, permiso: "granted" })
+    render(<AvisosDelCelular claveVapid="k" puerto={p} guardar={vi.fn()} probar={vi.fn()} />)
+    expect(await screen.findByRole("button", { name: "Activar avisos" })).toBeInTheDocument()
+    expect(p.leer).toHaveBeenCalledWith("k")
   })
 })

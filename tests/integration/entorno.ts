@@ -63,3 +63,17 @@ export async function marcaConDueno(userId: string, voz: "yo" | "nosotros" = "yo
   if (errorDeMiembro) throw errorDeMiembro
   return data.id
 }
+
+export async function cuentaDe(
+  marcaId: string,
+  tipo: "persona" | "empresa" = "persona",
+  ruta: "api" | "a_mano" = "api",
+): Promise<string> {
+  const { data, error } = await admin()
+    .from("cuentas")
+    .insert({ marca_id: marcaId, red: "linkedin", tipo, ruta, nombre: `Cuenta ${randomUUID().slice(0, 8)}` })
+    .select("id")
+    .single()
+  if (error) throw error
+  return data.id
+}

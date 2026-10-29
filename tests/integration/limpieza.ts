@@ -31,9 +31,29 @@ async function limpiarDatosDePrueba(): Promise<void> {
     : borrarMarcas.not("id", "is", null))
   if (errorDeMarcas) throw new Error(`No pude borrar marcas de prueba: ${errorDeMarcas.message}`)
 
+  await borrarArchivosHuerfanos()
+
   for (const id of dePrueba) {
     const { error: errorDeUsuario } = await db.auth.admin.deleteUser(id)
     if (errorDeUsuario) throw new Error(`No pude borrar un usuario de prueba: ${errorDeUsuario.message}`)
+  }
+}
+
+/** Storage objects have no foreign key to brands: the folders of deleted test brands are removed through the API. */
+async function borrarArchivosHuerfanos(): Promise<void> {
+  const db = admin()
+  const { data: marcas, error: errorDeMarcas } = await db.from("marcas").select("id")
+  if (errorDeMarcas) throw new Error(`No pude leer las marcas: ${errorDeMarcas.message}`)
+  const vigentes = new Set(marcas.map((m) => m.id))
+  const bucket = db.storage.from("piezas")
+  const { data: carpetas, error: errorDeCarpetas } = await bucket.list("", { limit: 1000 })
+  if (errorDeCarpetas) throw new Error(`No pude listar los archivos de prueba: ${errorDeCarpetas.message}`)
+  for (const carpeta of carpetas.filter((c) => !vigentes.has(c.name))) {
+    const { data: archivos, error: errorDeArchivos } = await bucket.list(carpeta.name, { limit: 1000 })
+    if (errorDeArchivos) throw new Error(`No pude listar ${carpeta.name}: ${errorDeArchivos.message}`)
+    if (archivos.length === 0) continue
+    const { error: errorAlBorrar } = await bucket.remove(archivos.map((a) => `${carpeta.name}/${a.name}`))
+    if (errorAlBorrar) throw new Error(`No pude borrar archivos de prueba: ${errorAlBorrar.message}`)
   }
 }
 

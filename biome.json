@@ -17,6 +17,7 @@
       "!lib/supabase/database.types.ts",
       "!.open-next",
       "!.wrangler",
+      "!.trigger",
       "!cloudflare-env.d.ts"
     ]
   },

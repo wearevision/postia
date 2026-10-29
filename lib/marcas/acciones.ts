@@ -1,7 +1,7 @@
 import { z } from "zod"
 import type { Db } from "@/lib/supabase/database"
 
-export type Resultado = { ok: true } | { ok: false; error: string }
+export type Resultado<T = object> = ({ ok: true } & T) | { ok: false; error: string }
 
 const NuevaMarca = z.object({ nombre: z.string().trim().min(1).max(80), voz: z.enum(["yo", "nosotros"]) })
 

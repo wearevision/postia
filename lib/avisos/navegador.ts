@@ -12,7 +12,7 @@ export type ResultadoDeActivar = { estado: "activada"; suscripcion: SuscripcionD
 
 /** The only door to browser push APIs, so components can be tested with a fake. */
 export interface PuertoDeAvisos {
-  leer(): Promise<DatosDelDispositivo>
+  leer(claveVapid: string | null): Promise<DatosDelDispositivo>
   activar(claveVapid: string): Promise<ResultadoDeActivar>
   desactivar(): Promise<null>
 }
@@ -20,6 +20,14 @@ export interface PuertoDeAvisos {
 function bytesDeBase64Url(texto: string): Uint8Array<ArrayBuffer> {
   const base64 = (texto + "=".repeat((4 - (texto.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/")
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+}
+
+/** A push subscription is only valid for the key it was created with; compare bytes, not strings. */
+export function mismaClave(clave: ArrayBuffer | null, claveVapid: string): boolean {
+  if (!clave) return false
+  const actual = new Uint8Array(clave)
+  const esperada = bytesDeBase64Url(claveVapid)
+  return actual.length === esperada.length && actual.every((byte, i) => byte === esperada[i])
 }
 
 function esIos(): boolean {
@@ -40,12 +48,15 @@ function soportaPush(): boolean {
 
 export function puertoDelNavegador(): PuertoDeAvisos {
   return {
-    async leer() {
+    async leer(claveVapid) {
       const soportado = soportaPush()
       let suscrito = false
       if (soportado) {
         const registro = await navigator.serviceWorker.getRegistration("/")
-        suscrito = Boolean(await registro?.pushManager.getSubscription())
+        const existente = await registro?.pushManager.getSubscription()
+        suscrito =
+          Boolean(existente) &&
+          (claveVapid === null || mismaClave(existente?.options.applicationServerKey ?? null, claveVapid))
       }
       const permiso: NotificationPermission = soportado ? Notification.permission : "default"
       return { ios: esIos(), instalada: estaInstalada(), soportado, permiso, suscrito }
@@ -56,12 +67,16 @@ export function puertoDelNavegador(): PuertoDeAvisos {
       if (permiso !== "granted") return { estado: "denegada" }
       await navigator.serviceWorker.register("/sw.js", { scope: "/" })
       const registro = await navigator.serviceWorker.ready
-      const suscripcion =
-        (await registro.pushManager.getSubscription()) ??
-        (await registro.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: bytesDeBase64Url(claveVapid),
-        }))
+      let suscripcion = await registro.pushManager.getSubscription()
+      // A subscription made with a rotated-out key can never receive pushes: replace it.
+      if (suscripcion && !mismaClave(suscripcion.options.applicationServerKey, claveVapid)) {
+        await suscripcion.unsubscribe()
+        suscripcion = null
+      }
+      suscripcion ??= await registro.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: bytesDeBase64Url(claveVapid),
+      })
       const { keys } = suscripcion.toJSON()
       return {
         estado: "activada",
