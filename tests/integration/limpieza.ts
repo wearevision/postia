@@ -1,3 +1,6 @@
+import { readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { admin } from "./entorno"
 
 const DOMINIO_DE_PRUEBA = "@prueba.postia.test"
@@ -57,7 +60,49 @@ async function borrarArchivosHuerfanos(): Promise<void> {
   }
 }
 
+const ARCHIVO_DE_CANDADO = join(tmpdir(), "postia-test-db.lock")
+
+function procesoVive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (causa) {
+    // EPERM: the process exists but belongs to someone else.
+    if (causa instanceof Error && "code" in causa && causa.code === "EPERM") return true
+    return false
+  }
+}
+
+/** The cleanup deletes every test brand, so two runs at once would delete each other's data: one run at a time. */
+function tomarCandado(): void {
+  try {
+    writeFileSync(ARCHIVO_DE_CANDADO, String(process.pid), { flag: "wx" })
+    return
+  } catch (causa) {
+    if (!(causa instanceof Error && "code" in causa && causa.code === "EEXIST")) throw causa
+  }
+  const pid = Number(readFileSync(ARCHIVO_DE_CANDADO, "utf8"))
+  if (Number.isInteger(pid) && pid > 0 && procesoVive(pid)) {
+    throw new Error("Otra corrida de test:db está en curso; espera a que termine.")
+  }
+  // The previous run died without releasing it.
+  rmSync(ARCHIVO_DE_CANDADO, { force: true })
+  writeFileSync(ARCHIVO_DE_CANDADO, String(process.pid), { flag: "wx" })
+}
+
 export default async function () {
-  await limpiarDatosDePrueba()
-  return limpiarDatosDePrueba
+  tomarCandado()
+  try {
+    await limpiarDatosDePrueba()
+  } catch (causa) {
+    rmSync(ARCHIVO_DE_CANDADO, { force: true })
+    throw causa
+  }
+  return async () => {
+    try {
+      await limpiarDatosDePrueba()
+    } finally {
+      rmSync(ARCHIVO_DE_CANDADO, { force: true })
+    }
+  }
 }
