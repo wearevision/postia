@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
-import { costoReal, enDolares, estimarCosto } from "@/lib/gasto/precios"
+import { Falla } from "@/lib/dominio/falla"
+import { costoReal, enDolares, estimarCosto, type ModeloClaude } from "@/lib/gasto/precios"
 
 describe("costoReal", () => {
   test("prices each kind of token for Claude Opus 5.5 and rounds up to the micro-dollar", () => {
@@ -18,6 +19,15 @@ describe("costoReal", () => {
     ).toBe(5)
   })
 
+  test("rounds a single token at any price up to at least one micro-dollar", () => {
+    const uno = { entrada: 0, salida: 0, escrituraDeCache: 0, lecturaDeCache: 0, busquedas: 0 }
+    for (const modelo of ["claude-opus-5-5", "claude-sonnet-5-5"] as const) {
+      for (const tipo of ["entrada", "salida", "escrituraDeCache", "lecturaDeCache"] as const) {
+        expect(costoReal(modelo, { ...uno, [tipo]: 1 }), `${modelo} ${tipo}`).toBeGreaterThanOrEqual(1)
+      }
+    }
+  })
+
   test("adds US$0.01 per web search", () => {
     expect(
       costoReal("claude-sonnet-5-5", { entrada: 0, salida: 0, escrituraDeCache: 0, lecturaDeCache: 0, busquedas: 3 }),
@@ -26,11 +36,36 @@ describe("costoReal", () => {
 })
 
 describe("estimarCosto", () => {
-  test("takes the worst case: every input token written to cache, the whole max_tokens, every search", () => {
-    // 2,000 characters ≈ 1,000 tokens at $5 + 1,000 output at $20 + 2 searches.
-    expect(estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 1000, busquedas: 2 })).toBe(
-      5000 + 20_000 + 20_000,
+  test("takes the worst case: every input token written to cache and the whole max_tokens", () => {
+    // 2,000 characters ≈ 1,000 tokens at $5 + 1,000 output at $20.
+    expect(estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 1000, busquedas: 0 })).toBe(
+      5000 + 20_000,
     )
+  })
+
+  test("refuses web searches until the research sub-plan bounds the tokens their results bring back", () => {
+    expect(() => estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 10, maxTokens: 10, busquedas: 1 })).toThrow(
+      Falla,
+    )
+  })
+
+  test("covers every input token as a cache write and the whole max_tokens, for any size and model", () => {
+    const modelos: ModeloClaude[] = ["claude-opus-5-5", "claude-sonnet-5-5"]
+    for (const modelo of modelos) {
+      for (const caracteres of [0, 1, 2, 3, 999, 4097, 123_457]) {
+        for (const maxTokens of [1, 7, 1024, 64_000]) {
+          const estimado = estimarCosto(modelo, { caracteresDeEntrada: caracteres, maxTokens, busquedas: 0 })
+          const peor = costoReal(modelo, {
+            entrada: 0,
+            salida: maxTokens,
+            escrituraDeCache: Math.ceil(caracteres / 2),
+            lecturaDeCache: 0,
+            busquedas: 0,
+          })
+          expect(estimado, `${modelo} ${caracteres} ${maxTokens}`).toBeGreaterThanOrEqual(peor)
+        }
+      }
+    }
   })
 
   test("is never below the real cost of the same request", () => {

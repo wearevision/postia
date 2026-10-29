@@ -87,7 +87,10 @@ export function mensajeDeTope(aviso: AvisoDeTope, nombreDeMarca: string | null):
       }
 }
 
-/** Federico's decision: the 80 % mark and the cap are immediate pushes to every owner, not digest lines. */
+/**
+ * Federico's decision: the 80 % mark and the cap are immediate pushes to every owner, not digest lines. A push that
+ * fails for one owner is logged and the rest still go out.
+ */
 export async function avisarTope(db: Db, servicio: ServicioPush, avisos: readonly AvisoDeTope[]): Promise<void> {
   if (avisos.length === 0) return
   const { data: duenos, error } = await db
@@ -99,7 +102,16 @@ export async function avisarTope(db: Db, servicio: ServicioPush, avisos: readonl
   const personas = [...new Set(duenos.map((d) => d.user_id))]
   for (const aviso of avisos) {
     const nombre = aviso.alcance === "global" ? null : (nombres.get(aviso.alcance) ?? "Una marca")
-    for (const persona of personas) await avisarPersona(db, servicio, persona, mensajeDeTope(aviso, nombre), true)
+    for (const persona of personas) {
+      try {
+        await avisarPersona(db, servicio, persona, mensajeDeTope(aviso, nombre), true)
+      } catch (error) {
+        // One owner's failing push must not cost the others theirs: the notice row is already written, so no retry.
+        console.error(
+          `No pude avisar el tope (${aviso.alcance}, ${aviso.umbral} %) a ${persona}: ${error instanceof Error ? error.message : String(error)}`,
+        )
+      }
+    }
   }
 }
 
