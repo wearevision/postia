@@ -1,0 +1,63 @@
+import { randomUUID } from "node:crypto"
+import { expect, test } from "@playwright/test"
+import { invitar } from "@/lib/equipo/invitar"
+import { admin, correoUnico } from "../integration/entorno"
+import { entrar } from "./ingreso"
+
+test("an owner writes the editorial line, marks a client not to be named, and gate 1 warns on a piece naming it", async ({
+  page,
+  request,
+}) => {
+  const db = admin()
+  const correo = correoUnico("e2e-voz")
+  const { marcaId } = await invitar(db, { correo, marca: `Marca ${correo}`, voz: "nosotros" })
+  const cuenta = await db.from("cuentas").insert({
+    marca_id: marcaId,
+    red: "linkedin",
+    tipo: "persona",
+    ruta: "api",
+    nombre: "Perfil Voz E2E",
+    ritmo_semanal: 3,
+  })
+  if (cuenta.error) throw new Error(`No pude crear la cuenta de prueba: ${cuenta.error.message}`)
+  const azar = randomUUID().slice(0, 8)
+  const cliente = `Cliente E2E ${azar}`
+  const caso = await db
+    .from("casos")
+    .insert({ slug: `prueba-e2e-${azar}`, cliente, titulo: `Activación ${azar}`, anio: 2025, era: "wav" })
+  if (caso.error) throw new Error(`No pude crear el caso de prueba: ${caso.error.message}`)
+
+  await entrar(page, request, correo)
+
+  await page.goto("/ajustes")
+  await page.getByRole("link", { name: "Voz y línea editorial" }).click()
+  await page.getByRole("link", { name: new RegExp(`^Marca ${correo}`) }).click()
+  await page.getByLabel("Tono y voz").fill("Cercano y concreto: hablamos de lo que hicimos en terreno.")
+  await page.getByLabel("Nombre del pilar").fill("Oficio")
+  await page.getByRole("button", { name: "Guardar versión nueva" }).click()
+  await expect(page.getByText("Guardada como versión 1.")).toBeVisible()
+  // The save refreshes the page; leaving before it lands interrupts the next navigation.
+  await expect(page.getByText(/Versión vigente: 1\./)).toBeVisible()
+
+  await page.goto("/clientes")
+  const ficha = page.locator("details", { has: page.locator("summary", { hasText: cliente }) })
+  await ficha.locator("summary").click()
+  await ficha.getByLabel("Tipo de excepción").selectOption({ label: "No se nombra" })
+  await ficha.getByRole("button", { name: "Marcar excepción" }).click()
+  await expect(ficha.getByText("Excepción marcada.")).toBeVisible()
+
+  await page.getByRole("link", { name: "Nueva", exact: true }).click()
+  await page.getByLabel("Pilar").selectOption({ label: "Oficio" })
+  await page.getByRole("textbox", { name: "Texto" }).fill(`Con ${cliente} en terreno.`)
+  await page.getByRole("button", { name: "Crear pieza" }).click()
+
+  const veredicto = page.getByRole("region", { name: "Revisa antes de firmar" })
+  await expect(veredicto).toBeVisible()
+  await expect(veredicto.getByText(`Nombra a ${cliente}, que no se nombra.`)).toBeVisible()
+  await expect(page.getByRole("button", { name: "Firmar y programar" })).toBeEnabled()
+  await expect(page.getByLabel("Pilar").locator("option:checked")).toHaveText("Oficio")
+
+  await page.goto("/calendario")
+  const pilares = page.getByRole("region", { name: /^Pilares/ })
+  await expect(pilares.getByText(/^Oficio: 0 de 4/)).toBeVisible()
+})

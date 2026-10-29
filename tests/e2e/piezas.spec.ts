@@ -1,24 +1,8 @@
 import { createHash } from "node:crypto"
-import { type APIRequestContext, expect, test } from "@playwright/test"
+import { expect, test } from "@playwright/test"
 import { invitar } from "@/lib/equipo/invitar"
 import { admin, correoUnico } from "../integration/entorno"
-
-const MAILPIT = "http://127.0.0.1:54624"
-
-async function codigoPara(request: APIRequestContext, correo: string): Promise<string> {
-  for (let intento = 0; intento < 20; intento++) {
-    const busqueda = await request.get(`${MAILPIT}/api/v1/search`, { params: { query: `to:"${correo}"` } })
-    const { messages } = (await busqueda.json()) as { messages: { ID: string }[] }
-    const ultimo = messages[0]
-    if (ultimo) {
-      const mensaje = (await (await request.get(`${MAILPIT}/api/v1/message/${ultimo.ID}`)).json()) as { Text: string }
-      const codigo = /\b(\d{6})\b/.exec(mensaje.Text)?.[1]
-      if (codigo) return codigo
-    }
-    await new Promise((listo) => setTimeout(listo, 500))
-  }
-  throw new Error(`No llegó el código a ${correo}`)
-}
+import { entrar } from "./ingreso"
 
 test("an owner creates a text piece, signs it with the proposed date and finds it under Próximas", async ({
   page,
@@ -37,12 +21,7 @@ test("an owner creates a text piece, signs it with the proposed date and finds i
   })
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
 
-  await page.goto("/ingreso")
-  await page.getByLabel("Tu correo").fill(correo)
-  await page.getByRole("button", { name: "Mandar código" }).click()
-  await page.getByLabel("Código de 6 números").fill(await codigoPara(request, correo))
-  await page.getByRole("button", { name: "Entrar" }).click()
-  await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible()
+  await entrar(page, request, correo)
 
   await page.getByRole("link", { name: "Nueva", exact: true }).click()
   await page.getByRole("textbox", { name: "Texto" }).fill("Una idea corta para probar la firma.")
@@ -76,12 +55,7 @@ test("a new piece arrives planned, signed for the reserve it shows in Inicio and
   })
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
 
-  await page.goto("/ingreso")
-  await page.getByLabel("Tu correo").fill(correo)
-  await page.getByRole("button", { name: "Mandar código" }).click()
-  await page.getByLabel("Código de 6 números").fill(await codigoPara(request, correo))
-  await page.getByRole("button", { name: "Entrar" }).click()
-  await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible()
+  await entrar(page, request, correo)
 
   await page.goto("/piezas/nueva")
   await page.getByRole("textbox", { name: "Texto" }).fill("Una pieza para la reserva.")
@@ -116,12 +90,7 @@ test("an owner uploads a carousel PDF, and the piece keeps the file the server h
   })
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
 
-  await page.goto("/ingreso")
-  await page.getByLabel("Tu correo").fill(correo)
-  await page.getByRole("button", { name: "Mandar código" }).click()
-  await page.getByLabel("Código de 6 números").fill(await codigoPara(request, correo))
-  await page.getByRole("button", { name: "Entrar" }).click()
-  await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible()
+  await entrar(page, request, correo)
 
   await page.goto("/piezas/nueva")
   await page.getByRole("radio", { name: "Carrusel PDF" }).check()
