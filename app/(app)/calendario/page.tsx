@@ -3,7 +3,9 @@ import { leerVista, limitesDelMes, mesDe, semanaDe } from "@/lib/piezas/calendar
 import { calendario } from "@/lib/piezas/lectura"
 import { rutaDeCalendario } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
+import { balancePorCuenta } from "@/lib/voz/lectura"
 import { VistaDelMes } from "./mes"
+import { PilaresDelCalendario } from "./pilares"
 import { VistaDeSemana } from "./semana"
 
 type Parametros = Record<string, string | string[] | undefined>
@@ -22,7 +24,8 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
     ahora,
   )
   const { desde, hasta } = vista.vista === "semana" ? vista.semana : limitesDelMes(vista.mes)
-  const { cuentas, piezas } = await calendario(await createClient(), desde, hasta)
+  const db = await createClient()
+  const [{ cuentas, piezas }, balances] = await Promise.all([calendario(db, desde, hasta), balancePorCuenta(db, ahora)])
   const enSemana = vista.vista === "semana"
   // From another month, «Semana» opens the week that holds that month's first day.
   const semanaDelMes =
@@ -61,6 +64,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       ) : (
         <VistaDelMes mes={vista.mes} piezas={piezas} />
       )}
+      <PilaresDelCalendario balances={balances} />
     </div>
   )
 }
