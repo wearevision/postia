@@ -49,8 +49,7 @@ function falla(error: { code?: string; message: string }): { ok: false; error: s
   if (error.code === "23514" && MENSAJES_DE_LA_GUARDIA.some((m) => error.message.startsWith(m))) {
     return { ok: false, error: "La pieza no puede pasar a ese estado desde donde está." }
   }
-  const mensaje = MENSAJES[error.message]
-  if (mensaje) return { ok: false, error: mensaje }
+  if (Object.hasOwn(MENSAJES, error.message)) return { ok: false, error: MENSAJES[error.message] }
   console.error("Falla inesperada al guardar una pieza", error.code, error.message)
   return { ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." }
 }
@@ -285,4 +284,39 @@ export async function ponerPilar(db: Db, entrada: unknown): Promise<Resultado> {
     p_pilar: leida.data.pilarId ?? undefined,
   })
   return error ? falla(error) : { ok: true }
+}
+
+/** What a new piece could not get right after it was created; its page asks for it. */
+export type AvisoDePiezaNueva = "plan" | "pilar"
+
+interface PuertosDeCreacion {
+  crear(entrada: unknown): Promise<Resultado<{ piezaId: string }>>
+  planear(piezaId: string): Promise<Resultado>
+  ponerPilar(entrada: { piezaId: string; pilarId: string }): Promise<Resultado>
+}
+
+const PilarElegido = z.object({ pilarId: z.uuid() })
+
+/** Creates a piece, plans it and sets its pillar. A failed plan or pillar never loses the piece: it comes back as a notice. */
+export async function crearPiezaCon(
+  p: PuertosDeCreacion,
+  entrada: unknown,
+): Promise<Resultado<{ piezaId: string; aviso: AvisoDePiezaNueva[] }>> {
+  const creada = await p.crear(entrada)
+  if (!creada.ok) return creada
+  const aviso: AvisoDePiezaNueva[] = []
+  const plan = await p.planear(creada.piezaId)
+  if (!plan.ok) {
+    console.error("No pude planear la pieza nueva", creada.piezaId, plan.error)
+    aviso.push("plan")
+  }
+  const pilar = PilarElegido.safeParse(entrada)
+  if (pilar.success) {
+    const puesto = await p.ponerPilar({ piezaId: creada.piezaId, pilarId: pilar.data.pilarId })
+    if (!puesto.ok) {
+      console.error("No pude poner el pilar de la pieza nueva", creada.piezaId, puesto.error)
+      aviso.push("pilar")
+    }
+  }
+  return { ok: true, piezaId: creada.piezaId, aviso }
 }

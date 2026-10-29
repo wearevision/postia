@@ -18,8 +18,9 @@ export function rutaDeVoz(marcaId: string, version?: number): string {
   return `${RUTA_DE_VOZ}/${encodeURIComponent(marcaId)}${version ? `?version=${version}` : ""}`
 }
 
-export function rutaDePieza(id: string): string {
-  return `/piezas/${id}`
+/** `aviso` names what a new piece could not get (lib/piezas/acciones.ts AvisoDePiezaNueva); its page asks for it. */
+export function rutaDePieza(id: string, aviso: readonly string[] = []): string {
+  return `/piezas/${id}${aviso.length > 0 ? `?aviso=${aviso.join(",")}` : ""}`
 }
 
 const PUBLICAS = new Set([RUTA_DE_INGRESO])

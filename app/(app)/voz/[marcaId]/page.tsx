@@ -72,7 +72,8 @@ export default async function LineaDeMarca({
         </div>
       ) : (
         <EditorDeLinea
-          key={vigente}
+          // Not the version: a remount would drop «Guardada como versión N.» when the save revalidates the page.
+          key={marca.id}
           marcaId={marca.id}
           base={vigente}
           secciones={actual?.secciones ?? VACIA}

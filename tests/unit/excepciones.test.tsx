@@ -44,10 +44,43 @@ describe("ExcepcionesDeCliente", () => {
     )
   })
 
-  test("removes an exception", async () => {
+  test("removes an exception only after a second «Sí, quitar»", async () => {
     const { quitar } = montar()
     fireEvent.click(screen.getByRole("button", { name: "Quitar Sin logo" }))
+    expect(screen.getByText("¿Quitar?")).toBeVisible()
+    expect(quitar).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "Sí, quitar Sin logo" }))
     await waitFor(() => expect(quitar).toHaveBeenCalledWith("e1"))
+  })
+
+  test("«No» keeps the exception", () => {
+    const { quitar } = montar()
+    fireEvent.click(screen.getByRole("button", { name: "Quitar Sin logo" }))
+    fireEvent.click(screen.getByRole("button", { name: "No" }))
+    expect(screen.queryByText("¿Quitar?")).toBeNull()
+    expect(screen.getByRole("button", { name: "Quitar Sin logo" })).toBeVisible()
+    expect(quitar).not.toHaveBeenCalled()
+  })
+
+  test("names the case in the remove button of an exception for one case", () => {
+    montar({
+      ...CLIENTE,
+      excepciones: [
+        { id: "e1", tipo: "sin_logo", casoSlug: null, alias: [], hasta: null },
+        { id: "e2", tipo: "sin_logo", casoSlug: "copec-85-2019", alias: [], hasta: null },
+      ],
+    })
+    expect(screen.getByRole("button", { name: "Quitar Sin logo" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Quitar Sin logo de Copec 85 años" })).toBeVisible()
+  })
+
+  test("the end date starts at today in Chile", () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    // 23:00 of November 2 in Chile.
+    vi.setSystemTime(new Date("2026-11-03T02:00:00Z"))
+    montar()
+    expect(screen.getByLabelText("Hasta (opcional)")).toHaveAttribute("min", "2026-11-02")
+    vi.useRealTimers()
   })
 
   test("shows the server's error", async () => {

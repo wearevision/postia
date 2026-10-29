@@ -70,8 +70,20 @@ describe("poner_pilar", () => {
     expect((await extrano.db.rpc("poner_pilar", { p_pieza: pieza })).error?.code).toBe("42501")
     await db.rpc("descartar_pieza", { p_pieza: pieza, p_motivo: "No va" })
     expect((await db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: pilares[0]?.id ?? null })).error?.message).toBe(
-      "pieza_ya_cerrada",
+      "pieza_no_editable",
     )
+  })
+
+  test("only a piece waiting for its signature, in the reserve or scheduled takes a pillar, as on its page", async () => {
+    const { db, cuenta, pilares } = await conPilares()
+    const pieza = await piezaDe(db, cuenta)
+    const { huella } = await versionVigente(pieza)
+    await db.rpc("firmar_pieza", { p_pieza: pieza, p_huella: huella, p_programada_para: enDias(3) })
+    const { error: alMover } = await admin().from("piezas").update({ estado: "a_mano" }).eq("id", pieza)
+    expect(alMover).toBeNull()
+    const { error } = await db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: pilares[0]?.id ?? null })
+    expect(error?.message).toBe("pieza_no_editable")
+    expect(await pilarDe(pieza)).toBeNull()
   })
 
   test("an old piece keeps a retired pillar, but nobody sets a retired pillar anew", async () => {

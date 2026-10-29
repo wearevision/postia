@@ -201,4 +201,18 @@ describe("lib/clientes", () => {
       }),
     ).toEqual({ ok: false, error: "Revisa el cliente, el tipo y los alias: sin alias repetidos." })
   })
+
+  test("marcarExcepcion refuses an end date that already passed in Chile and takes today", async () => {
+    const { db } = await duenoDeAlguna("cli-fecha")
+    // 23:00 of November 2 in Chile.
+    const ahora = Date.parse("2026-11-03T02:00:00Z")
+    const entrada = (hasta: string) => ({
+      cliente: `Cliente ${randomUUID().slice(0, 6)}`,
+      tipo: "sin_logo",
+      alias: "",
+      hasta,
+    })
+    expect(await marcarExcepcion(db, entrada("2026-11-01"), ahora)).toEqual({ ok: false, error: "La fecha ya pasó." })
+    expect(await marcarExcepcion(db, entrada("2026-11-02"), ahora)).toMatchObject({ ok: true })
+  })
 })

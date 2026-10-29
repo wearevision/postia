@@ -5,6 +5,7 @@ import { esPalabraComun, variantesDelNombre } from "@/lib/clientes/alias"
 import { type ClienteConCasos, TIPOS_DE_EXCEPCION } from "@/lib/clientes/lectura"
 import type { TipoDeExcepcion } from "@/lib/clientes/revision"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { diaEnSantiago } from "@/lib/piezas/calendario"
 
 type Marcar = (entrada: unknown) => Promise<Resultado<{ id: string }>>
 type Quitar = (id: string) => Promise<Resultado>
@@ -144,7 +145,13 @@ function FormularioDeExcepcion({ cliente, casos, marcar }: FormularioProps) {
       )}
       <label className="block space-y-1">
         <span className="text-sm">Hasta (opcional)</span>
-        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className={CAMPO} />
+        <input
+          type="date"
+          value={hasta}
+          min={diaEnSantiago(Date.now())}
+          onChange={(e) => setHasta(e.target.value)}
+          className={CAMPO}
+        />
       </label>
       <button
         type="submit"
@@ -172,11 +179,13 @@ interface Props {
 
 export function ExcepcionesDeCliente({ cliente, marcar, quitar, abierto = false }: Props) {
   const [error, setError] = useState<string | null>(null)
+  const [porQuitar, setPorQuitar] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
   const cuantas = cliente.excepciones.length
 
   function quitarExcepcion(id: string) {
     setError(null)
+    setPorQuitar(null)
     iniciar(async () => {
       const resultado = await quitar(id)
       if (!resultado.ok) setError(resultado.error)
@@ -204,6 +213,7 @@ export function ExcepcionesDeCliente({ cliente, marcar, quitar, abierto = false 
         <ul className="mt-3 space-y-1">
           {cliente.excepciones.map((e) => {
             const caso = e.casoSlug ? (cliente.casos.find((c) => c.slug === e.casoSlug)?.titulo ?? e.casoSlug) : null
+            const nombre = `${TIPOS_DE_EXCEPCION[e.tipo]}${caso ? ` de ${caso}` : ""}`
             return (
               <li key={e.id} className="flex items-center justify-between gap-2 text-sm">
                 <span>
@@ -212,15 +222,38 @@ export function ExcepcionesDeCliente({ cliente, marcar, quitar, abierto = false 
                   {e.alias.length > 0 && <span className="text-apagado"> · también {e.alias.join(", ")}</span>}
                   {e.hasta && <span className="text-apagado"> · hasta el {fechaCorta(e.hasta)}</span>}
                 </span>
-                <button
-                  type="button"
-                  disabled={pendiente}
-                  aria-label={`Quitar ${TIPOS_DE_EXCEPCION[e.tipo]}`}
-                  onClick={() => quitarExcepcion(e.id)}
-                  className="min-h-11 shrink-0 px-2 text-apagado underline disabled:opacity-60"
-                >
-                  Quitar
-                </button>
+                {/* Removing lifts the protection at once, also for pieces already signed: it asks twice. */}
+                {porQuitar === e.id ? (
+                  <span className="flex shrink-0 items-center gap-1">
+                    <span>¿Quitar?</span>
+                    <button
+                      type="button"
+                      disabled={pendiente}
+                      aria-label={`Sí, quitar ${nombre}`}
+                      onClick={() => quitarExcepcion(e.id)}
+                      className="min-h-11 px-2 font-medium text-peligro underline disabled:opacity-60"
+                    >
+                      Sí, quitar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPorQuitar(null)}
+                      className="min-h-11 px-2 text-apagado underline"
+                    >
+                      No
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={pendiente}
+                    aria-label={`Quitar ${nombre}`}
+                    onClick={() => setPorQuitar(e.id)}
+                    className="min-h-11 shrink-0 px-2 text-apagado underline disabled:opacity-60"
+                  >
+                    Quitar
+                  </button>
+                )}
               </li>
             )
           })}

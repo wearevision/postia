@@ -21,8 +21,18 @@ interface Props {
 }
 
 const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
-const PILAR_NUEVO: PilarDeLinea = { nombre: "", deQueHabla: "", material: "", porSemana: 1 }
 const POR_SEMANA = [0.5, 1, 2, 3]
+
+/** `clave` keeps a pillar's fields attached to it while others are removed; it never leaves the browser. */
+type PilarEnEdicion = PilarDeLinea & { clave: string }
+
+function pilarNuevo(): PilarEnEdicion {
+  return { nombre: "", deQueHabla: "", material: "", porSemana: 1, clave: crypto.randomUUID() }
+}
+
+function enEdicion(pilares: PilarDeLinea[]): PilarEnEdicion[] {
+  return pilares.length > 0 ? pilares.map((p) => ({ ...p, clave: p.id ?? crypto.randomUUID() })) : [pilarNuevo()]
+}
 
 function textoPorSemana(n: number): string {
   return n === 0.5 ? "1 cada dos semanas" : `${n.toLocaleString("es-CL")} por semana`
@@ -31,10 +41,19 @@ function textoPorSemana(n: number): string {
 export function EditorDeLinea({ marcaId, base, secciones: iniciales, pilares: pilaresIniciales, guardar }: Props) {
   const router = useRouter()
   const [secciones, setSecciones] = useState(iniciales)
-  const [pilares, setPilares] = useState(pilaresIniciales.length > 0 ? pilaresIniciales : [PILAR_NUEVO])
+  const [pilares, setPilares] = useState(() => enEdicion(pilaresIniciales))
+  const [baseVista, setBaseVista] = useState(base)
   const [error, setError] = useState<string | null>(null)
   const [guardada, setGuardada] = useState<number | null>(null)
   const [pendiente, iniciar] = useTransition()
+
+  // A save brings the new version: its pillars carry the ids just created, which the next save must send, or the
+  // database would create them again. The notice of the save stays.
+  if (base !== baseVista) {
+    setBaseVista(base)
+    setSecciones(iniciales)
+    setPilares(enEdicion(pilaresIniciales))
+  }
 
   function cambiarPilar(i: number, cambios: Partial<PilarDeLinea>) {
     setPilares((ps) => ps.map((p, j) => (j === i ? { ...p, ...cambios } : p)))
@@ -45,7 +64,7 @@ export function EditorDeLinea({ marcaId, base, secciones: iniciales, pilares: pi
     setError(null)
     setGuardada(null)
     iniciar(async () => {
-      const resultado = await guardar({ marcaId, base, secciones, pilares })
+      const resultado = await guardar({ marcaId, base, secciones, pilares: pilares.map(({ clave: _, ...p }) => p) })
       if (!resultado.ok) return setError(resultado.error)
       setGuardada(resultado.version)
       router.refresh()
@@ -70,7 +89,7 @@ export function EditorDeLinea({ marcaId, base, secciones: iniciales, pilares: pi
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">Pilares</legend>
         {pilares.map((p, i) => (
-          <div key={p.id ?? `nuevo-${i}`} className="space-y-2 rounded-lg border border-borde p-3">
+          <div key={p.clave} className="space-y-2 rounded-lg border border-borde p-3">
             <label className="block space-y-1">
               <span className="text-sm">Nombre del pilar</span>
               <input
@@ -129,7 +148,7 @@ export function EditorDeLinea({ marcaId, base, secciones: iniciales, pilares: pi
         {pilares.length < MAXIMO_DE_PILARES && (
           <button
             type="button"
-            onClick={() => setPilares((ps) => [...ps, PILAR_NUEVO])}
+            onClick={() => setPilares((ps) => [...ps, pilarNuevo()])}
             className="min-h-11 w-full rounded-lg border border-borde px-4"
           >
             Agregar pilar

@@ -67,4 +67,17 @@ describe("EditorDeLinea", () => {
     )
     expect(screen.getByLabelText("Por semana")).toHaveValue("1.5")
   })
+
+  test("removing a new pillar keeps the others' fields on their own pillar", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Agregar pilar" }))
+    fireEvent.click(screen.getByRole("button", { name: "Agregar pilar" }))
+    const nombres = () => screen.getAllByLabelText("Nombre del pilar")
+    fireEvent.change(nombres()[1] as HTMLElement, { target: { value: "Segundo" } })
+    fireEvent.change(nombres()[2] as HTMLElement, { target: { value: "Tercero" } })
+    const tercero = nombres()[2]
+    fireEvent.click(screen.getByRole("button", { name: "Quitar Segundo" }))
+    expect(nombres()[1]).toBe(tercero)
+    expect(tercero).toHaveValue("Tercero")
+  })
 })

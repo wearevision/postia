@@ -204,10 +204,11 @@ begin
   if p_pilar is not null and not exists (select 1 from public.pilares where id = p_pilar and activo) then
     raise exception using errcode = '22023', message = 'pilar_inactivo';
   end if;
+  -- The same states whose page offers «Pilar»: a piece being sent, sent, closed or with a person is left as it is.
   update public.piezas set pilar_id = p_pilar
-   where id = p_pieza and estado not in ('publicando', 'publicada', 'descartada');
+   where id = p_pieza and estado in ('por_aprobar', 'en_reserva', 'programada');
   if not found then
-    raise exception using errcode = '22023', message = 'pieza_ya_cerrada';
+    raise exception using errcode = '22023', message = 'pieza_no_editable';
   end if;
 end $$;
 

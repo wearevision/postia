@@ -5,6 +5,7 @@ import {
   RUTA_DE_CLIENTES,
   RUTA_DE_VOZ,
   rutaDeCalendario,
+  rutaDePieza,
   rutaDeVoz,
 } from "@/lib/sesion/rutas"
 
@@ -39,5 +40,14 @@ describe("voz y clientes", () => {
     expect(RUTA_DE_CLIENTES).toBe("/clientes")
     expect(rutaDeVoz("m1")).toBe("/voz/m1")
     expect(rutaDeVoz("m1", 3)).toBe("/voz/m1?version=3")
+  })
+})
+
+describe("rutaDePieza", () => {
+  test("a piece, and a new piece whose plan or pillar could not be set", () => {
+    expect(rutaDePieza("p1")).toBe("/piezas/p1")
+    expect(rutaDePieza("p1", [])).toBe("/piezas/p1")
+    expect(rutaDePieza("p1", ["pilar"])).toBe("/piezas/p1?aviso=pilar")
+    expect(rutaDePieza("p1", ["plan", "pilar"])).toBe("/piezas/p1?aviso=plan,pilar")
   })
 })

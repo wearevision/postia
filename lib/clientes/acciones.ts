@@ -1,5 +1,6 @@
 import { z } from "zod"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { diaEnSantiago } from "@/lib/piezas/calendario"
 import type { Db } from "@/lib/supabase/database"
 
 const MENSAJES: Record<string, string> = {
@@ -9,17 +10,22 @@ const MENSAJES: Record<string, string> = {
   excepcion_invalida: "Revisa el cliente, el tipo y los alias: sin alias repetidos.",
 }
 
-const NuevaExcepcion = z.object({
-  cliente: z.string().trim().min(1).max(120),
-  casoSlug: z
-    .string()
-    .regex(/^[a-z0-9-]{3,140}$/)
-    .optional(),
-  tipo: z.enum(["no_nombrar", "sin_fotos", "sin_logo", "confidencial"]),
-  // The form sends text: aliases separated by commas, and an empty date for «until removed».
-  alias: z.string().max(600),
-  hasta: z.union([z.literal(""), z.iso.date()]),
-})
+const FECHA_PASADA = "La fecha ya pasó."
+
+/** `hoy` is Chile's calendar day: an end date is inclusive, so today is still allowed. */
+function nuevaExcepcion(hoy: string) {
+  return z.object({
+    cliente: z.string().trim().min(1).max(120),
+    casoSlug: z
+      .string()
+      .regex(/^[a-z0-9-]{3,140}$/)
+      .optional(),
+    tipo: z.enum(["no_nombrar", "sin_fotos", "sin_logo", "confidencial"]),
+    // The form sends text: aliases separated by commas, and an empty date for «until removed».
+    alias: z.string().max(600),
+    hasta: z.union([z.literal(""), z.iso.date()]).refine((d) => d === "" || d >= hoy, { message: FECHA_PASADA }),
+  })
+}
 
 function falla(error: { code?: string; message: string }): { ok: false; error: string } {
   if (error.code === "23505") return { ok: false, error: "Ese cliente ya tiene esa excepción." }
@@ -28,9 +34,16 @@ function falla(error: { code?: string; message: string }): { ok: false; error: s
   return { ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." }
 }
 
-export async function marcarExcepcion(db: Db, entrada: unknown): Promise<Resultado<{ id: string }>> {
-  const leida = NuevaExcepcion.safeParse(entrada)
-  if (!leida.success) return { ok: false, error: "Revisa el cliente, el tipo y la fecha." }
+export async function marcarExcepcion(
+  db: Db,
+  entrada: unknown,
+  ahora = Date.now(),
+): Promise<Resultado<{ id: string }>> {
+  const leida = nuevaExcepcion(diaEnSantiago(ahora)).safeParse(entrada)
+  if (!leida.success) {
+    const pasada = leida.error.issues.some((i) => i.message === FECHA_PASADA)
+    return { ok: false, error: pasada ? FECHA_PASADA : "Revisa el cliente, el tipo y la fecha." }
+  }
   const e = leida.data
   const alias = e.alias
     .split(",")

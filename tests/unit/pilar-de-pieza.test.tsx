@@ -46,4 +46,23 @@ describe("PilarDePieza", () => {
     expect(screen.getByLabelText("Pilar")).toHaveValue(retirado)
     expect(screen.getByRole("option", { name: "Viejo (ya no está en la línea)" })).toBeInTheDocument()
   })
+
+  test("says the new piece was created without its pillar until one is chosen", async () => {
+    const poner = vi.fn<Poner>(async () => ({ ok: true }))
+    render(
+      <PilarDePieza
+        piezaId={PIEZA}
+        pilarId={null}
+        pilarNombre={null}
+        pilares={PILARES}
+        poner={poner}
+        sinPilarAlCrear
+      />,
+    )
+    expect(screen.getByText("La pieza se creó, pero no pude ponerle el pilar. Elígelo aquí.")).toBeVisible()
+    fireEvent.change(screen.getByLabelText("Pilar"), { target: { value: PILARES[0]?.id } })
+    await waitFor(() =>
+      expect(screen.queryByText("La pieza se creó, pero no pude ponerle el pilar. Elígelo aquí.")).toBeNull(),
+    )
+  })
 })

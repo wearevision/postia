@@ -24,7 +24,8 @@ export interface PilarDelFormulario {
 interface Props {
   cuentas: CuentaDelFormulario[]
   pilares?: PilarDelFormulario[]
-  crear: (entrada: unknown) => Promise<Resultado<{ piezaId: string }>>
+  /** `aviso` names what the new piece could not get (plan, pillar); its page asks for it. */
+  crear: (entrada: unknown) => Promise<Resultado<{ piezaId: string; aviso?: readonly string[] }>>
   subir?: (marcaId: string, pdf: File) => Promise<string | null>
 }
 
@@ -86,7 +87,7 @@ export function FormularioDePieza({ cuentas, pilares = [], crear, subir = subirD
     // The pillar key is always sent, null for none, so the action never mistakes a missing field for a choice.
     const pilar = pilaresDeLaCuenta.some((p) => p.id === pilarId) ? pilarId : null
     iniciar(async () => {
-      let resultado: Resultado<{ piezaId: string }>
+      let resultado: Resultado<{ piezaId: string; aviso?: readonly string[] }>
       if (formato === "texto") {
         resultado = await crear({ cuentaId, formato, texto, pilarId: pilar })
       } else {
@@ -107,7 +108,7 @@ export function FormularioDePieza({ cuentas, pilares = [], crear, subir = subirD
           pilarId: pilar,
         })
       }
-      if (resultado.ok) router.push(rutaDePieza(resultado.piezaId))
+      if (resultado.ok) router.push(rutaDePieza(resultado.piezaId, resultado.aviso))
       else setError(resultado.error)
     })
   }

@@ -50,4 +50,9 @@ describe("PlanDePieza", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Esa cuenta ya tiene una pieza a esa hora. Elige otra.")
   })
+
+  test("says the new piece was created without a planned date", () => {
+    render(<PlanDePieza piezaId={PIEZA} planeadaPara={null} planear={vi.fn()} sinPlanAlCrear />)
+    expect(screen.getByText("La pieza se creó, pero no pude ponerle fecha planeada. Elígela aquí.")).toBeVisible()
+  })
 })

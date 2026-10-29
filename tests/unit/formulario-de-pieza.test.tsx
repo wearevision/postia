@@ -3,7 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { FormularioDePieza } from "@/app/(app)/piezas/nueva/formulario"
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
+const { push } = vi.hoisted(() => ({ push: vi.fn() }))
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))
 
 const CUENTA = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -155,5 +156,21 @@ describe("pillar", () => {
   test("hides the pillar when the brand has none", () => {
     render(<FormularioDePieza cuentas={[CUENTA]} crear={vi.fn()} />)
     expect(screen.queryByLabelText("Pilar")).toBeNull()
+  })
+})
+
+describe("after creating", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  test("opens the piece, flagging what could not be set on it", async () => {
+    const crear = vi.fn(async () => ({
+      ok: true as const,
+      piezaId: "44444444-4444-4444-8444-444444444444",
+      aviso: ["pilar" as const],
+    }))
+    render(<FormularioDePieza cuentas={[CUENTA]} crear={crear} />)
+    escribir("Texto")
+    crearPieza()
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/piezas/44444444-4444-4444-8444-444444444444?aviso=pilar"))
   })
 })

@@ -8,9 +8,11 @@ interface Props {
   piezaId: string
   planeadaPara: string | null
   planear: (entrada: { piezaId: string; planeadaPara: string }) => Promise<Resultado>
+  /** The piece was just created and no planned date could be proposed for it. */
+  sinPlanAlCrear?: boolean
 }
 
-export function PlanDePieza({ piezaId, planeadaPara, planear }: Props) {
+export function PlanDePieza({ piezaId, planeadaPara, planear, sinPlanAlCrear = false }: Props) {
   const [moviendo, setMoviendo] = useState(false)
   const [fecha, setFecha] = useState(() => (planeadaPara ? valorLocal(planeadaPara) : ""))
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +34,11 @@ export function PlanDePieza({ piezaId, planeadaPara, planear }: Props) {
     <section className="space-y-2 rounded-lg border border-borde p-3">
       <h2 className="font-medium">Fecha planeada</h2>
       <p>{planeadaPara ? fechaLarga(planeadaPara) : "Sin fecha planeada"}</p>
+      <output className="block text-sm">
+        {sinPlanAlCrear &&
+          planeadaPara === null &&
+          "La pieza se creó, pero no pude ponerle fecha planeada. Elígela aquí."}
+      </output>
       <p className="text-sm text-apagado">Es una propuesta: sale solo si la firmas.</p>
       {moviendo ? (
         <form onSubmit={guardar} className="space-y-2">
