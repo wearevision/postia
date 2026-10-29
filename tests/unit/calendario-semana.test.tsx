@@ -73,4 +73,9 @@ describe("VistaDeSemana", () => {
     expect(within(perfil).getByText("Nada esta semana.")).toBeInTheDocument()
     expect(within(perfil).queryByText(/^Reserva/)).not.toBeInTheDocument()
   })
+
+  test("does not count what is missing in a week that is already over", () => {
+    render(<VistaDeSemana lunes="2026-10-26" cuentas={CUENTAS} piezas={PIEZAS} terminada />)
+    expect(screen.queryByText(/^Faltan/)).not.toBeInTheDocument()
+  })
 })

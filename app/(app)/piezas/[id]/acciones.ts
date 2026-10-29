@@ -56,9 +56,7 @@ export async function firmarParaReservaAccion(entrada: { piezaId: string; huella
   return despues(entrada.piezaId, await firmarParaReserva(await createActionClient(), entrada))
 }
 
-// sacarDeReserva re-plans the piece itself; a failed plan comes back in the result after the take-out already happened.
+// sacarDeReserva re-plans the piece itself and logs a failed plan; only a refused take-out is an error here.
 export async function sacarDeReservaAccion(piezaId: string): Promise<Resultado> {
-  const resultado = await sacarDeReserva(await createActionClient(), piezaId)
-  if (!resultado.ok) console.error("No pude planear la pieza al sacarla de la reserva", piezaId, resultado.error)
-  return despues(piezaId, resultado)
+  return despues(piezaId, await sacarDeReserva(await createActionClient(), piezaId))
 }

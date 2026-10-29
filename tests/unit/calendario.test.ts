@@ -94,4 +94,20 @@ describe("leerVista", () => {
       semana: { lunes: "2026-10-26" },
     })
   })
+
+  test("years outside 2000 to 2100 fall back to the present instead of failing", () => {
+    expect(leerVista({ semana: "9999-12-31" }, AHORA)).toMatchObject({
+      vista: "semana",
+      semana: { lunes: "2026-10-26" },
+    })
+    expect(leerVista({ vista: "mes", mes: "9999-12" }, AHORA)).toEqual({ vista: "mes", mes: "2026-10" })
+    expect(leerVista({ semana: "0099-06-01" }, AHORA)).toMatchObject({
+      vista: "semana",
+      semana: { lunes: "2026-10-26" },
+    })
+  })
+  test("the last accepted month still has neighbours to compute", () => {
+    expect(leerVista({ vista: "mes", mes: "2100-12" }, AHORA)).toEqual({ vista: "mes", mes: "2100-12" })
+    expect(limitesDelMes("2100-12").hasta).toBe("2101-01-01T03:00:00.000Z")
+  })
 })

@@ -49,18 +49,20 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       )}
       {estado === "por_aprobar" && (
         <FirmaDePieza
+          key={pieza.fechaPropuesta}
           piezaId={pieza.id}
           huella={version.huella}
           texto={version.texto}
           fechaPropuesta={pieza.fechaPropuesta}
           ruta={cuenta.ruta}
+          cuenta={cuenta.nombre}
           firmar={firmarAccion}
           firmarParaReserva={firmarParaReservaAccion}
         />
       )}
       {estado === "en_reserva" && (
         <div className="space-y-3">
-          <p>En reserva. La app le pone fecha cuando a {cuenta.nombre} le falte una pieza firmada.</p>
+          <p>En reserva: la app le pone fecha y la publica cuando a {cuenta.nombre} le falte una pieza firmada.</p>
           <SacarDeReserva piezaId={pieza.id} sacar={sacarDeReservaAccion} />
         </div>
       )}

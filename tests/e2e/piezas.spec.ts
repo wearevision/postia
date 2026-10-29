@@ -90,7 +90,7 @@ test("a new piece arrives planned, signed for the reserve it shows in Inicio and
   const plan = page.locator("section section", { has: page.getByRole("heading", { name: "Fecha planeada" }) })
   await expect(plan.getByText(/^\p{L}+ \d+ de \p{L}+, \d{2}:\d{2}$/u)).toBeVisible()
   await page.getByRole("button", { name: "Firmar para la reserva" }).click()
-  await expect(page.getByText(/^En reserva\./)).toBeVisible()
+  await expect(page.getByText(/^En reserva: la app le pone fecha/)).toBeVisible()
 
   await page.goto("/")
   const reserva = page.locator("section", { has: page.getByRole("heading", { name: "En reserva" }) })

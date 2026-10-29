@@ -17,9 +17,11 @@ interface Props {
   lunes: string
   cuentas: readonly CuentaDelCalendario[]
   piezas: readonly PiezaDelCalendario[]
+  /** A week that is over has nothing left to fill, so it counts no gaps. */
+  terminada?: boolean
 }
 
-export function VistaDeSemana({ lunes, cuentas, piezas }: Props) {
+export function VistaDeSemana({ lunes, cuentas, piezas, terminada = false }: Props) {
   const faltan = huecosDeLaSemana(cuentas, piezas)
   return (
     <div className="space-y-5">
@@ -42,7 +44,7 @@ export function VistaDeSemana({ lunes, cuentas, piezas }: Props) {
           <section key={cuenta.id} aria-label={cuenta.nombre} className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-medium">{cuenta.nombre}</h3>
-              {faltan[cuenta.id] > 0 && (
+              {!terminada && faltan[cuenta.id] > 0 && (
                 <span className="rounded-full border border-peligro px-2 py-0.5 text-sm text-peligro">
                   Faltan {faltan[cuenta.id]}
                 </span>

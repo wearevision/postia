@@ -21,7 +21,7 @@ function dos(n: number): string {
   return String(n).padStart(2, "0")
 }
 
-function partesDelDia(dia: Dia): [number, number, number] | null {
+function analizarDia(dia: Dia): [number, number, number] | null {
   const m = DIA.exec(dia)
   if (!m) return null
   const [anio, mes, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
@@ -30,8 +30,17 @@ function partesDelDia(dia: Dia): [number, number, number] | null {
   return fecha.getUTCMonth() === mes - 1 && fecha.getUTCDate() === d ? [anio, mes, d] : null
 }
 
+const PRIMER_ANIO = 2000
+const ULTIMO_ANIO = 2100
+
+// What a person may type in the address bar: a sane year keeps every neighbouring week and month computable.
+function partesDelDia(dia: Dia): [number, number, number] | null {
+  const partes = analizarDia(dia)
+  return partes && partes[0] >= PRIMER_ANIO && partes[0] <= ULTIMO_ANIO ? partes : null
+}
+
 function exigirDia(dia: Dia): [number, number, number] {
-  const partes = partesDelDia(dia)
+  const partes = analizarDia(dia)
   if (!partes) throw new Error(`Día inválido: ${dia}`)
   return partes
 }

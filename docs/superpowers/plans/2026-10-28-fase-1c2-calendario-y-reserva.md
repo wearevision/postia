@@ -1489,7 +1489,7 @@ describe("signing for the reserve", () => {
   test("offers it as a secondary action with one line that explains it", () => {
     montar()
     expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeInTheDocument()
-    expect(screen.getByText("Sin fecha: la app se la pone cuando a esta cuenta le falte una pieza firmada.")).toBeInTheDocument()
+    expect(screen.getByText("Sin fecha. Cuando a Federico le falte una pieza firmada, la app le pone fecha y la publica sin volver a preguntarte.")).toBeInTheDocument()
   })
 
   test("signs the exact version without a date", async () => {
@@ -1510,10 +1510,10 @@ describe("signing for the reserve", () => {
 
 - [ ] **Step 2: Fail**, then **implement** (same rules as C1: client components, tokens only, `min-h-11`, Chilean Spanish, no em dashes in strings, dates through `fechaLarga`, `valorLocal`, `instanteDesdeValorLocal`):
   - `plan.tsx` (client) `PlanDePieza({ piezaId, planeadaPara, planear })`: `<h2>Fecha planeada</h2>`, the date with `fechaLarga` or «Sin fecha planeada», the line «Es una propuesta: sale solo si la firmas.» in `text-apagado`, a secondary button «Mover fecha» that reveals a `datetime-local` labelled «Nueva fecha planeada» (prefilled with `valorLocal(planeadaPara)` when there is one) and a primary «Guardar fecha»; an error from `planear` shows as `role="alert"`; when the field is empty the alert reads «Elige la fecha y la hora.».
-  - `firma.tsx`: new prop `firmarParaReserva(entrada: { piezaId; huella }) => Promise<Resultado>`. Below «Firmar y programar», a bordered secondary button «Firmar para la reserva» (`type="button"`, same transition and alert) and under it the line «Sin fecha: la app se la pone cuando a esta cuenta le falte una pieza firmada.» in `text-sm text-apagado`.
+  - `firma.tsx`: new prop `firmarParaReserva(entrada: { piezaId; huella }) => Promise<Resultado>`. Below «Firmar y programar», a bordered secondary button «Firmar para la reserva» (`type="button"`, same transition and alert) and under it the line «Sin fecha. Cuando a {cuenta} le falte una pieza firmada, la app le pone fecha y la publica sin volver a preguntarte.» (linked to the button with `aria-describedby`) in `text-sm text-apagado`.
   - `controles.tsx`: `SacarDeReserva({ piezaId, sacar })`, same shape as `Desprogramar`, button «Sacar de la reserva».
   - `acciones.ts`: `planearAccion`, `firmarParaReservaAccion`, and `sacarDeReservaAccion`, which after `sacarDeReserva` succeeds calls `planearConFechaPropuesta` (a failed plan is logged with `console.error` and the piece simply shows «Sin fecha planeada»; the take-out already happened), all through `despues` (also `revalidatePath(RUTA_DE_CALENDARIO)` once Task 11 adds it).
-  - `page.tsx`: `por_aprobar` renders `PlanDePieza` above `FirmaDePieza` (which now receives `firmarParaReserva`); `en_reserva` shows the text, the PDF link, the line «En reserva. La app le pone fecha cuando a {cuenta.nombre} le falte una pieza firmada.» and `SacarDeReserva`; add `en_reserva` to `SE_PUEDE_DESCARTAR`.
+  - `page.tsx`: `por_aprobar` renders `PlanDePieza` above `FirmaDePieza` (which now receives `firmarParaReserva`); `en_reserva` shows the text, the PDF link, the line «En reserva: la app le pone fecha y la publica cuando a {cuenta.nombre} le falte una pieza firmada.» and `SacarDeReserva`; add `en_reserva` to `SE_PUEDE_DESCARTAR`.
 - [ ] **Step 3: Pass** — `pnpm test:run && pnpm type && pnpm lint`.
 - [ ] **Step 4: Commit** — `git commit -m "feat: move a piece's planned date and sign it for the reserve from its page"`
 

@@ -16,6 +16,7 @@ function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
       texto={"Primera línea\nSegunda línea"}
       fechaPropuesta="2026-11-03T14:00:00.000Z"
       ruta="api"
+      cuenta="Federico"
       firmar={firmar}
       firmarParaReserva={firmarParaReserva}
       {...sobre}
@@ -81,9 +82,11 @@ describe("signing for the reserve", () => {
   test("offers it as a secondary action with one line that explains it", () => {
     montar()
     expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeInTheDocument()
-    expect(
-      screen.getByText("Sin fecha: la app se la pone cuando a esta cuenta le falte una pieza firmada."),
-    ).toBeInTheDocument()
+    const boton = screen.getByRole("button", { name: "Firmar para la reserva" })
+    const explicacion = screen.getByText(
+      "Sin fecha. Cuando a Federico le falte una pieza firmada, la app le pone fecha y la publica sin volver a preguntarte.",
+    )
+    expect(boton).toHaveAccessibleDescription(explicacion.textContent ?? "")
   })
 
   test("signs the exact version without a date", async () => {
@@ -100,5 +103,23 @@ describe("signing for the reserve", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Esta pieza ya no espera tu firma.")
+  })
+})
+
+describe("a new proposed date", () => {
+  test("shows in the field when the parent remounts the form with the new date", () => {
+    const props = {
+      piezaId: PIEZA,
+      huella: HUELLA,
+      texto: "Texto",
+      ruta: "api" as const,
+      cuenta: "Federico",
+      firmar: vi.fn(async () => ({ ok: true as const })),
+      firmarParaReserva: vi.fn(async () => ({ ok: true as const })),
+    }
+    const { rerender } = render(<FirmaDePieza key="a" fechaPropuesta="2026-11-03T14:00:00.000Z" {...props} />)
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
+    rerender(<FirmaDePieza key="b" fechaPropuesta="2026-11-05T14:00:00.000Z" {...props} />)
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-05T11:00")
   })
 })

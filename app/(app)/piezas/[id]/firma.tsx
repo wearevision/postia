@@ -10,11 +10,21 @@ interface Props {
   texto: string
   fechaPropuesta: string
   ruta: "api" | "metricool" | "a_mano"
+  cuenta: string
   firmar: (entrada: { piezaId: string; huella: string; programadaPara: string }) => Promise<Resultado>
   firmarParaReserva: (entrada: { piezaId: string; huella: string }) => Promise<Resultado>
 }
 
-export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, firmar, firmarParaReserva }: Props) {
+export function FirmaDePieza({
+  piezaId,
+  huella,
+  texto,
+  fechaPropuesta,
+  ruta,
+  cuenta,
+  firmar,
+  firmarParaReserva,
+}: Props) {
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -67,12 +77,14 @@ export function FirmaDePieza({ piezaId, huella, texto, fechaPropuesta, ruta, fir
         type="button"
         disabled={pendiente}
         onClick={paraLaReserva}
+        aria-describedby="explicacion-de-reserva"
         className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
       >
         Firmar para la reserva
       </button>
-      <p className="text-sm text-apagado">
-        Sin fecha: la app se la pone cuando a esta cuenta le falte una pieza firmada.
+      <p id="explicacion-de-reserva" className="text-sm text-apagado">
+        Sin fecha. Cuando a {cuenta} le falte una pieza firmada, la app le pone fecha y la publica sin volver a
+        preguntarte.
       </p>
       {error && (
         <p role="alert" className="text-sm text-peligro">

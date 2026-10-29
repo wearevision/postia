@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   RUTA_DE_AJUSTES,
   RUTA_DE_CALENDARIO,
@@ -16,6 +19,7 @@ const ENLACES = [
 ]
 
 export function Navegacion() {
+  const ruta = usePathname()
   return (
     <nav
       aria-label="Principal"
@@ -24,7 +28,11 @@ export function Navegacion() {
       <ul className="mx-auto flex max-w-md">
         {ENLACES.map((enlace) => (
           <li key={enlace.href} className="flex-1">
-            <Link href={enlace.href} className="block min-h-11 px-1 py-3 text-center text-sm font-medium">
+            <Link
+              href={enlace.href}
+              aria-current={ruta === enlace.href ? "page" : undefined}
+              className="block min-h-11 px-1 py-3 text-center text-sm font-medium aria-[current=page]:underline"
+            >
               {enlace.texto}
             </Link>
           </li>

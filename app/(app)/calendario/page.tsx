@@ -24,7 +24,12 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   const { desde, hasta } = vista.vista === "semana" ? vista.semana : limitesDelMes(vista.mes)
   const { cuentas, piezas } = await calendario(await createClient(), desde, hasta)
   const enSemana = vista.vista === "semana"
-  const aSemana = rutaDeCalendario({ semana: semanaDe(ahora).lunes })
+  // From another month, «Semana» opens the week that holds that month's first day.
+  const semanaDelMes =
+    vista.vista === "mes" && vista.mes !== mesDe(ahora)
+      ? semanaDe(Date.parse(limitesDelMes(vista.mes).desde))
+      : semanaDe(ahora)
+  const aSemana = rutaDeCalendario({ semana: semanaDelMes.lunes })
   const aMes = rutaDeCalendario({ mes: vista.vista === "semana" ? mesDe(Date.parse(vista.semana.desde)) : vista.mes })
 
   return (
@@ -47,7 +52,12 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
         </Link>
       </nav>
       {vista.vista === "semana" ? (
-        <VistaDeSemana lunes={vista.semana.lunes} cuentas={cuentas} piezas={piezas} />
+        <VistaDeSemana
+          lunes={vista.semana.lunes}
+          cuentas={cuentas}
+          piezas={piezas}
+          terminada={Date.parse(vista.semana.hasta) <= ahora}
+        />
       ) : (
         <VistaDelMes mes={vista.mes} piezas={piezas} />
       )}

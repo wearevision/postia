@@ -248,6 +248,9 @@ export async function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado
   if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
   const { error } = await db.rpc("sacar_de_reserva", { p_pieza: piezaId })
   if (error) return falla(error)
-  // Out of the reserve it is a piece to sign again, and a piece to sign holds a slot.
-  return asegurarPlan(db, piezaId)
+  // Out of the reserve it is a piece to sign again, and a piece to sign holds a slot. The take-out already happened,
+  // so a failed plan is not a failure of this action: the piece shows «Sin fecha planeada» and offers «Mover fecha».
+  const plan = await asegurarPlan(db, piezaId)
+  if (!plan.ok) console.error("No pude planear la pieza al sacarla de la reserva", piezaId, plan.error)
+  return { ok: true }
 }
