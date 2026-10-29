@@ -412,7 +412,7 @@ describe("covering unsigned slots from the reserve", () => {
     // The owner or an earlier step already moved it: the publisher's stale decision must not undo that.
     expect(await repo().devolverALaReserva(c.reserva, "Otra falla.")).toBe("sin_cambio")
     const registro = vi.spyOn(console, "error").mockImplementation(() => {})
-    await repo().mover(c.reserva, "por_aprobar", "Otra falla.")
+    expect(await repo().mover(c.reserva, "por_aprobar", "Otra falla.")).toBe("sin_cambio")
     registro.mockRestore()
     expect(await estadoDe(c.reserva)).toMatchObject({ estado: "en_reserva" })
     const { data: firmas } = await admin().from("firmas").select("vigente, para_reserva").eq("pieza_id", c.reserva)
@@ -449,7 +449,7 @@ describe("covering unsigned slots from the reserve", () => {
   test("mover to the gate still sends a piece without a reserve signature to por_aprobar", async () => {
     const c = await vencida()
     await repo().tomarPendientes()
-    await repo().mover(c.pieza, "por_aprobar", "Algo falló.")
+    expect(await repo().mover(c.pieza, "por_aprobar", "Algo falló.")).toBe("movida")
     expect(await estadoDe(c.pieza)).toMatchObject({ estado: "por_aprobar", motivo: "Algo falló." })
   })
 })

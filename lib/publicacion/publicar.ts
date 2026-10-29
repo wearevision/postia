@@ -61,7 +61,8 @@ export interface PuertosDePublicacion {
   descargar(ruta: string): Promise<Uint8Array>
   reservarEnvio(pieza: PiezaParaPublicar): Promise<"reservado" | "ya_enviado">
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
-  mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<void>
+  /** "sin_cambio": the piece was no longer scheduled (someone already moved it), so nothing changed. */
+  mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<"movida" | "sin_cambio">
   /** Timing causes only: a piece that came out of the reserve goes back to it. Says where the piece ended. */
   devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio">
   avisar(marcaId: string, aviso: Aviso): Promise<void>
@@ -117,8 +118,8 @@ async function devolver(
       })
       return a
     }
-  } else {
-    await p.mover(pieza.id, a, motivo)
+  } else if ((await p.mover(pieza.id, a, motivo)) === "sin_cambio") {
+    return "reintentar"
   }
   const titulos = { por_aprobar: "No salió", a_mano: "Publica a mano", envio_dudoso: "Revisa LinkedIn" } as const
   await avisarSiPuede(p, pieza.marcaId, aviso(pieza, titulos[a], motivo))
@@ -154,7 +155,7 @@ function revisar(p: PuertosDePublicacion, pieza: PiezaParaPublicar, credencial: 
  * would send back on every run a piece already decided on (a client named like a common word, say).
  */
 async function clienteConExcepcionNueva(p: PuertosDePublicacion, pieza: PiezaParaPublicar): Promise<string | null> {
-  // Without a signature the review below sends the piece back anyway.
+  // Only reached after the review accepted the signature; this narrows the type.
   if (!pieza.firma) return null
   const nuevas = await p.excepcionesPuestasDespues(pieza.firma.firmadaEn)
   if (nuevas.length === 0) return null
@@ -168,8 +169,12 @@ export async function publicarPieza(
   p: PuertosDePublicacion,
   pieza: PiezaParaPublicar,
 ): Promise<ResultadoDePublicacion> {
-  // Before anything else. If the exceptions cannot be read this throws: publicarPendientes counts it as «reintentar»
-  // and nothing was sent.
+  const credencial = pieza.ruta === "api" ? await p.credencial(pieza.cuentaId) : null
+  const revision = revisar(p, pieza, credencial)
+  if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo, revision.porHorario === true)
+  // Right after the window and signature check, so a late piece still goes back with its notice when the exceptions
+  // cannot be read, and before any download or reservation. A read failure throws: publicarPendientes counts it as
+  // «reintentar» and nothing was sent.
   const cliente = await clienteConExcepcionNueva(p, pieza)
   if (cliente) {
     return devolver(
@@ -179,9 +184,6 @@ export async function publicarPieza(
       `Nombra a ${cliente}, que ahora tiene una excepción. Revisa el texto y fírmala de nuevo.`,
     )
   }
-  const credencial = pieza.ruta === "api" ? await p.credencial(pieza.cuentaId) : null
-  const revision = revisar(p, pieza, credencial)
-  if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo, revision.porHorario === true)
   // revisarAntesDeEnviar already refuses a missing connection; this only narrows the type for what follows.
   if (!credencial) return devolver(p, pieza, "a_mano", "No encontré la conexión de LinkedIn de esta cuenta.")
 

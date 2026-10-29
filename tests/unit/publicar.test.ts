@@ -70,7 +70,10 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
       return "reservado"
     }),
     cerrarEnvio: vi.fn(async (id: string) => pasar(id, "publicada")),
-    mover: vi.fn(async (id: string, a: "por_aprobar" | "a_mano" | "envio_dudoso") => pasar(id, a)),
+    mover: vi.fn(async (id: string, a: "por_aprobar" | "a_mano" | "envio_dudoso"): Promise<"movida" | "sin_cambio"> => {
+      pasar(id, a)
+      return "movida"
+    }),
     devolverALaReserva: vi.fn(async (id: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio"> => {
       pasar(id, "por_aprobar")
       return "por_aprobar"
@@ -256,6 +259,14 @@ describe("publicarPieza", () => {
     })
     silenciar()
     expect(await publicarPieza(p, pieza())).toBe("reintentar")
+    expect(m.avisar).not.toHaveBeenCalled()
+  })
+
+  test("a piece someone already changed is left alone when a cause in the piece sends it back: no stale notice", async () => {
+    const { p, m } = puertos({ descargar: vi.fn(async () => new Uint8Array([9, 9])) })
+    m.mover.mockResolvedValue("sin_cambio")
+    expect(await publicarPieza(p, carrusel())).toBe("reintentar")
+    expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", "El archivo cambió después de la firma.")
     expect(m.avisar).not.toHaveBeenCalled()
   })
 
@@ -548,7 +559,6 @@ describe("client exceptions marked after the signature", () => {
     expect(await publicarPieza(p, conTexto("Con Copec en 2019"))).toBe("por_aprobar")
     expect(m.linkedin.crearPost).not.toHaveBeenCalled()
     expect(m.reservarEnvio).not.toHaveBeenCalled()
-    expect(m.credencial).not.toHaveBeenCalled()
     expect(m.mover).toHaveBeenCalledWith(
       "pieza-1",
       "por_aprobar",
@@ -580,6 +590,24 @@ describe("client exceptions marked after the signature", () => {
     // AHORA is 2026-11-03 in Chile.
     m.excepcionesPuestasDespues.mockResolvedValue([{ ...COPEC, hasta: "2026-11-02" }])
     expect(await publicarPieza(p, conTexto("Con Copec"))).toBe("publicada")
+  })
+
+  test("a piece past its window goes back to the gate with its notice even when the exceptions cannot be read", async () => {
+    const { p, m } = puertos({ ahora: () => Date.parse("2026-11-03T14:40:00Z") })
+    m.excepcionesPuestasDespues.mockRejectedValue(new Error("base caída"))
+    expect(await publicarPieza(p, pieza())).toBe("por_aprobar")
+    expect(m.devolverALaReserva).toHaveBeenCalledWith("pieza-1", expect.stringContaining("30 minutos"))
+    expect(m.avisar).toHaveBeenCalledWith("marca-1", expect.objectContaining({ titulo: "No salió · Federico" }))
+    expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+  })
+
+  test("the new exceptions are checked before the file is downloaded or anything is reserved", async () => {
+    const { p, m } = puertos()
+    m.excepcionesPuestasDespues.mockRejectedValue(new Error("base caída"))
+    await expect(publicarPieza(p, carrusel())).rejects.toThrow("base caída")
+    expect(m.descargar).not.toHaveBeenCalled()
+    expect(m.linkedin.subirDocumento).not.toHaveBeenCalled()
+    expect(m.reservarEnvio).not.toHaveBeenCalled()
   })
 
   test("when the exceptions cannot be read nothing is sent and the run retries", async () => {

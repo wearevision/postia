@@ -10,7 +10,7 @@ export interface PilarDeBalance {
 
 export interface PiezaDeBalance {
   pilarId: string | null
-  /** The planned slot; for signed and published pieces it equals the signed date (alinear_plan). */
+  /** The signed date for signed and published pieces; the planned slot otherwise. */
   instante: string
   estado: EstadoDePieza
 }

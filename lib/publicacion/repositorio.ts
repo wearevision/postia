@@ -69,11 +69,14 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
     return "sin_cambio"
   }
 
-  async function mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string) {
+  async function mover(
+    piezaId: string,
+    a: "por_aprobar" | "a_mano" | "envio_dudoso",
+    motivo: string,
+  ): Promise<"movida" | "sin_cambio"> {
     if (a === "por_aprobar") {
       // The cause is in the piece: a reserve signature is dropped so the piece cannot be picked again and fail again.
-      await devolver(piezaId, motivo, false)
-      return
+      return (await devolver(piezaId, motivo, false)) === "sin_cambio" ? "sin_cambio" : "movida"
     }
     const { error } = await db
       .from("piezas")
@@ -82,6 +85,7 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       .select("id")
       .single()
     if (error) fallo(`No pude mover la pieza a ${a}`, error)
+    return "movida"
   }
 
   return {

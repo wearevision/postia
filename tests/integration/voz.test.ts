@@ -1,8 +1,18 @@
 import { describe, expect, test } from "vitest"
+import { repositorioDePublicacion } from "@/lib/publicacion/repositorio"
 import type { Json } from "@/lib/supabase/database.types"
 import { guardarLinea } from "@/lib/voz/acciones"
 import { balancePorCuenta, lineaDeMarca, marcasConLinea, pilaresActivos } from "@/lib/voz/lectura"
-import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, piezaDe, versionVigente } from "./entorno"
+import {
+  admin,
+  cuentaDe,
+  enDias,
+  haceMinutos,
+  marcaConDueno,
+  personaConSesion,
+  piezaDe,
+  versionVigente,
+} from "./entorno"
 
 const SECCIONES = {
   deQueHablamos: "Investigación y experiencia de marcas.",
@@ -325,5 +335,60 @@ describe("lib/voz", () => {
     expect(firma.error).toBeNull()
     const balance = (await balancePorCuenta(db, Date.now())).find((b) => b.cuentaId === cuenta)
     expect(balance?.balance.filas[0]).toMatchObject({ nombre: "Uno", planeadas: 1, salieron: 0 })
+  })
+
+  async function cuentaConPilarMaduro(prefijo: string) {
+    const { db, marca } = await dueno(prefijo)
+    await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })
+    const cuenta = await cuentaDe(marca)
+    await admin().from("cuentas").update({ ritmo_semanal: 3 }).eq("id", cuenta)
+    const [pilar] = await pilaresActivos(db)
+    // Old enough for D20 to alert when nothing of it came out.
+    await admin()
+      .from("pilares")
+      .update({ creado_en: enDias(-30) })
+      .eq("id", pilar?.id as string)
+    return { db, marca, cuenta, pilar: pilar?.id as string }
+  }
+
+  test("balancePorCuenta counts a reserve piece that covered a slot and went out, which clears the alert", async () => {
+    const c = await cuentaConPilarMaduro("voz-reserva")
+    const fila = async () => (await balancePorCuenta(c.db, Date.now())).find((b) => b.cuentaId === c.cuenta)
+    expect((await fila())?.balance.filas[0]).toMatchObject({ salieron: 0, alerta: true })
+
+    const reserva = await piezaDe(c.db, c.cuenta, "De la reserva")
+    expect((await c.db.rpc("poner_pilar", { p_pieza: reserva, p_pilar: c.pilar })).error).toBeNull()
+    const firmada = await c.db.rpc("firmar_para_reserva", {
+      p_pieza: reserva,
+      p_huella: (await versionVigente(reserva)).huella,
+    })
+    expect(firmada.error).toBeNull()
+    const pendiente = await piezaDe(c.db, c.cuenta, "Sin firma")
+    await admin()
+      .from("piezas")
+      .update({ planeada_para: haceMinutos(2) })
+      .eq("id", pendiente)
+
+    const repo = repositorioDePublicacion(admin())
+    expect(await repo.cubrirConReserva(pendiente, enDias(3))).toBe(reserva)
+    const tomada = (await repo.tomarPendientes()).find((p) => p.id === reserva)
+    if (!tomada) throw new Error("the reserve piece was not leased")
+    expect(await repo.reservarEnvio(tomada)).toBe("reservado")
+    await repo.cerrarEnvio(reserva, "urn:li:share:1", "https://www.linkedin.com/feed/update/urn:li:share:1/")
+
+    expect((await fila())?.balance.filas[0]).toMatchObject({ salieron: 1, diasSinSalir: 0, alerta: false })
+  })
+
+  test("balancePorCuenta places a piece signed for a time other than its proposal at its signed time", async () => {
+    const c = await cuentaConPilarMaduro("voz-firmada")
+    const pieza = await piezaDe(c.db, c.cuenta)
+    expect((await c.db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: c.pilar })).error).toBeNull()
+    // Proposed beyond the two weeks read ahead, signed inside them.
+    expect((await c.db.rpc("planear_pieza", { p_pieza: pieza, p_fecha: enDias(20) })).error).toBeNull()
+    const { huella } = await versionVigente(pieza)
+    const firma = await c.db.rpc("firmar_pieza", { p_pieza: pieza, p_huella: huella, p_programada_para: enDias(3) })
+    expect(firma.error).toBeNull()
+    const balance = (await balancePorCuenta(c.db, Date.now())).find((b) => b.cuentaId === c.cuenta)
+    expect(balance?.balance.filas[0]).toMatchObject({ planeadas: 1, alerta: false })
   })
 })

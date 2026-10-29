@@ -109,6 +109,15 @@ export interface BalanceDeCuenta {
   balance: Balance
 }
 
+/**
+ * A signed piece holds its signed date. alinear_plan copies it into planeada_para today, but the signature is the truth:
+ * reading it directly keeps reserve pieces (signed without a plan) counted even if that trigger ever changes.
+ */
+function instanteDeBalance(p: { estado: string; planeada_para: string | null; programada_para: string | null }) {
+  const firmada = p.estado === "programada" || p.estado === "publicando" || p.estado === "publicada"
+  return firmada ? (p.programada_para ?? p.planeada_para) : p.planeada_para
+}
+
 /** D20 for every account with a weekly rhythm. Works with a person's client (RLS) and with the service role. */
 export async function balancePorCuenta(db: Db, ahora: number): Promise<BalanceDeCuenta[]> {
   const desde = new Date(ahora - DIAS_DE_LECTURA * DIA_MS).toISOString()
@@ -118,10 +127,11 @@ export async function balancePorCuenta(db: Db, ahora: number): Promise<BalanceDe
     db.from("pilares").select("id, marca_id, nombre, por_semana, creado_en").eq("activo", true).order("orden"),
     db
       .from("piezas")
-      .select("cuenta_id, pilar_id, estado, planeada_para")
+      .select("cuenta_id, pilar_id, estado, planeada_para, programada_para")
       .in("estado", ["por_aprobar", "programada", "publicando", "publicada"])
-      .gte("planeada_para", desde)
-      .lt("planeada_para", hasta),
+      .or(
+        `and(planeada_para.gte.${desde},planeada_para.lt.${hasta}),and(programada_para.gte.${desde},programada_para.lt.${hasta})`,
+      ),
   ])
   if (cuentas.error) fallo("No pude leer las cuentas", cuentas.error)
   if (pilares.error) fallo("No pude leer los pilares", pilares.error)
@@ -134,11 +144,10 @@ export async function balancePorCuenta(db: Db, ahora: number): Promise<BalanceDe
       pilares.data
         .filter((p) => p.marca_id === c.marca_id)
         .map((p) => ({ id: p.id, nombre: p.nombre, porSemana: Number(p.por_semana), creadoEn: p.creado_en })),
-      piezas.data.flatMap((p) =>
-        p.cuenta_id === c.id && p.planeada_para
-          ? [{ pilarId: p.pilar_id, instante: p.planeada_para, estado: leerEstado(p.estado) }]
-          : [],
-      ),
+      piezas.data.flatMap((p) => {
+        const instante = instanteDeBalance(p)
+        return p.cuenta_id === c.id && instante ? [{ pilarId: p.pilar_id, instante, estado: leerEstado(p.estado) }] : []
+      }),
       ahora,
     ),
   }))
