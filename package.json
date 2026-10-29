@@ -32,6 +32,7 @@
     "cargar:linea:prod": "tsx --env-file=.env.produccion scripts/cargar-linea.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@gsap/react": "^2.1.2",
     "@opennextjs/cloudflare": "1.20.13",
     "@react-three/drei": "^10.7.7",
