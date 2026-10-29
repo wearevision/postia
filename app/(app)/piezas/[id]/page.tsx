@@ -10,6 +10,7 @@ import { FirmaDePieza } from "./firma"
 
 const ESTADOS: Record<EstadoDePieza, string> = {
   por_aprobar: "Por firmar",
+  en_reserva: "En reserva",
   programada: "Programada",
   publicando: "Publicándose",
   publicada: "Publicada",
