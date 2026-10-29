@@ -69,6 +69,8 @@ export function estimarCosto(
   })
 }
 
+const DOLARES = new Intl.NumberFormat("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
 export function enDolares(micro: number): string {
-  return `US$${(micro / 1_000_000).toFixed(2).replace(".", ",")}`
+  return `US$${DOLARES.format(micro / 1_000_000)}`
 }

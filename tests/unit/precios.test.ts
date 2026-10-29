@@ -85,5 +85,7 @@ describe("enDolares", () => {
   test("writes micro-dollars as Chilean-formatted dollars", () => {
     expect(enDolares(40_000_000)).toBe("US$40,00")
     expect(enDolares(1_234_567)).toBe("US$1,23")
+    expect(enDolares(1_000_000_000)).toBe("US$1.000,00")
+    expect(enDolares(0)).toBe("US$0,00")
   })
 })

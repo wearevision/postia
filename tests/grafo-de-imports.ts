@@ -1,4 +1,5 @@
 import path from "node:path"
+import ts from "typescript"
 
 /** Paths are POSIX and relative to the repo root, the same root `@/` points to (tsconfig paths). */
 export interface Fuente {
@@ -13,19 +14,11 @@ export interface Grafo {
   sinResolver: string[]
 }
 
-const PATRONES = [
-  // import x from "a" · import { x,\n y } from "a" · import type … · export { x } from "a" · export * from "a"
-  /\b(?:import|export)\s+(?:type\s+)?[^'";]*?\sfrom\s*["']([^"']+)["']/g,
-  // import "a"
-  /\bimport\s*["']([^"']+)["']/g,
-  // import("a")
-  /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
-]
-
 const CODIGO = /\.(ts|tsx|mts|js|jsx|mjs)$/
 
+/** The compiler's own scanner: comments and strings cannot hide or cut an import the way a regex can. */
 export function especificadores(codigo: string): string[] {
-  return PATRONES.flatMap((patron) => [...codigo.matchAll(patron)].map((m) => m[1] ?? ""))
+  return ts.preProcessFile(codigo, true, true).importedFiles.map((f) => f.fileName)
 }
 
 function resolver(desde: string, especificador: string, fuente: Fuente): string | null {

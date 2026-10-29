@@ -55,6 +55,20 @@ describe("recorrerImports", () => {
     expect(grafo.sinResolver).toEqual([])
   })
 
+  test("follows a multi-line import whose comment has an apostrophe, and ignores imports inside comments", () => {
+    const grafo = recorrerImports(
+      ["app/page.tsx"],
+      enMemoria({
+        "app/page.tsx":
+          'import {\n  // don\'t inline this one\n  a,\n} from "@/lib/ia/claude"\n// import "@/lib/comentado"\n/* import x from "@/lib/tampoco" */\n',
+        "lib/ia/claude.ts": 'import Anthropic from "@anthropic-ai/sdk"\n',
+      }),
+    )
+    expect([...grafo.archivos].sort()).toEqual(["app/page.tsx", "lib/ia/claude.ts"])
+    expect([...grafo.paquetes]).toEqual(["@anthropic-ai/sdk"])
+    expect(grafo.sinResolver).toEqual([])
+  })
+
   test("reports a project import it cannot resolve instead of silently stopping there", () => {
     const grafo = recorrerImports(["app/page.tsx"], enMemoria({ "app/page.tsx": 'import { a } from "@/lib/falta"\n' }))
     expect(grafo.sinResolver).toEqual(["app/page.tsx → @/lib/falta"])

@@ -26,9 +26,15 @@ export function GastoDelMes({
     setError(null)
     setGuardado(false)
     empezar(async () => {
-      const resultado = await guardar({ marcaId: null, dolares: Number(dolares) })
-      if (resultado.ok) setGuardado(true)
-      else setError(resultado.error)
+      try {
+        const resultado = await guardar({ marcaId: null, dolares: Number(dolares) })
+        if (resultado.ok) setGuardado(true)
+        else setError(resultado.error)
+      } catch (falla) {
+        // An expired session or a dropped network rejects the action; uncaught, the error boundary replaces the page.
+        console.error("No pude guardar el tope", falla)
+        setError("No pude guardar el tope. Inténtalo de nuevo en un rato.")
+      }
     })
   }
 

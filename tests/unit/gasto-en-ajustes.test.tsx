@@ -39,4 +39,25 @@ describe("GastoDelMes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar tope" }))
     expect((await screen.findByRole("alert")).textContent).toBe("El tope va entre US$1 y US$1.000.")
   })
+
+  test("stays standing and says so when saving throws", async () => {
+    const consola = vi.spyOn(console, "error").mockImplementation(() => {})
+    const fallo = new Error("sesión vencida")
+    const guardar = vi.fn(async () => {
+      throw fallo
+    })
+    render(<GastoDelMes resumen={RESUMEN} guardar={guardar} />)
+    fireEvent.click(screen.getByRole("button", { name: "Guardar tope" }))
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "No pude guardar el tope. Inténtalo de nuevo en un rato.",
+    )
+    expect(screen.getByRole("button", { name: "Guardar tope" })).toBeTruthy()
+    expect(consola).toHaveBeenCalledWith(expect.anything(), fallo)
+    consola.mockRestore()
+  })
+
+  test("writes thousands with a dot", () => {
+    render(<GastoDelMes resumen={{ ...RESUMEN, topeMicro: 1_000_000_000 }} guardar={vi.fn()} />)
+    expect(screen.getByText("US$33,00 de US$1.000,00")).toBeTruthy()
+  })
 })

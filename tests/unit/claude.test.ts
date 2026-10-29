@@ -243,3 +243,84 @@ describe("crearReal", () => {
     expect(respuesta.usage.output_tokens).toBe(5)
   })
 })
+
+describe("pedirPagando over the streamed call", () => {
+  const pedido = {
+    sistema: "Breve.",
+    mensajes: [{ role: "user" as const, content: "Hola" }],
+    maxTokens: 1024,
+    esfuerzo: "low" as const,
+  }
+
+  test("a 400 on the streamed request is a proven refusal: the reservation is released", async () => {
+    servidor.use(
+      http.post("https://api.anthropic.com/v1/messages", () =>
+        HttpResponse.json(
+          { type: "error", error: { type: "invalid_request_error", message: "malo" } },
+          { status: 400 },
+        ),
+      ),
+    )
+    const libro = libroQueReserva()
+    const crear = crearReal({ ANTHROPIC_API_KEY: "clave-de-prueba" })
+    const error = await pedirPagando(
+      { libro, avisar: async () => {}, crear },
+      { clave: "stream:400", paso: "probar", marcaId: null },
+      pedido,
+    ).catch((e: unknown) => e)
+    expect(esRechazoProbado(error)).toBe(true)
+    expect(libro.liberar).toHaveBeenCalledWith("stream:400")
+    expect(libro.confirmar).not.toHaveBeenCalled()
+  })
+
+  test("an error event mid-stream proves nothing: the reservation stays", async () => {
+    servidor.use(
+      http.post("https://api.anthropic.com/v1/messages", () => {
+        const sse = eventos([
+          {
+            event: "message_start",
+            data: {
+              type: "message_start",
+              message: {
+                id: "msg_1",
+                type: "message",
+                role: "assistant",
+                model: "claude-opus-5-5",
+                content: [],
+                stop_reason: null,
+                stop_sequence: null,
+                usage: {
+                  input_tokens: 10,
+                  output_tokens: 1,
+                  cache_creation_input_tokens: 0,
+                  cache_read_input_tokens: 0,
+                },
+              },
+            },
+          },
+          { event: "error", data: { type: "error", error: { type: "overloaded_error", message: "Overloaded" } } },
+        ])
+        // A ReadableStream body, not a string: the SDK cancels the body when it stops reading at the error, and msw
+        // never settles that cancel on a string body (a real socket does; checked against a node:http server).
+        const cuerpo = new ReadableStream({
+          start(c) {
+            c.enqueue(new TextEncoder().encode(sse))
+            c.close()
+          },
+        })
+        return new HttpResponse(cuerpo, { headers: { "content-type": "text/event-stream" } })
+      }),
+    )
+    const libro = libroQueReserva()
+    const crear = crearReal({ ANTHROPIC_API_KEY: "clave-de-prueba" })
+    const error = await pedirPagando(
+      { libro, avisar: async () => {}, crear },
+      { clave: "stream:error", paso: "probar", marcaId: null },
+      pedido,
+    ).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(Error)
+    expect(esRechazoProbado(error)).toBe(false)
+    expect(libro.liberar).not.toHaveBeenCalled()
+    expect(libro.confirmar).not.toHaveBeenCalled()
+  })
+})
