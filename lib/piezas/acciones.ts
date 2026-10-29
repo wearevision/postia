@@ -77,12 +77,13 @@ async function revisarArchivo(db: Db, ruta: string): Promise<Resultado> {
   if ((info.size ?? 0) > BYTES_MAXIMOS_DEL_CARRUSEL) return { ok: false, error: PDF_GRANDE }
   const { data: firmada, error: errorDeUrl } = await db.storage.from("piezas").createSignedUrl(ruta, 60)
   if (errorDeUrl || !firmada) return { ok: false, error: PDF_INVALIDO }
-  const respuesta = await fetch(firmada.signedUrl, { headers: { Range: "bytes=0-4" } })
+  const respuesta = await fetch(firmada.signedUrl, { headers: { Range: "bytes=0-4" }, cache: "no-store" })
   if (!respuesta.ok || !respuesta.body) return { ok: false, error: PDF_INVALIDO }
   // If a server ignored Range, the first chunk is still all we read.
   const lector = respuesta.body.getReader()
   const { value } = await lector.read()
-  await lector.cancel()
+  // Not awaited: under Next's patched fetch, awaiting cancel() never resolves and hangs the Server Action.
+  lector.cancel().catch((error: unknown) => console.error("No pude cerrar la lectura del PDF", error))
   const cabecera = new TextDecoder().decode(value?.slice(0, 5))
   return cabecera === "%PDF-" ? { ok: true } : { ok: false, error: PDF_INVALIDO }
 }
