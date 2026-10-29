@@ -45,3 +45,145 @@ end $$;
 revoke execute on function public.planear_pieza(uuid, timestamptz) from public, anon;
 grant execute on function public.planear_pieza(uuid, timestamptz) to authenticated;
 revoke execute on function public.alinear_plan() from public, anon, authenticated;
+
+-- D21: «en_reserva» is signed without a date; the app gives it one when a signed piece is missing.
+alter table public.piezas drop constraint piezas_estado_check;
+alter table public.piezas add constraint piezas_estado_check check (estado in (
+  'por_aprobar', 'en_reserva', 'programada', 'publicando', 'publicada', 'envio_dudoso', 'a_mano', 'error', 'descartada'
+));
+
+-- A reserve signature binds a huella without a date; cubrir_con_reserva writes the slot on it when it is used.
+alter table public.firmas alter column programada_para drop not null;
+alter table public.firmas add column para_reserva boolean not null default false;
+alter table public.firmas add constraint firma_con_fecha_o_reserva check (para_reserva or programada_para is not null);
+
+-- Same table as lib/piezas/estados.ts. create or replace keeps the C1 grants.
+create or replace function public.transiciones_de_pieza() returns table (de text, a text[])
+language sql immutable set search_path = '' as $$
+  values
+    ('por_aprobar', array['programada', 'en_reserva', 'descartada']),
+    ('en_reserva', array['programada', 'por_aprobar', 'descartada']),
+    ('programada', array['por_aprobar', 'publicando', 'a_mano', 'descartada']),
+    ('publicando', array['publicada', 'envio_dudoso', 'a_mano', 'error']),
+    ('error', array['programada', 'por_aprobar', 'descartada']),
+    ('envio_dudoso', array['publicada', 'a_mano', 'descartada']),
+    ('a_mano', array['publicada', 'por_aprobar', 'descartada']),
+    ('publicada', array[]::text[]),
+    ('descartada', array[]::text[])
+$$;
+
+create or replace function public.guardia_de_estado() returns trigger
+language plpgsql set search_path = '' as $$
+declare
+  v_huella text;
+begin
+  if new.estado is distinct from old.estado then
+    if not exists (select 1 from public.transiciones_de_pieza() t where t.de = old.estado and new.estado = any (t.a)) then
+      raise exception using errcode = '23514', message = format('transicion_no_permitida %s -> %s', old.estado, new.estado);
+    end if;
+    select v.huella into v_huella from public.versiones v where v.pieza_id = new.id order by v.numero desc limit 1;
+    -- Scheduling needs the signature of the current version for exactly this date (Puerta 2). The date check is new in
+    -- C2: a reserve piece only becomes programada once cubrir_con_reserva wrote its slot on the signature.
+    if new.estado = 'programada' and not exists (
+      select 1 from public.firmas f
+       where f.pieza_id = new.id and f.vigente and f.huella = v_huella and f.programada_para = new.programada_para
+    ) then
+      raise exception using errcode = '23514', message = 'programar_sin_firma_vigente';
+    end if;
+    if new.estado = 'en_reserva' and not exists (
+      select 1 from public.firmas f where f.pieza_id = new.id and f.vigente and f.para_reserva and f.huella = v_huella
+    ) then
+      raise exception using errcode = '23514', message = 'reservar_sin_firma_vigente';
+    end if;
+    -- Sending needs the signature of the current version for exactly this date (Puerta 2, Sale lo que se aprobó).
+    if new.estado = 'publicando' and not exists (
+      select 1 from public.firmas f
+       where f.pieza_id = new.id and f.vigente and f.programada_para = new.programada_para and f.huella = v_huella
+    ) then
+      raise exception using errcode = '23514', message = 'publicar_sin_firma_vigente';
+    end if;
+    insert into public.eventos (pieza_id, de, a, por, motivo) values (new.id, old.estado, new.estado, auth.uid(), new.motivo);
+  end if;
+  return new;
+end $$;
+
+-- A new version drops any signature; scheduled, by-hand and reserve pieces go back to the gate (Sale lo que se aprobó).
+create or replace function public.version_nueva_cae_firma() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if new.numero > 1 then
+    update public.firmas set vigente = false where pieza_id = new.pieza_id and vigente;
+    update public.piezas set estado = 'por_aprobar', arrendada_hasta = null,
+           motivo = 'Cambió el texto o el archivo: hay que firmar de nuevo.'
+     where id = new.pieza_id and estado in ('programada', 'a_mano', 'en_reserva');
+  end if;
+  return new;
+end $$;
+
+-- C1 body plus en_reserva among the editable states.
+create or replace function public.nueva_version(
+  p_pieza uuid, p_texto text,
+  p_titulo text default null, p_archivo_ruta text default null, p_archivo_sha256 text default null
+) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_estado text;
+  v_numero integer;
+  v_id uuid;
+begin
+  if not public.es_dueno(public.marca_de_pieza(p_pieza)) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_cambia_piezas';
+  end if;
+  select estado into v_estado from public.piezas where id = p_pieza for update;
+  if v_estado not in ('por_aprobar', 'en_reserva', 'programada', 'a_mano') then
+    raise exception using errcode = '22023', message = 'pieza_no_editable';
+  end if;
+  select coalesce(max(numero), 0) + 1 into v_numero from public.versiones where pieza_id = p_pieza;
+  insert into public.versiones (pieza_id, numero, texto, titulo, archivo_ruta, archivo_sha256, creada_por)
+  values (p_pieza, v_numero, p_texto, p_titulo, p_archivo_ruta, p_archivo_sha256, auth.uid()) returning id into v_id;
+  return v_id;
+end $$;
+
+create function public.firmar_para_reserva(p_pieza uuid, p_huella text) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_version public.versiones;
+  v_firma uuid;
+begin
+  if not public.es_dueno(public.marca_de_pieza(p_pieza)) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_firma';
+  end if;
+  perform 1 from public.piezas where id = p_pieza and estado = 'por_aprobar' for update;
+  if not found then
+    raise exception using errcode = '22023', message = 'pieza_no_esta_por_aprobar';
+  end if;
+  select * into v_version from public.versiones where pieza_id = p_pieza order by numero desc limit 1;
+  if v_version.huella is distinct from p_huella then
+    raise exception using errcode = '22023', message = 'firma_de_otra_version';
+  end if;
+  update public.firmas set vigente = false where pieza_id = p_pieza and vigente;
+  insert into public.firmas (pieza_id, version_id, huella, programada_para, para_reserva, firmada_por)
+  values (p_pieza, v_version.id, v_version.huella, null, true, auth.uid()) returning id into v_firma;
+  -- In the reserve a piece holds no slot; the one it had becomes free for another piece.
+  update public.piezas set estado = 'en_reserva', planeada_para = null, programada_para = null,
+         arrendada_hasta = null, motivo = null
+   where id = p_pieza;
+  return v_firma;
+end $$;
+
+create function public.sacar_de_reserva(p_pieza uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.es_dueno(public.marca_de_pieza(p_pieza)) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_saca_de_la_reserva';
+  end if;
+  perform 1 from public.piezas where id = p_pieza and estado = 'en_reserva' for update;
+  if not found then
+    raise exception using errcode = '22023', message = 'pieza_no_esta_en_reserva';
+  end if;
+  update public.firmas set vigente = false where pieza_id = p_pieza and vigente;
+  update public.piezas set estado = 'por_aprobar', motivo = 'Salió de la reserva.' where id = p_pieza;
+end $$;
+
+revoke execute on function public.firmar_para_reserva(uuid, text), public.sacar_de_reserva(uuid) from public, anon;
+grant execute on function public.firmar_para_reserva(uuid, text), public.sacar_de_reserva(uuid) to authenticated;

@@ -165,8 +165,9 @@ export type Database = {
           firmada_por: string
           huella: string
           id: string
+          para_reserva: boolean
           pieza_id: string
-          programada_para: string
+          programada_para: string | null
           version_id: string
           vigente: boolean
         }
@@ -175,8 +176,9 @@ export type Database = {
           firmada_por: string
           huella: string
           id?: string
+          para_reserva?: boolean
           pieza_id: string
-          programada_para: string
+          programada_para?: string | null
           version_id: string
           vigente?: boolean
         }
@@ -185,8 +187,9 @@ export type Database = {
           firmada_por?: string
           huella?: string
           id?: string
+          para_reserva?: boolean
           pieza_id?: string
-          programada_para?: string
+          programada_para?: string | null
           version_id?: string
           vigente?: boolean
         }
@@ -495,6 +498,10 @@ export type Database = {
       dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
+      firmar_para_reserva: {
+        Args: { p_huella: string; p_pieza: string }
+        Returns: string
+      }
       firmar_pieza: {
         Args: { p_huella: string; p_pieza: string; p_programada_para: string }
         Returns: string
@@ -519,6 +526,7 @@ export type Database = {
         Args: { p_firma: string; p_pieza: string; p_version: string }
         Returns: string
       }
+      sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_para_publicar: {
         Args: never

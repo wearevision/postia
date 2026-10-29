@@ -94,3 +94,114 @@ describe("planear_pieza", () => {
     expect(Date.parse(fila?.planeada_para ?? "")).toBe(Date.parse(cuando))
   })
 })
+
+describe("the reserve (D21)", () => {
+  test("signing for the reserve binds the current huella without a date and frees the planned slot", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva")
+    const pieza = await piezaDe(db, cuenta)
+    const cuando = enDias(2)
+    await db.rpc("planear_pieza", { p_pieza: pieza, p_fecha: cuando })
+    const { huella } = await versionVigente(pieza)
+    const { data: firma, error } = await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: huella })
+    expect(error).toBeNull()
+    expect(await planeada(pieza)).toMatchObject({ estado: "en_reserva", planeada_para: null, programada_para: null })
+    const { data: fila } = await admin()
+      .from("firmas")
+      .select("para_reserva, programada_para, vigente, huella")
+      .eq("id", firma as string)
+      .single()
+    expect(fila).toEqual({ para_reserva: true, programada_para: null, vigente: true, huella })
+    const otra = await piezaDe(db, cuenta)
+    expect((await db.rpc("planear_pieza", { p_pieza: otra, p_fecha: cuando })).error).toBeNull()
+  })
+
+  test("refuses a stale huella, a stranger and a piece that is not waiting for its signature", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva-no")
+    const pieza = await piezaDe(db, cuenta)
+    expect((await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: "0".repeat(64) })).error?.message).toBe(
+      "firma_de_otra_version",
+    )
+    const { huella } = await versionVigente(pieza)
+    const extrano = await personaConSesion("reserva-extrano")
+    expect((await extrano.db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: huella })).error?.code).toBe(
+      "42501",
+    )
+    await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: huella })
+    expect((await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: huella })).error?.message).toBe(
+      "pieza_no_esta_por_aprobar",
+    )
+  })
+
+  test("the guard refuses entering the reserve without a reserve signature, even for the service role", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva-guardia")
+    const pieza = await piezaDe(db, cuenta)
+    const { error } = await admin().from("piezas").update({ estado: "en_reserva" }).eq("id", pieza)
+    expect(error?.code).toBe("23514")
+    expect(error?.message).toBe("reservar_sin_firma_vigente")
+  })
+
+  test("the guard refuses scheduling a reserve piece whose signature has no date for that slot", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva-sin-fecha")
+    const pieza = await piezaDe(db, cuenta)
+    const { huella } = await versionVigente(pieza)
+    await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: huella })
+    const { error } = await admin()
+      .from("piezas")
+      .update({ estado: "programada", programada_para: enDias(2) })
+      .eq("id", pieza)
+    expect(error?.message).toBe("programar_sin_firma_vigente")
+  })
+
+  test("a signature has a date unless it is for the reserve", async () => {
+    const { db, cuenta, userId } = await cuentaConDueno("reserva-check")
+    const pieza = await piezaDe(db, cuenta)
+    const version = await versionVigente(pieza)
+    const { error } = await admin().from("firmas").insert({
+      pieza_id: pieza,
+      version_id: version.id,
+      huella: version.huella,
+      programada_para: null,
+      firmada_por: userId,
+    })
+    expect(error?.code).toBe("23514")
+  })
+
+  test("a new version sends a reserve piece back to the gate and drops its signature", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva-version")
+    const pieza = await piezaDe(db, cuenta)
+    await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: (await versionVigente(pieza)).huella })
+    expect((await db.rpc("nueva_version", { p_pieza: pieza, p_texto: "Otro texto" })).error).toBeNull()
+    expect((await planeada(pieza))?.estado).toBe("por_aprobar")
+    const { count } = await admin()
+      .from("firmas")
+      .select("*", { count: "exact", head: true })
+      .eq("pieza_id", pieza)
+      .eq("vigente", true)
+    expect(count).toBe(0)
+  })
+
+  test("taking a piece out of the reserve drops its signature; only a reserve piece can be taken out", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva-sacar")
+    const pieza = await piezaDe(db, cuenta)
+    expect((await db.rpc("sacar_de_reserva", { p_pieza: pieza })).error?.message).toBe("pieza_no_esta_en_reserva")
+    await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: (await versionVigente(pieza)).huella })
+    const extrano = await personaConSesion("sacar-extrano")
+    expect((await extrano.db.rpc("sacar_de_reserva", { p_pieza: pieza })).error?.code).toBe("42501")
+    expect((await db.rpc("sacar_de_reserva", { p_pieza: pieza })).error).toBeNull()
+    expect((await planeada(pieza))?.estado).toBe("por_aprobar")
+    const { count } = await admin()
+      .from("firmas")
+      .select("*", { count: "exact", head: true })
+      .eq("pieza_id", pieza)
+      .eq("vigente", true)
+    expect(count).toBe(0)
+  })
+
+  test("a reserve piece can be discarded", async () => {
+    const { db, cuenta } = await cuentaConDueno("reserva-descartar")
+    const pieza = await piezaDe(db, cuenta)
+    await db.rpc("firmar_para_reserva", { p_pieza: pieza, p_huella: (await versionVigente(pieza)).huella })
+    expect((await db.rpc("descartar_pieza", { p_pieza: pieza, p_motivo: "" })).error).toBeNull()
+    expect((await planeada(pieza))?.estado).toBe("descartada")
+  })
+})
