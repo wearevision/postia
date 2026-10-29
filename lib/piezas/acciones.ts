@@ -48,7 +48,7 @@ function falla(error: { code?: string; message: string }): { ok: false; error: s
   }
   const mensaje = MENSAJES[error.message]
   if (mensaje) return { ok: false, error: mensaje }
-  console.error("Falla inesperada al guardar una pieza", error)
+  console.error("Falla inesperada al guardar una pieza", error.code, error.message)
   return { ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." }
 }
 
@@ -94,7 +94,11 @@ async function revisarArchivo(db: Db, ruta: string): Promise<Resultado> {
   const lector = respuesta.body.getReader()
   const { value } = await lector.read()
   // Not awaited: under Next's patched fetch, awaiting cancel() never resolves and hangs the Server Action.
-  lector.cancel().catch((error: unknown) => console.error("No pude cerrar la lectura del PDF", error))
+  lector
+    .cancel()
+    .catch((error: unknown) =>
+      console.error("No pude cerrar la lectura del PDF", error instanceof Error ? error.message : String(error)),
+    )
   const cabecera = new TextDecoder().decode(value?.slice(0, 5))
   return cabecera === "%PDF-" ? { ok: true } : { ok: false, error: PDF_INVALIDO }
 }
@@ -219,7 +223,7 @@ export async function planearConFechaPropuesta(
     }
     return { ok: false, error: "No encontré un horario libre. Elige la fecha a mano." }
   } catch (causa) {
-    console.error("No pude proponer un horario", causa)
+    console.error("No pude proponer un horario", causa instanceof Error ? causa.message : String(causa))
     const sinHorario = causa instanceof Error && causa.message.startsWith("No encontré un horario libre")
     return { ok: false, error: sinHorario ? causa.message : "No pude proponer un horario. Elige la fecha a mano." }
   }
@@ -244,13 +248,25 @@ export async function firmarParaReserva(db: Db, entrada: unknown): Promise<Resul
   return error ? falla(error) : { ok: true }
 }
 
-export async function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
+interface PuertosDeSacar {
+  sacar(piezaId: string): PromiseLike<{ error: { code?: string; message: string } | null }>
+  planear(piezaId: string): Promise<Resultado>
+}
+
+export async function sacarDeReservaCon(puertos: PuertosDeSacar, piezaId: string): Promise<Resultado> {
   if (!Id.safeParse(piezaId).success) return { ok: false, error: DATOS_DE_PIEZA }
-  const { error } = await db.rpc("sacar_de_reserva", { p_pieza: piezaId })
+  const { error } = await puertos.sacar(piezaId)
   if (error) return falla(error)
   // Out of the reserve it is a piece to sign again, and a piece to sign holds a slot. The take-out already happened,
   // so a failed plan is not a failure of this action: the piece shows «Sin fecha planeada» and offers «Mover fecha».
-  const plan = await asegurarPlan(db, piezaId)
+  const plan = await puertos.planear(piezaId)
   if (!plan.ok) console.error("No pude planear la pieza al sacarla de la reserva", piezaId, plan.error)
   return { ok: true }
+}
+
+export function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
+  return sacarDeReservaCon(
+    { sacar: (id) => db.rpc("sacar_de_reserva", { p_pieza: id }), planear: (id) => asegurarPlan(db, id) },
+    piezaId,
+  )
 }

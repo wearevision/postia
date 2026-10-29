@@ -278,9 +278,9 @@ describe("pieces", () => {
       p_programada_para: EN_UNA_HORA(),
     })
     await admin().from("piezas").update({ estado: "a_mano" }).eq("id", pieza)
-    expect(
-      (await db.rpc("cerrar_a_mano", { p_pieza: pieza, p_enlace: null as unknown as string })).error?.message,
-    ).toBe("falta_el_enlace")
+    // The generated types demand a string; a null link is exactly what the function must refuse.
+    const sinEnlace = JSON.parse(`{"p_pieza": "${pieza}", "p_enlace": null}`)
+    expect((await db.rpc("cerrar_a_mano", sinEnlace)).error?.message).toBe("falta_el_enlace")
     const enlace = "https://www.linkedin.com/feed/update/urn:li:share:1"
     expect((await db.rpc("cerrar_a_mano", { p_pieza: pieza, p_enlace: enlace })).error).toBeNull()
     const { data } = await admin().from("piezas").select("estado, enlace").eq("id", pieza).single()
