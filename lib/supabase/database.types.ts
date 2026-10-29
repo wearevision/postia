@@ -34,6 +34,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      avisos_pendientes: {
+        Row: {
+          creado_en: string
+          cuerpo: string
+          enviado_en: string | null
+          id: string
+          marca_id: string
+          titulo: string
+          url: string
+        }
+        Insert: {
+          creado_en?: string
+          cuerpo: string
+          enviado_en?: string | null
+          id?: string
+          marca_id: string
+          titulo: string
+          url: string
+        }
+        Update: {
+          creado_en?: string
+          cuerpo?: string
+          enviado_en?: string | null
+          id?: string
+          marca_id?: string
+          titulo?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_pendientes_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conexiones: {
         Row: {
           app: string

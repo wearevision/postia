@@ -236,3 +236,19 @@ end $$;
 -- Service role only: Supabase's default privileges grant execute to anon and authenticated otherwise.
 revoke execute on function public.cubrir_con_reserva(uuid, timestamptz) from public, anon, authenticated;
 grant execute on function public.cubrir_con_reserva(uuid, timestamptz) to service_role;
+
+-- D26: non-urgent notices wait here for the 9:00 and 17:00 digest (trigger/resumen.ts). Service role only.
+create table public.avisos_pendientes (
+  id uuid primary key default gen_random_uuid(),
+  marca_id uuid not null references public.marcas (id) on delete cascade,
+  titulo text not null check (length(titulo) between 1 and 120),
+  cuerpo text not null check (length(cuerpo) between 1 and 300),
+  url text not null check (url ~ '^/[^/]'),
+  creado_en timestamptz not null default now(),
+  enviado_en timestamptz
+);
+create index avisos_pendientes_sin_enviar on public.avisos_pendientes (marca_id) where enviado_en is null;
+
+alter table public.avisos_pendientes enable row level security;
+-- No policies: people never see the queue. The revoke matters because Supabase grants new tables to anon and authenticated.
+revoke all on public.avisos_pendientes from anon, authenticated;
