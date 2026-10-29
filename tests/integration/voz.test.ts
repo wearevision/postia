@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest"
 import type { Json } from "@/lib/supabase/database.types"
-import { admin, marcaConDueno, personaConSesion } from "./entorno"
+import { guardarLinea } from "@/lib/voz/acciones"
+import { balancePorCuenta, lineaDeMarca, marcasConLinea, pilaresActivos } from "@/lib/voz/lectura"
+import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, piezaDe, versionVigente } from "./entorno"
 
 const SECCIONES = {
   deQueHablamos: "Investigación y experiencia de marcas.",
@@ -227,5 +229,66 @@ describe("guardar_linea_editorial refuses bad input", () => {
     expect(borrado.error?.message).toBe("linea_inmutable")
     expect((await admin().from("marcas").delete().eq("id", marca)).error).toBeNull()
     expect((await admin().from("lineas_editoriales").select("id").eq("marca_id", marca)).data).toEqual([])
+  })
+})
+
+const PILARES = [{ nombre: "Uno", deQueHabla: "", material: "", porSemana: 1 }]
+
+describe("lib/voz", () => {
+  test("guardarLinea saves version after version and lineaDeMarca reads the current one and the history", async () => {
+    const { db, marca } = await dueno("voz-lib")
+    expect(await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })).toEqual({
+      ok: true,
+      version: 1,
+    })
+    const primera = await lineaDeMarca(db, marca)
+    const uno = primera?.actual?.pilares[0]
+    expect(uno?.id).toBeDefined()
+    await guardarLinea(db, {
+      marcaId: marca,
+      base: 1,
+      secciones: { ...SECCIONES, tono: "Nuevo" },
+      pilares: [{ ...PILARES[0], id: uno?.id, nombre: "Uno bis" }],
+    })
+    const linea = await lineaDeMarca(db, marca)
+    expect(linea?.vigente).toBe(2)
+    expect(linea?.actual?.secciones.tono).toBe("Nuevo")
+    expect(linea?.historial.map((h) => h.version)).toEqual([2, 1])
+    expect((await lineaDeMarca(db, marca, 1))?.actual?.pilares[0]?.nombre).toBe("Uno")
+  })
+
+  test("guardarLinea answers in Spanish when the base is stale or the input is bad", async () => {
+    const { db, marca } = await dueno("voz-lib-falla")
+    await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })
+    expect(await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })).toEqual({
+      ok: false,
+      error: "Alguien guardó otra versión mientras editabas. Recarga para ver la última.",
+    })
+    expect(await guardarLinea(db, { marcaId: marca, base: 1, secciones: SECCIONES, pilares: [] })).toEqual({
+      ok: false,
+      error: "Revisa los pilares: entre 1 y 8, con nombres distintos.",
+    })
+  })
+
+  test("marcasConLinea and pilaresActivos only show the person's brands", async () => {
+    const { db, marca } = await dueno("voz-marcas")
+    await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })
+    expect((await marcasConLinea(db)).map((m) => [m.id, m.version])).toEqual([[marca, 1]])
+    expect((await pilaresActivos(db)).map((p) => [p.marcaId, p.nombre])).toEqual([[marca, "Uno"]])
+  })
+
+  test("balancePorCuenta reads each account's pieces by pillar", async () => {
+    const { db, marca } = await dueno("voz-balance")
+    await guardarLinea(db, { marcaId: marca, base: 0, secciones: SECCIONES, pilares: PILARES })
+    const cuenta = await cuentaDe(marca)
+    await admin().from("cuentas").update({ ritmo_semanal: 3 }).eq("id", cuenta)
+    const [pilar] = await pilaresActivos(db)
+    const pieza = await piezaDe(db, cuenta)
+    expect((await db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: pilar?.id })).error).toBeNull()
+    const { huella } = await versionVigente(pieza)
+    const firma = await db.rpc("firmar_pieza", { p_pieza: pieza, p_huella: huella, p_programada_para: enDias(3) })
+    expect(firma.error).toBeNull()
+    const balance = (await balancePorCuenta(db, Date.now())).find((b) => b.cuentaId === cuenta)
+    expect(balance?.balance.filas[0]).toMatchObject({ nombre: "Uno", planeadas: 1, salieron: 0 })
   })
 })
