@@ -72,6 +72,57 @@ export type Database = {
           },
         ]
       }
+      casos: {
+        Row: {
+          anio: number | null
+          capacidades: string[]
+          cargado_en: string
+          ciudad: string | null
+          cliente: string
+          era: string
+          frase_citable: string | null
+          industria: string | null
+          pais: string | null
+          resumen: string
+          rol: string
+          slug: string
+          tipos_de_trabajo: string[]
+          titulo: string
+        }
+        Insert: {
+          anio?: number | null
+          capacidades?: string[]
+          cargado_en?: string
+          ciudad?: string | null
+          cliente: string
+          era: string
+          frase_citable?: string | null
+          industria?: string | null
+          pais?: string | null
+          resumen?: string
+          rol?: string
+          slug: string
+          tipos_de_trabajo?: string[]
+          titulo: string
+        }
+        Update: {
+          anio?: number | null
+          capacidades?: string[]
+          cargado_en?: string
+          ciudad?: string | null
+          cliente?: string
+          era?: string
+          frase_citable?: string | null
+          industria?: string | null
+          pais?: string | null
+          resumen?: string
+          rol?: string
+          slug?: string
+          tipos_de_trabajo?: string[]
+          titulo?: string
+        }
+        Relationships: []
+      }
       conexiones: {
         Row: {
           app: string
@@ -194,6 +245,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "piezas"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      excepciones: {
+        Row: {
+          alias: string[]
+          caso_slug: string | null
+          cliente: string
+          hasta: string | null
+          id: string
+          puesta_en: string
+          puesta_por: string
+          quitada_en: string | null
+          quitada_por: string | null
+          tipo: string
+        }
+        Insert: {
+          alias?: string[]
+          caso_slug?: string | null
+          cliente: string
+          hasta?: string | null
+          id?: string
+          puesta_en?: string
+          puesta_por: string
+          quitada_en?: string | null
+          quitada_por?: string | null
+          tipo: string
+        }
+        Update: {
+          alias?: string[]
+          caso_slug?: string | null
+          cliente?: string
+          hasta?: string | null
+          id?: string
+          puesta_en?: string
+          puesta_por?: string
+          quitada_en?: string | null
+          quitada_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "excepciones_caso_slug_fkey"
+            columns: ["caso_slug"]
+            isOneToOne: false
+            referencedRelation: "casos"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -653,6 +751,7 @@ export type Database = {
       }
       dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
+      es_dueno_de_alguna: { Args: never; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
       firmar_para_reserva: {
         Args: { p_huella: string; p_pieza: string }
@@ -682,6 +781,16 @@ export type Database = {
         Returns: number
       }
       marca_de_pieza: { Args: { p_pieza: string }; Returns: string }
+      marcar_excepcion: {
+        Args: {
+          p_alias: string[]
+          p_caso?: string
+          p_cliente: string
+          p_hasta?: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       normalizar_texto: { Args: { p: string }; Returns: string }
       nueva_version: {
         Args: {
@@ -701,6 +810,7 @@ export type Database = {
         Args: { p_pieza: string; p_pilar?: string }
         Returns: undefined
       }
+      quitar_excepcion: { Args: { p_id: string }; Returns: undefined }
       registrar_falla_de_espacio: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: boolean

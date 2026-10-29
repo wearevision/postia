@@ -169,3 +169,93 @@ end $$;
 revoke execute on function public.poner_pilar(uuid, uuid) from public, anon;
 grant execute on function public.poner_pilar(uuid, uuid) to authenticated;
 revoke execute on function public.pilar_de_su_marca() from public, anon, authenticated;
+
+-- The corrected cases (data/casos/casos.json), loaded by scripts/cargar-casos.ts. Shared by every brand: they are
+-- Federico's track record, which WAV cites (CLAUDE.md «Clientes»). PostIA keeps only the exceptions on top (D13).
+create table public.casos (
+  slug text primary key check (slug ~ '^[a-z0-9-]{3,140}$'),
+  cliente text not null check (length(btrim(cliente)) between 1 and 120),
+  titulo text not null check (length(titulo) between 1 and 200),
+  anio smallint check (anio between 1990 and 2100),
+  pais text check (length(pais) <= 80),
+  ciudad text check (length(ciudad) <= 80),
+  industria text check (length(industria) <= 120),
+  tipos_de_trabajo text[] not null default '{}',
+  capacidades text[] not null default '{}',
+  resumen text not null default '' check (length(resumen) <= 4000),
+  rol text not null default '' check (length(rol) <= 2000),
+  frase_citable text check (length(frase_citable) <= 600),
+  -- Before August 2025 a case is Federico's track record, never «WAV hizo».
+  era text not null check (era in ('trayectoria', 'wav')),
+  cargado_en timestamptz not null default now()
+);
+create index casos_cliente on public.casos (lower(cliente));
+
+create table public.excepciones (
+  id uuid primary key default gen_random_uuid(),
+  cliente text not null check (length(btrim(cliente)) between 1 and 120),
+  caso_slug text references public.casos (slug) on delete cascade,
+  tipo text not null check (tipo in ('no_nombrar', 'sin_fotos', 'sin_logo', 'confidencial')),
+  alias text[] not null default '{}' check (cardinality(alias) <= 10),
+  -- Inclusive, Chile calendar; null means until someone removes it.
+  hasta date,
+  puesta_por uuid not null references auth.users (id) on delete cascade,
+  puesta_en timestamptz not null default now(),
+  quitada_por uuid references auth.users (id) on delete set null,
+  quitada_en timestamptz
+);
+create unique index excepciones_una_vigente on public.excepciones (lower(cliente), coalesce(caso_slug, ''), tipo)
+  where quitada_en is null;
+
+-- Phase 1 (D4) has only owners; the client list is shared, so owning any brand is enough to mark exceptions.
+create function public.es_dueno_de_alguna() returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.miembros where user_id = auth.uid() and rol = 'dueno')
+$$;
+
+-- Optional parameters go last with `default null`, so the generated TypeScript types make them optional (C1 pattern).
+create function public.marcar_excepcion(
+  p_cliente text, p_tipo text, p_alias text[], p_caso text default null, p_hasta date default null
+) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_id uuid;
+begin
+  if not public.es_dueno_de_alguna() then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_marca_excepciones';
+  end if;
+  if p_caso is not null and not exists (
+    select 1 from public.casos where slug = p_caso and lower(cliente) = lower(btrim(p_cliente))
+  ) then
+    raise exception using errcode = '22023', message = 'caso_de_otro_cliente';
+  end if;
+  insert into public.excepciones (cliente, caso_slug, tipo, alias, hasta, puesta_por)
+  values (btrim(p_cliente), p_caso, p_tipo, coalesce(p_alias, '{}'), p_hasta, auth.uid())
+  returning id into v_id;
+  return v_id;
+end $$;
+
+create function public.quitar_excepcion(p_id uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.es_dueno_de_alguna() then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_marca_excepciones';
+  end if;
+  update public.excepciones set quitada_en = now(), quitada_por = auth.uid() where id = p_id and quitada_en is null;
+  if not found then
+    raise exception using errcode = '22023', message = 'excepcion_ya_quitada';
+  end if;
+end $$;
+
+alter table public.casos enable row level security;
+alter table public.excepciones enable row level security;
+create policy "el equipo ve los casos" on public.casos for select to authenticated using (public.tiene_acceso());
+create policy "el equipo ve las excepciones" on public.excepciones for select to authenticated
+  using (public.tiene_acceso());
+revoke all on public.casos, public.excepciones from anon, authenticated;
+grant select on public.casos, public.excepciones to authenticated;
+
+revoke execute on function public.marcar_excepcion(text, text, text[], text, date), public.quitar_excepcion(uuid),
+  public.es_dueno_de_alguna() from public, anon;
+grant execute on function public.marcar_excepcion(text, text, text[], text, date), public.quitar_excepcion(uuid),
+  public.es_dueno_de_alguna() to authenticated;

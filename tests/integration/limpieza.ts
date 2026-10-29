@@ -36,6 +36,10 @@ async function limpiarDatosDePrueba(): Promise<void> {
 
   await borrarArchivosHuerfanos()
 
+  // Cases are shared by every brand: test rows are told apart by slug, real ones loaded by pnpm cargar:casos stay.
+  const { error: errorDeCasos } = await db.from("casos").delete().like("slug", "prueba-%")
+  if (errorDeCasos) throw new Error(`No pude borrar casos de prueba: ${errorDeCasos.message}`)
+
   for (const id of dePrueba) {
     const { error: errorDeUsuario } = await db.auth.admin.deleteUser(id)
     if (errorDeUsuario) throw new Error(`No pude borrar un usuario de prueba: ${errorDeUsuario.message}`)

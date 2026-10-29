@@ -1,0 +1,79 @@
+import { randomUUID } from "node:crypto"
+import { describe, expect, test } from "vitest"
+import { admin, marcaConDueno, personaConSesion } from "./entorno"
+
+async function caso(cliente: string) {
+  const slug = `prueba-${randomUUID().slice(0, 8)}`
+  const { error } = await admin()
+    .from("casos")
+    .insert({ slug, cliente, titulo: "Lanzamiento", anio: 2019, era: "trayectoria" })
+  if (error) throw error
+  return slug
+}
+
+async function duenoDeAlguna(prefijo = "cli") {
+  const persona = await personaConSesion(prefijo)
+  await marcaConDueno(persona.userId)
+  return persona
+}
+
+const marcar = (
+  db: Awaited<ReturnType<typeof personaConSesion>>["db"],
+  cliente: string,
+  cambios: { p_caso?: string; p_tipo?: string; p_alias?: string[]; p_hasta?: string } = {},
+) =>
+  db.rpc("marcar_excepcion", {
+    p_cliente: cliente,
+    p_tipo: "no_nombrar",
+    p_alias: [],
+    ...cambios,
+  })
+
+describe("casos and excepciones", () => {
+  test("the team reads cases, people without a brand do not, and nobody but the service role writes them", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const slug = await caso(cliente)
+    const { db } = await duenoDeAlguna()
+    expect((await db.from("casos").select("cliente").eq("slug", slug)).data).toEqual([{ cliente }])
+    const sinMarca = await personaConSesion("cli-sin-marca")
+    expect((await sinMarca.db.from("casos").select("slug").eq("slug", slug)).data).toEqual([])
+    expect(
+      (await db.from("casos").insert({ slug: "prueba-x", cliente: "X", titulo: "X", era: "wav" })).error,
+    ).not.toBeNull()
+  })
+
+  test("an owner marks an exception for a client or one of its cases, and removing it keeps the row", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const slug = await caso(cliente)
+    const { db, userId } = await duenoDeAlguna()
+    const { data: id, error } = await marcar(db, cliente, { p_caso: slug, p_alias: ["Alias"], p_hasta: "2027-01-31" })
+    expect(error).toBeNull()
+    const { data: fila } = await db
+      .from("excepciones")
+      .select("*")
+      .eq("id", id ?? "")
+      .single()
+    expect(fila).toMatchObject({ cliente, caso_slug: slug, tipo: "no_nombrar", alias: ["Alias"], puesta_por: userId })
+    expect((await db.rpc("quitar_excepcion", { p_id: id ?? "" })).error).toBeNull()
+    const { data: quitada } = await db
+      .from("excepciones")
+      .select("quitada_en, quitada_por")
+      .eq("id", id ?? "")
+      .single()
+    expect(quitada?.quitada_en).not.toBeNull()
+    expect(quitada?.quitada_por).toBe(userId)
+    expect((await db.rpc("quitar_excepcion", { p_id: id ?? "" })).error?.message).toBe("excepcion_ya_quitada")
+  })
+
+  test("refuses a repeated active exception, a case of another client and a person without a brand", async () => {
+    const cliente = `Cliente ${randomUUID().slice(0, 6)}`
+    const ajeno = await caso(`Otro ${randomUUID().slice(0, 6)}`)
+    const { db } = await duenoDeAlguna()
+    await marcar(db, cliente)
+    expect((await marcar(db, cliente.toUpperCase())).error?.code).toBe("23505")
+    expect((await marcar(db, cliente, { p_tipo: "sin_logo" })).error).toBeNull()
+    expect((await marcar(db, cliente, { p_caso: ajeno })).error?.message).toBe("caso_de_otro_cliente")
+    const sinMarca = await personaConSesion("cli-nadie")
+    expect((await marcar(sinMarca.db, cliente, { p_tipo: "sin_fotos" })).error?.code).toBe("42501")
+  })
+})
