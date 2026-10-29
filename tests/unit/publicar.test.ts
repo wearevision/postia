@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest"
+import type { Excepcion } from "@/lib/clientes/revision"
 import { type EstadoDeDocumento, RechazoDeLinkedin, RespuestaDudosa, TokenDeLinkedinVencido } from "@/lib/linkedin/api"
 import { enlaceDePost } from "@/lib/linkedin/dominio"
 import { type EstadoDePieza, transicionPermitida } from "@/lib/piezas/estados"
@@ -16,6 +17,7 @@ const AHORA = Date.parse("2026-11-03T14:05:00Z")
 const HUELLA = "a".repeat(64)
 const PDF = new Uint8Array([1, 2, 3, 4])
 const URN = "urn:li:share:123"
+const FIRMADA_EN = "2026-11-02T20:00:00.123456+00:00"
 
 function pieza(cambios: Partial<PiezaParaPublicar> = {}): PiezaParaPublicar {
   return {
@@ -28,7 +30,7 @@ function pieza(cambios: Partial<PiezaParaPublicar> = {}): PiezaParaPublicar {
     programadaPara: "2026-11-03T14:00:00Z",
     ventanaMinutos: 30,
     version: { id: "v1", texto: "Hola (mundo)", titulo: null, archivoRuta: null, archivoSha256: null, huella: HUELLA },
-    firma: { id: "f1", huella: HUELLA },
+    firma: { id: "f1", huella: HUELLA, firmadaEn: FIRMADA_EN },
     ...cambios,
   }
 }
@@ -79,6 +81,7 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     cubrirConReserva: vi.fn(async (): Promise<string | null> => null),
     anotarAviso: vi.fn(async () => {}),
     registrarFallaDeEspacio: vi.fn(async (): Promise<boolean> => true),
+    excepcionesPuestasDespues: vi.fn(async (): Promise<Excepcion[]> => []),
     linkedin: {
       crearPost: vi.fn(async () => {
         orden.push("crearPost")
@@ -271,7 +274,7 @@ describe("publicarPieza", () => {
 
   test("a signature of another version is a cause in the piece, not timing", async () => {
     const { p, m } = puertos()
-    await publicarPieza(p, pieza({ firma: { id: "f1", huella: "b".repeat(64) } }))
+    await publicarPieza(p, pieza({ firma: { id: "f1", huella: "b".repeat(64), firmadaEn: FIRMADA_EN } }))
     expect(m.devolverALaReserva).not.toHaveBeenCalled()
     expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", expect.any(String))
   })
@@ -526,5 +529,68 @@ describe("cubrirSinFirma (D21)", () => {
     silenciar()
     await publicarPendientes(p)
     expect(orden).toEqual(["cubrir", "tomar"])
+  })
+})
+
+describe("client exceptions marked after the signature", () => {
+  const COPEC: Excepcion = { cliente: "Copec", alias: [], tipo: "no_nombrar", hasta: null }
+  const conTexto = (texto: string) => pieza({ version: { ...pieza().version, texto } })
+
+  test("only reads the exceptions marked after the piece was signed", async () => {
+    const { p, m } = puertos()
+    expect(await publicarPieza(p, conTexto("Con Copec en 2019"))).toBe("publicada")
+    expect(m.excepcionesPuestasDespues).toHaveBeenCalledWith(FIRMADA_EN)
+  })
+
+  test("a client named in the piece that got an exception after the signature sends it back and nothing goes out", async () => {
+    const { p, m, estadoDe } = puertos()
+    m.excepcionesPuestasDespues.mockResolvedValue([COPEC])
+    expect(await publicarPieza(p, conTexto("Con Copec en 2019"))).toBe("por_aprobar")
+    expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+    expect(m.reservarEnvio).not.toHaveBeenCalled()
+    expect(m.credencial).not.toHaveBeenCalled()
+    expect(m.mover).toHaveBeenCalledWith(
+      "pieza-1",
+      "por_aprobar",
+      "Nombra a Copec, que ahora tiene una excepción. Revisa el texto y fírmala de nuevo.",
+    )
+    expect(m.avisar).toHaveBeenCalledTimes(1)
+    expect(m.avisar).toHaveBeenCalledWith("marca-1", expect.objectContaining({ url: "/piezas/pieza-1" }))
+    expect(estadoDe("pieza-1")).toBe("por_aprobar")
+  })
+
+  test("a newer exception for a client the piece does not name lets it go out", async () => {
+    const { p, m } = puertos()
+    m.excepcionesPuestasDespues.mockResolvedValue([COPEC])
+    expect(await publicarPieza(p, conTexto("Con Enel en 2019"))).toBe("publicada")
+  })
+
+  test("the carousel title is checked too", async () => {
+    const { p, m } = puertos()
+    m.excepcionesPuestasDespues.mockResolvedValue([COPEC])
+    const base = carrusel()
+    expect(await publicarPieza(p, { ...base, version: { ...base.version, titulo: "Copec 85 años" } })).toBe(
+      "por_aprobar",
+    )
+    expect(m.linkedin.subirDocumento).not.toHaveBeenCalled()
+  })
+
+  test("an exception that ended yesterday in Chile does not stop the piece", async () => {
+    const { p, m } = puertos()
+    // AHORA is 2026-11-03 in Chile.
+    m.excepcionesPuestasDespues.mockResolvedValue([{ ...COPEC, hasta: "2026-11-02" }])
+    expect(await publicarPieza(p, conTexto("Con Copec"))).toBe("publicada")
+  })
+
+  test("when the exceptions cannot be read nothing is sent and the run retries", async () => {
+    const registro = silenciar()
+    const { p, m } = puertos()
+    m.excepcionesPuestasDespues.mockRejectedValue(new Error("base caída"))
+    m.tomarPendientes.mockResolvedValue([pieza()])
+    expect(await publicarPendientes(p)).toMatchObject({ reintentar: 1, publicada: 0 })
+    expect(m.reservarEnvio).not.toHaveBeenCalled()
+    expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+    expect(m.mover).not.toHaveBeenCalled()
+    registro.mockRestore()
   })
 })

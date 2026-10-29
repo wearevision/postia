@@ -21,11 +21,28 @@ function fallo(accion: string, error: { message: string }): never {
   throw new Error(`${accion}: ${error.message}`, { cause: error })
 }
 
+function activas(db: Db) {
+  return db.from("excepciones").select("cliente, alias, tipo, hasta").is("quitada_en", null)
+}
+
+function comoExcepciones(
+  filas: { cliente: string; alias: string[]; tipo: string; hasta: string | null }[],
+): Excepcion[] {
+  return filas.map((e) => ({ cliente: e.cliente, alias: e.alias, tipo: leerTipoDeExcepcion(e.tipo), hasta: e.hasta }))
+}
+
 /** Active exceptions (not removed). The end date is applied by prepararRevision with today's Chile date. */
 export async function leerExcepciones(db: Db): Promise<Excepcion[]> {
-  const { data, error } = await db.from("excepciones").select("cliente, alias, tipo, hasta").is("quitada_en", null)
+  const { data, error } = await activas(db)
   if (error) fallo("No pude leer las excepciones de clientes", error)
-  return data.map((e) => ({ cliente: e.cliente, alias: e.alias, tipo: leerTipoDeExcepcion(e.tipo), hasta: e.hasta }))
+  return comoExcepciones(data)
+}
+
+/** Active exceptions marked after `desde`: what the publisher re-checks against a piece signed at `desde`. */
+export async function excepcionesPuestasDespues(db: Db, desde: string): Promise<Excepcion[]> {
+  const { data, error } = await activas(db).gt("puesta_en", desde)
+  if (error) fallo("No pude leer las excepciones de clientes", error)
+  return comoExcepciones(data)
 }
 
 export interface ExcepcionVigente {

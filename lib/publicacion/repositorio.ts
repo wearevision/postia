@@ -1,4 +1,5 @@
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
+import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
@@ -20,6 +21,7 @@ type PuertosDeBase = Pick<
   | "cubrirConReserva"
   | "anotarAviso"
   | "registrarFallaDeEspacio"
+  | "excepcionesPuestasDespues"
 >
 
 const LARGO_DE_EXTRACTO = 40
@@ -90,7 +92,7 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       const { data: piezas, error: errorDeLectura } = await db
         .from("piezas")
         .select(
-          "id, formato, programada_para, ventana_minutos, cuentas!inner(id, nombre, ruta, marca_id), versiones(id, numero, texto, titulo, archivo_ruta, archivo_sha256, huella), firmas(id, huella, vigente)",
+          "id, formato, programada_para, ventana_minutos, cuentas!inner(id, nombre, ruta, marca_id), versiones(id, numero, texto, titulo, archivo_ruta, archivo_sha256, huella), firmas(id, huella, vigente, firmada_en)",
         )
         .in(
           "id",
@@ -122,7 +124,7 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
               archivoSha256: ultima.archivo_sha256,
               huella: ultima.huella,
             },
-            firma: firma ? { id: firma.id, huella: firma.huella } : null,
+            firma: firma ? { id: firma.id, huella: firma.huella, firmadaEn: firma.firmada_en } : null,
           })
         } catch (error) {
           // One unreadable piece must not block the others: a person looks at it, and it leaves the lease.
@@ -227,6 +229,8 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
     },
 
     anotarAviso: (marcaId, aviso) => anotarAviso(db, marcaId, aviso),
+
+    excepcionesPuestasDespues: (desde) => excepcionesPuestasDespues(db, desde),
 
     async registrarFallaDeEspacio(piezaId, motivo) {
       const { data, error } = await db.rpc("registrar_falla_de_espacio", { p_pieza: piezaId, p_motivo: motivo })

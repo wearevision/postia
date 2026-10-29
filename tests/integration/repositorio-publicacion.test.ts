@@ -86,6 +86,8 @@ describe("repositorioDePublicacion", () => {
     })
     expect(primera?.cuentaNombre).toMatch(/^Cuenta /)
     expect(primera?.firma?.huella).toBe(primera?.version.huella)
+    const { data: firma } = await admin().from("firmas").select("firmada_en").eq("id", c.firma).single()
+    expect(primera?.firma?.firmadaEn).toBe(firma?.firmada_en)
     expect(new Date(primera?.programadaPara ?? "").getTime()).toBeLessThan(Date.now())
 
     const segunda = (await repo().tomarPendientes()).find((p) => p.id === c.pieza)
@@ -116,9 +118,9 @@ describe("repositorioDePublicacion", () => {
       ventanaMinutos: 30,
       version: { id: c.version, texto: "t", titulo: null, archivoRuta: null, archivoSha256: null, huella: "h" },
     }
-    await expect(repo().reservarEnvio({ ...base, firma: { id: c.firma, huella: "h" } })).rejects.toThrow(
-      /reserva_fuera_de_ventana/,
-    )
+    await expect(
+      repo().reservarEnvio({ ...base, firma: { id: c.firma, huella: "h", firmadaEn: HACE(31) } }),
+    ).rejects.toThrow(/reserva_fuera_de_ventana/)
     await expect(repo().reservarEnvio({ ...base, firma: null })).rejects.toThrow(/firma/)
   })
 
