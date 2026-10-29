@@ -799,6 +799,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      barrer_gastos: { Args: { p_ahora?: string }; Returns: number }
       cerrar_a_mano: {
         Args: { p_enlace: string; p_pieza: string }
         Returns: undefined
@@ -891,6 +892,10 @@ export type Database = {
         }
         Returns: number
       }
+      guardar_tope: {
+        Args: { p_marca?: string; p_monto_micro?: number }
+        Returns: undefined
+      }
       liberar_gasto: {
         Args: { p_ahora?: string; p_clave: string }
         Returns: string
@@ -946,6 +951,7 @@ export type Database = {
         }
         Returns: Json
       }
+      resumen_de_gasto: { Args: never; Returns: Json }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_para_publicar: {

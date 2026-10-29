@@ -179,6 +179,64 @@ begin
   raise exception using errcode = '22023', message = 'gasto_cerrado';
 end $$;
 
+-- Plano «Mantenimiento»: a reservation nobody confirmed or released in a day stops counting.
+create function public.barrer_gastos(p_ahora timestamptz default now()) returns integer
+language sql security definer set search_path = '' as $$
+  with vencidos as (
+    update public.gastos set estado = 'vencido', cerrado_en = p_ahora
+    where estado = 'reservado' and creado_en < p_ahora - interval '24 hours'
+    returning 1
+  )
+  select count(*)::integer from vencidos
+$$;
+
+-- Ajustes «Gasto del mes»: the global total and cap, «General», and each brand the person belongs to.
+create function public.resumen_de_gasto() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_mes date := public.mes_de(now());
+begin
+  if not public.es_dueno_de_alguna() then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_ve_el_gasto';
+  end if;
+  return jsonb_build_object(
+    'mes', v_mes,
+    'tope_micro', public.tope_vigente(null, v_mes),
+    'gastado_micro', public.gastado(v_mes),
+    'filas', jsonb_build_array(jsonb_build_object(
+        'marca_id', null, 'nombre', 'General', 'tope_micro', null,
+        'gastado_micro', (select coalesce(sum(coalesce(real_micro, estimado_micro)), 0)::bigint from public.gastos
+                          where mes = v_mes and estado in ('reservado', 'confirmado') and marca_id is null)
+      )) || coalesce((
+        select jsonb_agg(jsonb_build_object(
+          'marca_id', m.id, 'nombre', m.nombre, 'tope_micro', public.tope_vigente(m.id, v_mes),
+          'gastado_micro', public.gastado(v_mes, m.id)
+        ) order by m.nombre)
+        from public.marcas m
+        where public.es_miembro(m.id)
+      ), '[]'::jsonb)
+  );
+end $$;
+
+create function public.guardar_tope(p_monto_micro bigint default null, p_marca uuid default null) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if p_marca is null and not public.es_dueno_de_alguna() then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_cambia_el_tope';
+  end if;
+  if p_marca is not null and not public.es_dueno(p_marca) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_cambia_el_tope';
+  end if;
+  if (p_marca is null and p_monto_micro is null)
+     or (p_monto_micro is not null and p_monto_micro not between 1000000 and 1000000000) then
+    raise exception using errcode = '22023', message = 'tope_invalido';
+  end if;
+  insert into public.topes (marca_id, desde_mes, monto_micro, puesto_por)
+  values (p_marca, public.mes_de(now()), p_monto_micro, auth.uid())
+  on conflict (coalesce(marca_id, '00000000-0000-0000-0000-000000000000'::uuid), desde_mes)
+  do update set monto_micro = excluded.monto_micro, puesto_por = excluded.puesto_por, puesto_en = now();
+end $$;
+
 alter table public.topes enable row level security;
 alter table public.gastos enable row level security;
 alter table public.avisos_de_tope enable row level security;
@@ -192,3 +250,7 @@ revoke execute on function public.mes_de(timestamptz), public.tope_vigente(uuid,
   from public, anon, authenticated;
 grant execute on function public.reservar_gasto(text, text, text, bigint, uuid, timestamptz),
   public.confirmar_gasto(text, bigint, timestamptz), public.liberar_gasto(text, timestamptz) to service_role;
+revoke execute on function public.barrer_gastos(timestamptz), public.resumen_de_gasto(),
+  public.guardar_tope(bigint, uuid) from public, anon, authenticated;
+grant execute on function public.barrer_gastos(timestamptz) to service_role;
+grant execute on function public.resumen_de_gasto(), public.guardar_tope(bigint, uuid) to authenticated;
