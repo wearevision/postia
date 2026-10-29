@@ -1,5 +1,8 @@
 import { z } from "zod"
+import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
+import { type Excepcion, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { normalizarTexto } from "@/lib/piezas/huella"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
@@ -32,6 +35,9 @@ const MENSAJES: Record<string, string> = {
   solo_el_dueno_saca_de_la_reserva: "Solo el dueño de la marca puede sacar piezas de la reserva.",
   pieza_no_esta_en_reserva: "Esta pieza ya no está en la reserva.",
   pieza_no_espera_reserva: "Esta pieza ya no espera una pieza de la reserva.",
+  // pilar_de_otra_marca arrives with code 23514 but is not a guard message, so falla finds it here.
+  pilar_de_otra_marca: "Ese pilar es de otra marca.",
+  pilar_inactivo: "Ese pilar ya no está en la línea editorial.",
 }
 
 const MENSAJES_DE_LA_GUARDIA = [
@@ -46,8 +52,7 @@ function falla(error: { code?: string; message: string }): { ok: false; error: s
   if (error.code === "23514" && MENSAJES_DE_LA_GUARDIA.some((m) => error.message.startsWith(m))) {
     return { ok: false, error: "La pieza no puede pasar a ese estado desde donde está." }
   }
-  const mensaje = MENSAJES[error.message]
-  if (mensaje) return { ok: false, error: mensaje }
+  if (Object.hasOwn(MENSAJES, error.message)) return { ok: false, error: MENSAJES[error.message] }
   console.error("Falla inesperada al guardar una pieza", error.code, error.message)
   return { ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." }
 }
@@ -135,6 +140,71 @@ export async function crearPieza(db: Db, entrada: unknown): Promise<Resultado<{ 
   return error ? falla(error) : { ok: true, piezaId: data }
 }
 
+export const EXCEPCIONES_NUEVAS = "Hay excepciones nuevas desde que abriste la pieza. Recarga para revisarlas."
+
+// Errs toward blocking: covers the ms between this check and the signing RPC and any Worker/DB clock skew.
+const MARGEN_DE_APERTURA_MS = 5_000
+
+interface PuertosDeApertura {
+  /** Active exceptions marked after `desde`. */
+  nuevasDesde(desde: string): Promise<Excepcion[]>
+  /** Title and text of the version being signed; null when it is not the piece's version (the signature refuses it). */
+  texto(): Promise<string | null>
+}
+
+/**
+ * Gate 1 race: the verdict the person saw covered the exceptions marked up to the page's render time (`abiertaEn`).
+ * One marked after it that names a client of this piece was never shown, and the publisher only re-checks exceptions
+ * marked after the signature, so the signature is refused until the page is reloaded. An exception for a client the
+ * piece does not name leaves the verdict as it was and does not hold anyone's signature. `abiertaEn` comes from the
+ * browser: never in the future.
+ */
+export async function revisarApertura(p: PuertosDeApertura, abiertaEn: unknown, ahora: number): Promise<Resultado> {
+  const leida = z.iso
+    .datetime({ offset: true })
+    .refine((valor) => Date.parse(valor) <= ahora)
+    .safeParse(abiertaEn)
+  if (!leida.success) return { ok: false, error: "Recarga la pieza antes de firmar." }
+  let nombrados: number
+  try {
+    const nuevas = await p.nuevasDesde(new Date(Date.parse(leida.data) - MARGEN_DE_APERTURA_MS).toISOString())
+    if (nuevas.length === 0) return { ok: true }
+    const texto = await p.texto()
+    if (texto === null) return { ok: true }
+    nombrados = prepararRevision(nuevas, diaEnSantiago(ahora)).clientes(texto).length
+  } catch (error) {
+    console.error(
+      "No pude revisar las excepciones nuevas antes de firmar",
+      error instanceof Error ? error.message : String(error),
+    )
+    return { ok: false, error: "No pude revisar los clientes. Inténtalo de nuevo en un rato." }
+  }
+  return nombrados > 0 ? { ok: false, error: EXCEPCIONES_NUEVAS } : { ok: true }
+}
+
+function aperturaDe(entrada: unknown): unknown {
+  return typeof entrada === "object" && entrada !== null && "abiertaEn" in entrada ? entrada.abiertaEn : undefined
+}
+
+function puertosDeApertura(db: Db, piezaId: string, huella: string): PuertosDeApertura {
+  return {
+    nuevasDesde: (desde) => excepcionesPuestasDespues(db, desde),
+    async texto() {
+      const { data, error } = await db
+        .from("versiones")
+        .select("titulo, texto")
+        .eq("pieza_id", piezaId)
+        .eq("huella", huella)
+        .order("numero", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw new Error(`No pude leer la versión: ${error.message}`, { cause: error })
+      // The same text the gate 1 verdict reviewed (app/(app)/piezas/[id]/page.tsx).
+      return data ? textoARevisar(data.titulo, data.texto) : null
+    },
+  }
+}
+
 const Firma = z.object({
   piezaId: z.uuid(),
   huella: z.string().regex(/^[0-9a-f]{64}$/),
@@ -144,6 +214,12 @@ const Firma = z.object({
 export async function firmarPieza(db: Db, entrada: unknown): Promise<Resultado> {
   const leida = Firma.safeParse(entrada)
   if (!leida.success) return { ok: false, error: "Revisa la fecha y la hora." }
+  const apertura = await revisarApertura(
+    puertosDeApertura(db, leida.data.piezaId, leida.data.huella),
+    aperturaDe(entrada),
+    Date.now(),
+  )
+  if (!apertura.ok) return apertura
   const { error } = await db.rpc("firmar_pieza", {
     p_pieza: leida.data.piezaId,
     p_huella: leida.data.huella,
@@ -244,6 +320,12 @@ const FirmaDeReserva = z.object({ piezaId: z.uuid(), huella: z.string().regex(/^
 export async function firmarParaReserva(db: Db, entrada: unknown): Promise<Resultado> {
   const leida = FirmaDeReserva.safeParse(entrada)
   if (!leida.success) return { ok: false, error: DATOS_DE_PIEZA }
+  const apertura = await revisarApertura(
+    puertosDeApertura(db, leida.data.piezaId, leida.data.huella),
+    aperturaDe(entrada),
+    Date.now(),
+  )
+  if (!apertura.ok) return apertura
   const { error } = await db.rpc("firmar_para_reserva", { p_pieza: leida.data.piezaId, p_huella: leida.data.huella })
   return error ? falla(error) : { ok: true }
 }
@@ -269,4 +351,52 @@ export function sacarDeReserva(db: Db, piezaId: string): Promise<Resultado> {
     { sacar: (id) => db.rpc("sacar_de_reserva", { p_pieza: id }), planear: (id) => asegurarPlan(db, id) },
     piezaId,
   )
+}
+
+const PilarDePieza = z.object({ piezaId: z.uuid(), pilarId: z.uuid().nullable() })
+
+export async function ponerPilar(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = PilarDePieza.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: DATOS_DE_PIEZA }
+  // No pillar is sent as a missing argument, never null: the RPC's default clears it.
+  const { error } = await db.rpc("poner_pilar", {
+    p_pieza: leida.data.piezaId,
+    p_pilar: leida.data.pilarId ?? undefined,
+  })
+  return error ? falla(error) : { ok: true }
+}
+
+/** What a new piece could not get right after it was created; its page asks for it. */
+export type AvisoDePiezaNueva = "plan" | "pilar"
+
+interface PuertosDeCreacion {
+  crear(entrada: unknown): Promise<Resultado<{ piezaId: string }>>
+  planear(piezaId: string): Promise<Resultado>
+  ponerPilar(entrada: { piezaId: string; pilarId: string }): Promise<Resultado>
+}
+
+const PilarElegido = z.object({ pilarId: z.uuid() })
+
+/** Creates a piece, plans it and sets its pillar. A failed plan or pillar never loses the piece: it comes back as a notice. */
+export async function crearPiezaCon(
+  p: PuertosDeCreacion,
+  entrada: unknown,
+): Promise<Resultado<{ piezaId: string; aviso: AvisoDePiezaNueva[] }>> {
+  const creada = await p.crear(entrada)
+  if (!creada.ok) return creada
+  const aviso: AvisoDePiezaNueva[] = []
+  const plan = await p.planear(creada.piezaId)
+  if (!plan.ok) {
+    console.error("No pude planear la pieza nueva", creada.piezaId, plan.error)
+    aviso.push("plan")
+  }
+  const pilar = PilarElegido.safeParse(entrada)
+  if (pilar.success) {
+    const puesto = await p.ponerPilar({ piezaId: creada.piezaId, pilarId: pilar.data.pilarId })
+    if (!puesto.ok) {
+      console.error("No pude poner el pilar de la pieza nueva", creada.piezaId, puesto.error)
+      aviso.push("pilar")
+    }
+  }
+  return { ok: true, piezaId: creada.piezaId, aviso }
 }

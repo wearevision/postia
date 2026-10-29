@@ -3,7 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { FormularioDePieza } from "@/app/(app)/piezas/nueva/formulario"
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
+const { push } = vi.hoisted(() => ({ push: vi.fn() }))
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))
 
 const CUENTA = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -100,5 +101,76 @@ describe("FormularioDePieza", () => {
     await waitFor(() => expect(crear).toHaveBeenCalledTimes(1))
     const esperado = createHash("sha256").update("%PDF-1.4").digest("hex")
     expect(crear).toHaveBeenLastCalledWith(expect.objectContaining({ archivoSha256: esperado }))
+  })
+})
+
+describe("pillar", () => {
+  const OTRA = {
+    ...CUENTA,
+    id: "55555555-5555-4555-8555-555555555555",
+    marcaId: "66666666-6666-4666-8666-666666666666",
+    nombre: "Página",
+  }
+  const PILARES = [
+    { id: "77777777-7777-4777-8777-777777777777", marcaId: CUENTA.marcaId, nombre: "Coherencia" },
+    { id: "88888888-8888-4888-8888-888888888888", marcaId: OTRA.marcaId, nombre: "Oficio" },
+  ]
+  const crearOk = () => vi.fn(async () => ({ ok: true as const, piezaId: "44444444-4444-4444-8444-444444444444" }))
+
+  test("offers only the pillars of the chosen account's brand and sends the chosen one", async () => {
+    const crear = crearOk()
+    render(<FormularioDePieza cuentas={[CUENTA, OTRA]} pilares={PILARES} crear={crear} />)
+    expect(screen.getByRole("option", { name: "Coherencia" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Oficio" })).toBeNull()
+    fireEvent.change(screen.getByLabelText("Cuenta"), { target: { value: OTRA.id } })
+    fireEvent.change(screen.getByLabelText("Pilar"), { target: { value: PILARES[1]?.id } })
+    escribir("Texto")
+    crearPieza()
+    await waitFor(() =>
+      expect(crear).toHaveBeenCalledWith({
+        cuentaId: OTRA.id,
+        formato: "texto",
+        texto: "Texto",
+        pilarId: PILARES[1]?.id,
+      }),
+    )
+  })
+
+  test("always sends the pillar, null when none was chosen", async () => {
+    const crear = crearOk()
+    render(<FormularioDePieza cuentas={[CUENTA]} pilares={PILARES} crear={crear} />)
+    escribir("Texto")
+    crearPieza()
+    await waitFor(() =>
+      expect(crear).toHaveBeenCalledWith({ cuentaId: CUENTA.id, formato: "texto", texto: "Texto", pilarId: null }),
+    )
+  })
+
+  test("changing the account clears a pillar of another brand", () => {
+    render(<FormularioDePieza cuentas={[CUENTA, OTRA]} pilares={PILARES} crear={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText("Pilar"), { target: { value: PILARES[0]?.id } })
+    fireEvent.change(screen.getByLabelText("Cuenta"), { target: { value: OTRA.id } })
+    expect(screen.getByLabelText("Pilar")).toHaveValue("")
+  })
+
+  test("hides the pillar when the brand has none", () => {
+    render(<FormularioDePieza cuentas={[CUENTA]} crear={vi.fn()} />)
+    expect(screen.queryByLabelText("Pilar")).toBeNull()
+  })
+})
+
+describe("after creating", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  test("opens the piece, flagging what could not be set on it", async () => {
+    const crear = vi.fn(async () => ({
+      ok: true as const,
+      piezaId: "44444444-4444-4444-8444-444444444444",
+      aviso: ["pilar" as const],
+    }))
+    render(<FormularioDePieza cuentas={[CUENTA]} crear={crear} />)
+    escribir("Texto")
+    crearPieza()
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/piezas/44444444-4444-4444-8444-444444444444?aviso=pilar"))
   })
 })

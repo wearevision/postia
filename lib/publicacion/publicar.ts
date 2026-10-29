@@ -1,4 +1,5 @@
 import type { MensajePush } from "@/lib/avisos/tipos"
+import { type Excepcion, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import {
   type crearPost,
   type estadoDelDocumento,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/linkedin/api"
 import { esperarDocumento } from "@/lib/linkedin/documento"
 import { aLittleText, enlaceDePost } from "@/lib/linkedin/dominio"
+import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { sha256 } from "@/lib/piezas/huella"
@@ -31,7 +33,7 @@ export interface PiezaParaPublicar {
     archivoSha256: string | null
     huella: string
   }
-  firma: { id: string; huella: string } | null
+  firma: { id: string; huella: string; firmadaEn: string } | null
 }
 
 export interface PendienteSinFirma {
@@ -59,7 +61,8 @@ export interface PuertosDePublicacion {
   descargar(ruta: string): Promise<Uint8Array>
   reservarEnvio(pieza: PiezaParaPublicar): Promise<"reservado" | "ya_enviado">
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
-  mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<void>
+  /** "sin_cambio": only for "por_aprobar", when the piece was no longer scheduled (someone already moved it). */
+  mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<"movida" | "sin_cambio">
   /** Timing causes only: a piece that came out of the reserve goes back to it. Says where the piece ended. */
   devolverALaReserva(piezaId: string, motivo: string): Promise<"por_aprobar" | "en_reserva" | "sin_cambio">
   avisar(marcaId: string, aviso: Aviso): Promise<void>
@@ -69,6 +72,8 @@ export interface PuertosDePublicacion {
   anotarAviso(marcaId: string, aviso: Aviso): Promise<void>
   /** Marks a piece whose slot could not be covered; true the first time, so the digest says it only once. */
   registrarFallaDeEspacio(piezaId: string, motivo: string): Promise<boolean>
+  /** Client exceptions (D13) still active and marked after `desde`. A failure throws: the piece is not sent this run. */
+  excepcionesPuestasDespues(desde: string): Promise<Excepcion[]>
   linkedin: {
     crearPost: typeof crearPost
     subirDocumento: typeof subirDocumento
@@ -113,8 +118,8 @@ async function devolver(
       })
       return a
     }
-  } else {
-    await p.mover(pieza.id, a, motivo)
+  } else if ((await p.mover(pieza.id, a, motivo)) === "sin_cambio") {
+    return "reintentar"
   }
   const titulos = { por_aprobar: "No salió", a_mano: "Publica a mano", envio_dudoso: "Revisa LinkedIn" } as const
   await avisarSiPuede(p, pieza.marcaId, aviso(pieza, titulos[a], motivo))
@@ -144,6 +149,21 @@ function revisar(p: PuertosDePublicacion, pieza: PiezaParaPublicar, credencial: 
   )
 }
 
+/**
+ * «Confidencialidad de clientes»: the client a piece names that got an exception after the piece was signed.
+ * Exceptions that existed at the signature were in the gate 1 verdict and the person signed anyway; checking them again
+ * would send back on every run a piece already decided on (a client named like a common word, say).
+ */
+async function clienteConExcepcionNueva(p: PuertosDePublicacion, pieza: PiezaParaPublicar): Promise<string | null> {
+  // Only reached after the review accepted the signature; this narrows the type.
+  if (!pieza.firma) return null
+  const nuevas = await p.excepcionesPuestasDespues(pieza.firma.firmadaEn)
+  if (nuevas.length === 0) return null
+  const texto = textoARevisar(pieza.version.titulo, pieza.version.texto)
+  const [nombrado] = prepararRevision(nuevas, diaEnSantiago(p.ahora())).clientes(texto)
+  return nombrado?.tipo === "cliente" ? nombrado.cliente : null
+}
+
 /** One due piece. The reservation is written right before the only irreversible call (POST /rest/posts). */
 export async function publicarPieza(
   p: PuertosDePublicacion,
@@ -152,6 +172,18 @@ export async function publicarPieza(
   const credencial = pieza.ruta === "api" ? await p.credencial(pieza.cuentaId) : null
   const revision = revisar(p, pieza, credencial)
   if (!revision.ok) return devolver(p, pieza, revision.destino, revision.motivo, revision.porHorario === true)
+  // Right after the window and signature check, so a late piece still goes back with its notice when the exceptions
+  // cannot be read, and before any download or reservation. A read failure throws: publicarPendientes counts it as
+  // «reintentar» and nothing was sent.
+  const cliente = await clienteConExcepcionNueva(p, pieza)
+  if (cliente) {
+    return devolver(
+      p,
+      pieza,
+      "por_aprobar",
+      `Nombra a ${cliente}, que ahora tiene una excepción. Revisa el texto y fírmala de nuevo.`,
+    )
+  }
   // revisarAntesDeEnviar already refuses a missing connection; this only narrows the type for what follows.
   if (!credencial) return devolver(p, pieza, "a_mano", "No encontré la conexión de LinkedIn de esta cuenta.")
 

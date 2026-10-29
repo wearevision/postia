@@ -2,18 +2,31 @@
 
 import { revalidatePath } from "next/cache"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { crearPieza, planearConFechaPropuesta } from "@/lib/piezas/acciones"
+import {
+  type AvisoDePiezaNueva,
+  crearPieza,
+  crearPiezaCon,
+  planearConFechaPropuesta,
+  ponerPilar,
+} from "@/lib/piezas/acciones"
 import { RUTA_DE_CALENDARIO, RUTA_DE_INICIO } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
-export async function crearPiezaAccion(entrada: unknown): Promise<Resultado<{ piezaId: string }>> {
+export async function crearPiezaAccion(
+  entrada: unknown,
+): Promise<Resultado<{ piezaId: string; aviso: AvisoDePiezaNueva[] }>> {
   const db = await createActionClient()
-  const resultado = await crearPieza(db, entrada)
-  if (!resultado.ok) return resultado
-  // A failed plan never loses the piece: its page offers «Mover fecha».
-  const plan = await planearConFechaPropuesta(db, resultado.piezaId)
-  if (!plan.ok) console.error("No pude planear la pieza nueva", resultado.piezaId, plan.error)
-  revalidatePath(RUTA_DE_INICIO)
-  revalidatePath(RUTA_DE_CALENDARIO)
+  const resultado = await crearPiezaCon(
+    {
+      crear: (e) => crearPieza(db, e),
+      planear: (piezaId) => planearConFechaPropuesta(db, piezaId),
+      ponerPilar: (e) => ponerPilar(db, e),
+    },
+    entrada,
+  )
+  if (resultado.ok) {
+    revalidatePath(RUTA_DE_INICIO)
+    revalidatePath(RUTA_DE_CALENDARIO)
+  }
   return resultado
 }

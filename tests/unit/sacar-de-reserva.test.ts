@@ -39,4 +39,13 @@ describe("sacarDeReservaCon", () => {
     expect(resultado.ok).toBe(false)
     expect(sacar).not.toHaveBeenCalled()
   })
+
+  test("a database message named like an object property is an unexpected failure, not a message", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const resultado = await sacarDeReservaCon(
+      { sacar: async () => ({ error: { message: "constructor" } }), planear: vi.fn() },
+      PIEZA,
+    )
+    expect(resultado).toEqual({ ok: false, error: "No pude guardar. Inténtalo de nuevo en un rato." })
+  })
 })

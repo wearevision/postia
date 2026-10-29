@@ -15,9 +15,17 @@ export interface CuentaDelFormulario {
   marca: string
 }
 
+export interface PilarDelFormulario {
+  id: string
+  marcaId: string
+  nombre: string
+}
+
 interface Props {
   cuentas: CuentaDelFormulario[]
-  crear: (entrada: unknown) => Promise<Resultado<{ piezaId: string }>>
+  pilares?: PilarDelFormulario[]
+  /** `aviso` names what the new piece could not get (plan, pillar); its page asks for it. */
+  crear: (entrada: unknown) => Promise<Resultado<{ piezaId: string; aviso?: readonly string[] }>>
   subir?: (marcaId: string, pdf: File) => Promise<string | null>
 }
 
@@ -31,9 +39,10 @@ async function subirDesdeElNavegador(marcaId: string, pdf: File): Promise<string
   return error ? null : ruta
 }
 
-export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegador }: Props) {
+export function FormularioDePieza({ cuentas, pilares = [], crear, subir = subirDesdeElNavegador }: Props) {
   const router = useRouter()
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? "")
+  const [pilarId, setPilarId] = useState("")
   const [formato, setFormato] = useState<"texto" | "carrusel_pdf">("texto")
   const [texto, setTexto] = useState("")
   const [titulo, setTitulo] = useState("")
@@ -44,6 +53,8 @@ export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegado
   const [pendiente, iniciar] = useTransition()
   const entradaDeArchivo = useRef<HTMLInputElement>(null)
   const largo = [...texto.replace(/\r\n/g, "\n")].length
+  const marcaId = cuentas.find((c) => c.id === cuentaId)?.marcaId
+  const pilaresDeLaCuenta = pilares.filter((p) => p.marcaId === marcaId)
 
   function elegirArchivo(elegido: File | null) {
     if (elegido && elegido.size > BYTES_MAXIMOS_DEL_CARRUSEL) {
@@ -73,10 +84,12 @@ export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegado
     const cuenta = cuentas.find((c) => c.id === cuentaId)
     if (!cuenta) return
     setError(null)
+    // The pillar key is always sent, null for none, so the action never mistakes a missing field for a choice.
+    const pilar = pilaresDeLaCuenta.some((p) => p.id === pilarId) ? pilarId : null
     iniciar(async () => {
-      let resultado: Resultado<{ piezaId: string }>
+      let resultado: Resultado<{ piezaId: string; aviso?: readonly string[] }>
       if (formato === "texto") {
-        resultado = await crear({ cuentaId, formato, texto })
+        resultado = await crear({ cuentaId, formato, texto, pilarId: pilar })
       } else {
         if (!archivo) return
         let archivoRuta = subido?.archivo === archivo ? subido.ruta : null
@@ -92,9 +105,10 @@ export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegado
           titulo,
           archivoRuta,
           archivoSha256: await sha256Hex(archivo),
+          pilarId: pilar,
         })
       }
-      if (resultado.ok) router.push(rutaDePieza(resultado.piezaId))
+      if (resultado.ok) router.push(rutaDePieza(resultado.piezaId, resultado.aviso))
       else setError(resultado.error)
     })
   }
@@ -104,7 +118,14 @@ export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegado
     <form onSubmit={enviar} noValidate className="space-y-4">
       <label className="block space-y-1">
         <span className="text-sm">Cuenta</span>
-        <select value={cuentaId} onChange={(evento) => setCuentaId(evento.target.value)} className={CAMPO}>
+        <select
+          value={cuentaId}
+          onChange={(evento) => {
+            setCuentaId(evento.target.value)
+            setPilarId("")
+          }}
+          className={CAMPO}
+        >
           {cuentas.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nombre} · {c.marca}
@@ -112,6 +133,19 @@ export function FormularioDePieza({ cuentas, crear, subir = subirDesdeElNavegado
           ))}
         </select>
       </label>
+      {pilaresDeLaCuenta.length > 0 && (
+        <label className="block space-y-1">
+          <span className="text-sm">Pilar</span>
+          <select value={pilarId} onChange={(evento) => setPilarId(evento.target.value)} className={CAMPO}>
+            <option value="">Sin pilar</option>
+            {pilaresDeLaCuenta.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <fieldset className="space-y-1">
         <legend className="text-sm">Formato</legend>
         <label className={OPCION}>

@@ -11,11 +11,20 @@ import {
   firmarPieza,
   planearConFechaPropuesta,
   planearPieza,
+  ponerPilar,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { sha256 } from "@/lib/piezas/huella"
 import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
+
+async function marcarExcepcion(db: Awaited<ReturnType<typeof personaConSesion>>["db"], cliente: string) {
+  const { error } = await db.rpc("marcar_excepcion", { p_cliente: cliente, p_tipo: "no_nombrar", p_alias: [] })
+  if (error) throw error
+}
+
+/** The gate 1 page render time the form sends with a signature. */
+const ABIERTA = () => new Date().toISOString()
 
 const EN_UNA_HORA = () => new Date(Date.now() + 3_600_000).toISOString()
 
@@ -152,7 +161,9 @@ describe("piece actions", () => {
 
   test("signing explains a stale version in words, not codes", async () => {
     const { db, piezaId } = await piezaCreada("acc-firma")
-    expect(await firmarPieza(db, { piezaId, huella: "0".repeat(64), programadaPara: EN_UNA_HORA() })).toEqual({
+    expect(
+      await firmarPieza(db, { abiertaEn: ABIERTA(), piezaId, huella: "0".repeat(64), programadaPara: EN_UNA_HORA() }),
+    ).toEqual({
       ok: false,
       error: "La pieza cambió desde que la abriste. Revísala de nuevo antes de firmar.",
     })
@@ -162,9 +173,14 @@ describe("piece actions", () => {
     const { db, piezaId } = await piezaCreada("acc-fecha")
     const huella = await huellaVigente(piezaId)
     expect(
-      await firmarPieza(db, { piezaId, huella, programadaPara: new Date(Date.now() - 60_000).toISOString() }),
+      await firmarPieza(db, {
+        abiertaEn: ABIERTA(),
+        piezaId,
+        huella,
+        programadaPara: new Date(Date.now() - 60_000).toISOString(),
+      }),
     ).toEqual({ ok: false, error: "Elige una fecha y hora futuras." })
-    expect(await firmarPieza(db, { piezaId, huella, programadaPara: "mañana" })).toEqual({
+    expect(await firmarPieza(db, { abiertaEn: ABIERTA(), piezaId, huella, programadaPara: "mañana" })).toEqual({
       ok: false,
       error: "Revisa la fecha y la hora.",
     })
@@ -173,7 +189,9 @@ describe("piece actions", () => {
   test("signing, unscheduling and discarding walk the piece through its states", async () => {
     const { db, piezaId } = await piezaCreada("acc-ciclo")
     const huella = await huellaVigente(piezaId)
-    expect(await firmarPieza(db, { piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual({ ok: true })
+    expect(await firmarPieza(db, { abiertaEn: ABIERTA(), piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual({
+      ok: true,
+    })
     expect((await admin().from("piezas").select("estado").eq("id", piezaId).single()).data?.estado).toBe("programada")
     expect(await desprogramar(db, piezaId)).toEqual({ ok: true })
     expect((await admin().from("piezas").select("estado").eq("id", piezaId).single()).data?.estado).toBe("por_aprobar")
@@ -185,11 +203,17 @@ describe("piece actions", () => {
   test("two pieces of one account cannot take the same slot", async () => {
     const { db, cuenta, piezaId } = await piezaCreada("acc-slot")
     const cuando = EN_UNA_HORA()
-    await firmarPieza(db, { piezaId, huella: await huellaVigente(piezaId), programadaPara: cuando })
+    await firmarPieza(db, {
+      abiertaEn: ABIERTA(),
+      piezaId,
+      huella: await huellaVigente(piezaId),
+      programadaPara: cuando,
+    })
     const otra = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Otra" })
     if (!otra.ok) throw new Error(otra.error)
     expect(
       await firmarPieza(db, {
+        abiertaEn: ABIERTA(),
         piezaId: otra.piezaId,
         huella: await huellaVigente(otra.piezaId),
         programadaPara: cuando,
@@ -215,7 +239,12 @@ describe("piece actions", () => {
 
   test("closing by hand a piece waiting for a link marks it published", async () => {
     const { db, piezaId } = await piezaCreada("acc-mano3")
-    await firmarPieza(db, { piezaId, huella: await huellaVigente(piezaId), programadaPara: EN_UNA_HORA() })
+    await firmarPieza(db, {
+      abiertaEn: ABIERTA(),
+      piezaId,
+      huella: await huellaVigente(piezaId),
+      programadaPara: EN_UNA_HORA(),
+    })
     await admin().from("piezas").update({ estado: "a_mano" }).eq("id", piezaId)
     expect(await cerrarAMano(db, { piezaId, enlace: "https://www.linkedin.com/feed/update/urn:li:share:1" })).toEqual({
       ok: true,
@@ -332,12 +361,14 @@ describe("plans and the reserve", () => {
     const cuenta = await cuentaDe(await marcaConDueno(userId))
     const creada = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: "Para la reserva" })
     if (!creada.ok) throw new Error(creada.error)
-    expect(await firmarParaReserva(db, { piezaId: creada.piezaId, huella: "0".repeat(64) })).toEqual({
+    expect(
+      await firmarParaReserva(db, { abiertaEn: ABIERTA(), piezaId: creada.piezaId, huella: "0".repeat(64) }),
+    ).toEqual({
       ok: false,
       error: "La pieza cambió desde que la abriste. Revísala de nuevo antes de firmar.",
     })
     const { huella } = await versionVigente(creada.piezaId)
-    expect(await firmarParaReserva(db, { piezaId: creada.piezaId, huella })).toEqual({ ok: true })
+    expect(await firmarParaReserva(db, { abiertaEn: ABIERTA(), piezaId: creada.piezaId, huella })).toEqual({ ok: true })
     expect(await sacarDeReserva(db, creada.piezaId)).toEqual({ ok: true })
     const { data: tras } = await admin()
       .from("piezas")
@@ -365,7 +396,7 @@ describe("plans and the reserve", () => {
     expect(despues?.planeada_para).toBe(antes?.planeada_para)
 
     const { huella } = await versionVigente(creada.piezaId)
-    await firmarParaReserva(db, { piezaId: creada.piezaId, huella })
+    await firmarParaReserva(db, { abiertaEn: ABIERTA(), piezaId: creada.piezaId, huella })
     expect(await asegurarPlan(db, creada.piezaId)).toEqual({ ok: true })
     const { data: enReserva } = await admin().from("piezas").select("planeada_para").eq("id", creada.piezaId).single()
     expect(enReserva?.planeada_para).toBeNull()
@@ -405,5 +436,103 @@ describe("plans and the reserve", () => {
     if (!creada.ok) throw new Error(creada.error)
     const r = await planearConFechaPropuesta(db, creada.piezaId, Number.NaN)
     expect(r.ok).toBe(false)
+  })
+})
+
+describe("pillars", () => {
+  async function conPilar(prefijo: string) {
+    const creada = await piezaCreada(prefijo)
+    const linea = await creada.db.rpc("guardar_linea_editorial", {
+      p_marca: creada.marca,
+      p_base: 0,
+      p_secciones: { deQueHablamos: "", tono: "", formatos: "", temasVetados: "", temasAVigilar: "", ejemplos: "" },
+      p_pilares: [{ nombre: "Uno", deQueHabla: "", material: "", porSemana: 1 }],
+    })
+    if (linea.error) throw linea.error
+    const { data } = await admin().from("pilares").select("id").eq("marca_id", creada.marca).single()
+    if (!data) throw new Error("sin pilar")
+    return { ...creada, pilar: data.id }
+  }
+
+  const pilarDe = async (pieza: string) =>
+    (await admin().from("piezas").select("pilar_id").eq("id", pieza).single()).data?.pilar_id
+
+  test("ponerPilar sets the pillar and answers in Spanish for a pillar of another brand", async () => {
+    const { db, piezaId, pilar } = await conPilar("acc-pilar")
+    const { pilar: ajeno } = await conPilar("acc-pilar-ajeno")
+    expect(await ponerPilar(db, { piezaId, pilarId: pilar })).toEqual({ ok: true })
+    expect(await pilarDe(piezaId)).toBe(pilar)
+    expect(await ponerPilar(db, { piezaId, pilarId: ajeno })).toEqual({
+      ok: false,
+      error: "Ese pilar es de otra marca.",
+    })
+  })
+
+  test("ponerPilar clears the pillar with null and refuses bad input", async () => {
+    const { db, piezaId, pilar } = await conPilar("acc-pilar-quitar")
+    await ponerPilar(db, { piezaId, pilarId: pilar })
+    expect(await ponerPilar(db, { piezaId, pilarId: null })).toEqual({ ok: true })
+    expect(await pilarDe(piezaId)).toBeNull()
+    expect(await ponerPilar(db, { piezaId, pilarId: "no" })).toEqual({
+      ok: false,
+      error: "Revisa los datos de la pieza.",
+    })
+  })
+})
+
+describe("an exception marked while the piece was open at gate 1", () => {
+  const RECARGA = "Hay excepciones nuevas desde que abriste la pieza. Recarga para revisarlas."
+
+  async function piezaQueNombra(prefijo: string) {
+    const { db, cuenta } = await piezaCreada(prefijo)
+    // Letters only, so the review reads it as one name.
+    const cliente = `Cliente${crypto.randomUUID().replace(/[^a-f]/g, "")}`
+    const creada = await crearPieza(db, { cuentaId: cuenta, formato: "texto", texto: `Trabajamos con ${cliente}.` })
+    if (!creada.ok) throw new Error(creada.error)
+    return { db, cliente, piezaId: creada.piezaId, huella: await huellaVigente(creada.piezaId) }
+  }
+
+  // Rendered a moment before the exception is marked; the margin absorbs the local database clock lagging this one.
+  const ANTES = () => new Date(Date.now() - 5_000).toISOString()
+
+  test("refuses signing and signing for the reserve until the page is reloaded", async () => {
+    const { db, cliente, piezaId, huella } = await piezaQueNombra("acc-apertura")
+    const abiertaEn = ANTES()
+    await marcarExcepcion(db, cliente)
+
+    expect(await firmarPieza(db, { abiertaEn, piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual({
+      ok: false,
+      error: RECARGA,
+    })
+    expect(await firmarParaReserva(db, { abiertaEn, piezaId, huella })).toEqual({ ok: false, error: RECARGA })
+    expect((await admin().from("piezas").select("estado").eq("id", piezaId).single()).data?.estado).toBe("por_aprobar")
+
+    // Reloaded well after the exception was marked (more than the safety margin): the verdict now covers it.
+    // A reload inside the margin is still refused, on purpose.
+    const marcada = new Date(Date.now() - 30_000).toISOString()
+    await admin().from("excepciones").update({ puesta_en: marcada }).eq("cliente", cliente)
+    const recargada = new Date(Date.now() - 10_000).toISOString()
+    expect(await firmarPieza(db, { abiertaEn: recargada, piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual({
+      ok: true,
+    })
+  })
+
+  test("a new exception for a client the piece does not name does not hold the signature", async () => {
+    const { db, piezaId, huella } = await piezaQueNombra("acc-apertura-ajena")
+    const abiertaEn = ANTES()
+    await marcarExcepcion(db, `Otro${crypto.randomUUID().replace(/[^a-f]/g, "")}`)
+    expect(await firmarParaReserva(db, { abiertaEn, piezaId, huella })).toEqual({ ok: true })
+  })
+
+  test("refuses a render time in the future or missing", async () => {
+    const { db, piezaId } = await piezaCreada("acc-apertura-futura")
+    const huella = await huellaVigente(piezaId)
+    const futura = new Date(Date.now() + 60_000).toISOString()
+    const recarga = { ok: false, error: "Recarga la pieza antes de firmar." }
+    expect(await firmarPieza(db, { abiertaEn: futura, piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual(
+      recarga,
+    )
+    expect(await firmarPieza(db, { piezaId, huella, programadaPara: EN_UNA_HORA() })).toEqual(recarga)
+    expect(await firmarParaReserva(db, { abiertaEn: futura, piezaId, huella })).toEqual(recarga)
   })
 })

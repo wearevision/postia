@@ -5,6 +5,7 @@ import type { Resultado } from "@/lib/marcas/acciones"
 
 const HUELLA = "a".repeat(64)
 const PIEZA = "11111111-1111-4111-8111-111111111111"
+const ABIERTA_EN = "2026-11-02T20:00:00.000Z"
 
 function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
   const firmar = vi.fn(async () => ({ ok: true as const }))
@@ -15,6 +16,7 @@ function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
       huella={HUELLA}
       texto={"Primera línea\nSegunda línea"}
       fechaPropuesta="2026-11-03T14:00:00.000Z"
+      abiertaEn={ABIERTA_EN}
       ruta="api"
       cuenta="Federico"
       firmar={firmar}
@@ -51,6 +53,7 @@ describe("FirmaDePieza", () => {
         piezaId: PIEZA,
         huella: HUELLA,
         programadaPara: "2026-11-04T18:30:00.000Z",
+        abiertaEn: ABIERTA_EN,
       }),
     )
   })
@@ -103,7 +106,9 @@ describe("signing for the reserve", () => {
     const firmarParaReserva = vi.fn(async () => ({ ok: true as const }))
     const firmar = montar({ firmarParaReserva })
     fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
-    await waitFor(() => expect(firmarParaReserva).toHaveBeenCalledWith({ piezaId: PIEZA, huella: HUELLA }))
+    await waitFor(() =>
+      expect(firmarParaReserva).toHaveBeenCalledWith({ piezaId: PIEZA, huella: HUELLA, abiertaEn: ABIERTA_EN }),
+    )
     expect(firmar).not.toHaveBeenCalled()
   })
 
@@ -122,6 +127,7 @@ describe("a new proposed date", () => {
       piezaId: PIEZA,
       huella: HUELLA,
       texto: "Texto",
+      abiertaEn: ABIERTA_EN,
       ruta: "api" as const,
       cuenta: "Federico",
       firmar: vi.fn(async () => ({ ok: true as const })),

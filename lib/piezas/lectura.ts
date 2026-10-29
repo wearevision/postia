@@ -212,7 +212,17 @@ export interface DetalleDePieza {
   enlace: string | null
   programadaPara: string | null
   planeadaPara: string | null
-  cuenta: { id: string; nombre: string; tipo: "persona" | "empresa"; ruta: "api" | "metricool" | "a_mano" }
+  cuenta: {
+    id: string
+    nombre: string
+    tipo: "persona" | "empresa"
+    ruta: "api" | "metricool" | "a_mano"
+    marcaId: string
+    voz: "yo" | "nosotros"
+  }
+  pilarId: string | null
+  /** Shown even when the pillar left the editorial line. */
+  pilarNombre: string | null
   version: {
     texto: string
     titulo: string | null
@@ -228,7 +238,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   const { data: p, error } = await db
     .from("piezas")
     .select(
-      "id, estado, formato, motivo, enlace, programada_para, planeada_para, cuentas(id, nombre, tipo, ruta), versiones(numero, texto, titulo, huella, archivo_ruta)",
+      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(numero, texto, titulo, huella, archivo_ruta)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -260,7 +270,16 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
     enlace: p.enlace,
     programadaPara: p.programada_para,
     planeadaPara: p.planeada_para,
-    cuenta: { id: p.cuentas.id, nombre: p.cuentas.nombre, tipo, ruta: leerRuta(p.cuentas.ruta) },
+    cuenta: {
+      id: p.cuentas.id,
+      nombre: p.cuentas.nombre,
+      tipo,
+      ruta: leerRuta(p.cuentas.ruta),
+      marcaId: p.cuentas.marca_id,
+      voz: p.cuentas.marcas?.voz === "nosotros" ? "nosotros" : "yo",
+    },
+    pilarId: p.pilar_id,
+    pilarNombre: p.pilares?.nombre ?? null,
     version: { texto: v.texto, titulo: v.titulo, huella: v.huella, archivoUrl, archivoDescarga },
     fechaPropuesta:
       planSigueVigente && p.planeada_para

@@ -5,6 +5,8 @@ export const RUTA_DE_MARCAS = "/marcas"
 export const RUTA_DE_AJUSTES = "/ajustes"
 export const RUTA_DE_NUEVA_PIEZA = "/piezas/nueva"
 export const RUTA_DE_CALENDARIO = "/calendario"
+export const RUTA_DE_VOZ = "/voz"
+export const RUTA_DE_CLIENTES = "/clientes"
 
 export function rutaDeCalendario(destino: { semana: string } | { mes: string }): string {
   return "semana" in destino
@@ -12,8 +14,13 @@ export function rutaDeCalendario(destino: { semana: string } | { mes: string }):
     : `${RUTA_DE_CALENDARIO}?vista=mes&mes=${destino.mes}`
 }
 
-export function rutaDePieza(id: string): string {
-  return `/piezas/${id}`
+export function rutaDeVoz(marcaId: string, version?: number): string {
+  return `${RUTA_DE_VOZ}/${encodeURIComponent(marcaId)}${version ? `?version=${version}` : ""}`
+}
+
+/** `aviso` names what a new piece could not get (lib/piezas/acciones.ts AvisoDePiezaNueva); its page asks for it. */
+export function rutaDePieza(id: string, aviso: readonly string[] = []): string {
+  return `/piezas/${id}${aviso.length > 0 ? `?aviso=${aviso.join(",")}` : ""}`
 }
 
 const PUBLICAS = new Set([RUTA_DE_INGRESO])

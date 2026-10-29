@@ -5,6 +5,9 @@ import { proponerFecha } from "@/lib/piezas/horarios"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
 import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
 
+/** The gate 1 page render time the form sends with a signature. */
+const ABIERTA = () => new Date().toISOString()
+
 const DIA_MS = 86_400_000
 
 async function huellaVigente(piezaId: string) {
@@ -36,6 +39,7 @@ async function nueva(e: Entorno, texto: string) {
 async function firmada(e: Entorno, texto: string, cuando: Date) {
   const piezaId = await nueva(e, texto)
   const r = await firmarPieza(e.db, {
+    abiertaEn: ABIERTA(),
     piezaId,
     huella: await huellaVigente(piezaId),
     programadaPara: cuando.toISOString(),
@@ -259,5 +263,26 @@ describe("plans and the reserve", () => {
     const propuesta = (await detalle(e.db, propia, casiVencido))?.fechaPropuesta
     expect(Date.parse(propuesta ?? "")).toBeGreaterThanOrEqual(casiVencido + 30 * 60_000)
     expect(propuesta).not.toBe(primero.toISOString())
+  })
+})
+
+describe("detalle and pillars", () => {
+  test("knows the piece's pillar, its brand and the brand's voice", async () => {
+    const e = await entorno("lect-pilar")
+    const pieza = await nueva(e, "Con pilar")
+    await e.db.rpc("guardar_linea_editorial", {
+      p_marca: e.marca,
+      p_base: 0,
+      p_secciones: { deQueHablamos: "", tono: "", formatos: "", temasVetados: "", temasAVigilar: "", ejemplos: "" },
+      p_pilares: [{ nombre: "Uno", deQueHabla: "", material: "", porSemana: 1 }],
+    })
+    const { data } = await admin().from("pilares").select("id").eq("marca_id", e.marca).single()
+    expect((await detalle(e.db, pieza))?.pilarId).toBeNull()
+    await e.db.rpc("poner_pilar", { p_pieza: pieza, p_pilar: data?.id })
+    const d = await detalle(e.db, pieza)
+    expect(d?.pilarId).toBe(data?.id)
+    expect(d?.pilarNombre).toBe("Uno")
+    expect(d?.cuenta.marcaId).toBe(e.marca)
+    expect(d?.cuenta.voz).toBe("yo")
   })
 })

@@ -10,6 +10,7 @@ import {
   firmarParaReserva,
   firmarPieza,
   planearPieza,
+  ponerPilar,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
 import { RUTA_DE_CALENDARIO, RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
@@ -28,6 +29,7 @@ export async function firmarAccion(entrada: {
   piezaId: string
   huella: string
   programadaPara: string
+  abiertaEn: string
 }): Promise<Resultado> {
   return despues(entrada.piezaId, await firmarPieza(await createActionClient(), entrada))
 }
@@ -52,11 +54,19 @@ export async function planearAccion(entrada: { piezaId: string; planeadaPara: st
   return despues(entrada.piezaId, await planearPieza(await createActionClient(), entrada))
 }
 
-export async function firmarParaReservaAccion(entrada: { piezaId: string; huella: string }): Promise<Resultado> {
+export async function firmarParaReservaAccion(entrada: {
+  piezaId: string
+  huella: string
+  abiertaEn: string
+}): Promise<Resultado> {
   return despues(entrada.piezaId, await firmarParaReserva(await createActionClient(), entrada))
 }
 
 // sacarDeReserva re-plans the piece itself and logs a failed plan; only a refused take-out is an error here.
 export async function sacarDeReservaAccion(piezaId: string): Promise<Resultado> {
   return despues(piezaId, await sacarDeReserva(await createActionClient(), piezaId))
+}
+
+export async function ponerPilarAccion(entrada: { piezaId: string; pilarId: string | null }): Promise<Resultado> {
+  return despues(entrada.piezaId, await ponerPilar(await createActionClient(), entrada))
 }

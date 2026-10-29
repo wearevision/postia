@@ -1,7 +1,15 @@
 import { describe, expect, test } from "vitest"
 import { armarResumen, type EstadoDelResumen } from "@/lib/avisos/resumen"
 
-const VACIO: EstadoDelResumen = { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [], lineas: [] }
+const VACIO: EstadoDelResumen = {
+  porFirmar: 0,
+  aMano: 0,
+  revisar: 0,
+  reservas: [],
+  huecos: [],
+  pilares: [],
+  lineas: [],
+}
 
 describe("armarResumen", () => {
   test("nothing pending, no push", () => {
@@ -77,5 +85,23 @@ describe("armarResumen", () => {
         ?.cuerpo.split("\n")
         .at(-1),
     ).toBe("Y 1 más.")
+  })
+
+  test("adds a line for each pillar two weeks without coming out, after the gaps", () => {
+    const aviso = armarResumen({
+      ...VACIO,
+      huecos: [{ cuenta: "Perfil", faltan: 1, semana: "esta" }],
+      pilares: [
+        { cuenta: "Página de WAV", pilar: "Oficio", dias: 16 },
+        { cuenta: "Perfil", pilar: "Coherencia", dias: null },
+      ],
+    })
+    expect(aviso?.cuerpo).toBe(
+      [
+        "Faltan 1 en Perfil esta semana.",
+        "«Oficio» lleva 16 días sin salir en Página de WAV.",
+        "«Coherencia» no ha salido en Perfil en más de dos semanas.",
+      ].join("\n"),
+    )
   })
 })

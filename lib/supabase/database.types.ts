@@ -72,6 +72,57 @@ export type Database = {
           },
         ]
       }
+      casos: {
+        Row: {
+          anio: number | null
+          capacidades: string[]
+          cargado_en: string
+          ciudad: string | null
+          cliente: string
+          era: string
+          frase_citable: string | null
+          industria: string | null
+          pais: string | null
+          resumen: string
+          rol: string
+          slug: string
+          tipos_de_trabajo: string[]
+          titulo: string
+        }
+        Insert: {
+          anio?: number | null
+          capacidades?: string[]
+          cargado_en?: string
+          ciudad?: string | null
+          cliente: string
+          era: string
+          frase_citable?: string | null
+          industria?: string | null
+          pais?: string | null
+          resumen?: string
+          rol?: string
+          slug: string
+          tipos_de_trabajo?: string[]
+          titulo: string
+        }
+        Update: {
+          anio?: number | null
+          capacidades?: string[]
+          cargado_en?: string
+          ciudad?: string | null
+          cliente?: string
+          era?: string
+          frase_citable?: string | null
+          industria?: string | null
+          pais?: string | null
+          resumen?: string
+          rol?: string
+          slug?: string
+          tipos_de_trabajo?: string[]
+          titulo?: string
+        }
+        Relationships: []
+      }
       conexiones: {
         Row: {
           app: string
@@ -197,6 +248,53 @@ export type Database = {
           },
         ]
       }
+      excepciones: {
+        Row: {
+          alias: string[]
+          caso_slug: string | null
+          cliente: string
+          hasta: string | null
+          id: string
+          puesta_en: string
+          puesta_por: string | null
+          quitada_en: string | null
+          quitada_por: string | null
+          tipo: string
+        }
+        Insert: {
+          alias?: string[]
+          caso_slug?: string | null
+          cliente: string
+          hasta?: string | null
+          id?: string
+          puesta_en?: string
+          puesta_por?: string | null
+          quitada_en?: string | null
+          quitada_por?: string | null
+          tipo: string
+        }
+        Update: {
+          alias?: string[]
+          caso_slug?: string | null
+          cliente?: string
+          hasta?: string | null
+          id?: string
+          puesta_en?: string
+          puesta_por?: string | null
+          quitada_en?: string | null
+          quitada_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "excepciones_caso_slug_fkey"
+            columns: ["caso_slug"]
+            isOneToOne: false
+            referencedRelation: "casos"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       firmas: {
         Row: {
           firmada_en: string
@@ -244,6 +342,59 @@ export type Database = {
             columns: ["version_id"]
             isOneToOne: false
             referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lineas_editoriales: {
+        Row: {
+          creada_en: string
+          creada_por: string
+          de_que_hablamos: string
+          ejemplos: string
+          formatos: string
+          id: string
+          marca_id: string
+          pilares: Json
+          temas_a_vigilar: string
+          temas_vetados: string
+          tono: string
+          version: number
+        }
+        Insert: {
+          creada_en?: string
+          creada_por: string
+          de_que_hablamos?: string
+          ejemplos?: string
+          formatos?: string
+          id?: string
+          marca_id: string
+          pilares: Json
+          temas_a_vigilar?: string
+          temas_vetados?: string
+          tono?: string
+          version: number
+        }
+        Update: {
+          creada_en?: string
+          creada_por?: string
+          de_que_hablamos?: string
+          ejemplos?: string
+          formatos?: string
+          id?: string
+          marca_id?: string
+          pilares?: Json
+          temas_a_vigilar?: string
+          temas_vetados?: string
+          tono?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lineas_editoriales_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
             referencedColumns: ["id"]
           },
         ]
@@ -309,6 +460,7 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          pilar_id: string | null
           plan_fallo_en: string | null
           planeada_para: string | null
           programada_para: string | null
@@ -324,6 +476,7 @@ export type Database = {
           formato: string
           id?: string
           motivo?: string | null
+          pilar_id?: string | null
           plan_fallo_en?: string | null
           planeada_para?: string | null
           programada_para?: string | null
@@ -339,6 +492,7 @@ export type Database = {
           formato?: string
           id?: string
           motivo?: string | null
+          pilar_id?: string | null
           plan_fallo_en?: string | null
           planeada_para?: string | null
           programada_para?: string | null
@@ -350,6 +504,57 @@ export type Database = {
             columns: ["cuenta_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piezas_pilar_id_fkey"
+            columns: ["pilar_id"]
+            isOneToOne: false
+            referencedRelation: "pilares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilares: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          de_que_habla: string
+          id: string
+          marca_id: string
+          material: string
+          nombre: string
+          orden: number
+          por_semana: number
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          de_que_habla?: string
+          id?: string
+          marca_id: string
+          material?: string
+          nombre: string
+          orden: number
+          por_semana: number
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          de_que_habla?: string
+          id?: string
+          marca_id?: string
+          material?: string
+          nombre?: string
+          orden?: number
+          por_semana?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilares_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
             referencedColumns: ["id"]
           },
         ]
@@ -546,6 +751,7 @@ export type Database = {
       }
       dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
+      es_dueno_de_alguna: { Args: never; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
       firmar_para_reserva: {
         Args: { p_huella: string; p_pieza: string }
@@ -555,7 +761,36 @@ export type Database = {
         Args: { p_huella: string; p_pieza: string; p_programada_para: string }
         Returns: string
       }
+      guardar_linea: {
+        Args: {
+          p_autor: string
+          p_base: number
+          p_marca: string
+          p_pilares: Json
+          p_secciones: Json
+        }
+        Returns: number
+      }
+      guardar_linea_editorial: {
+        Args: {
+          p_base: number
+          p_marca: string
+          p_pilares: Json
+          p_secciones: Json
+        }
+        Returns: number
+      }
       marca_de_pieza: { Args: { p_pieza: string }; Returns: string }
+      marcar_excepcion: {
+        Args: {
+          p_alias: string[]
+          p_caso?: string
+          p_cliente: string
+          p_hasta?: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       normalizar_texto: { Args: { p: string }; Returns: string }
       nueva_version: {
         Args: {
@@ -571,6 +806,11 @@ export type Database = {
         Args: { p_fecha: string; p_pieza: string }
         Returns: undefined
       }
+      poner_pilar: {
+        Args: { p_pieza: string; p_pilar?: string }
+        Returns: undefined
+      }
+      quitar_excepcion: { Args: { p_id: string }; Returns: undefined }
       registrar_falla_de_espacio: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: boolean
@@ -593,6 +833,7 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          pilar_id: string | null
           plan_fallo_en: string | null
           planeada_para: string | null
           programada_para: string | null
