@@ -4,6 +4,9 @@
 
 -- A proposed slot, never a signature: programada_para keeps meaning «the signed date».
 alter table public.piezas add column planeada_para timestamptz;
+-- When the publisher last failed to move an unsigned piece out of a slot that passed: it is skipped for an hour so a few
+-- stuck pieces never starve the others, and it tells the person once (registrar_falla_de_espacio).
+alter table public.piezas add column plan_fallo_en timestamptz;
 
 -- While a piece is signed its plan is its signed date, so one column answers «which slot does this piece hold»
 -- (the slot index below and lib/piezas/lectura.ts horariosOcupados rely on it). Leaving the signed states keeps the slot.
@@ -210,7 +213,7 @@ begin
   end if;
   v_hueco := v_pendiente.planeada_para;
   -- The pending piece leaves the slot first: the slot index would otherwise see two pieces in it.
-  update public.piezas set planeada_para = p_siguiente,
+  update public.piezas set planeada_para = p_siguiente, plan_fallo_en = null,
          motivo = 'No alcanzó firma a tiempo: la corrí al siguiente espacio libre.'
    where id = p_pendiente;
 
@@ -271,7 +274,23 @@ begin
   return 'en_reserva';
 end $$;
 
+-- Service role only. Writes why a due unsigned piece could not be moved and when; true the first time it happens.
+create function public.registrar_falla_de_espacio(p_pieza uuid, p_motivo text) returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_primera boolean;
+begin
+  select plan_fallo_en is null into v_primera from public.piezas where id = p_pieza and estado = 'por_aprobar' for update;
+  if not found then
+    return false;
+  end if;
+  update public.piezas set plan_fallo_en = now(), motivo = p_motivo where id = p_pieza;
+  return v_primera;
+end $$;
+
 -- Service role only: Supabase's default privileges grant execute to anon and authenticated otherwise.
+revoke execute on function public.registrar_falla_de_espacio(uuid, text) from public, anon, authenticated;
+grant execute on function public.registrar_falla_de_espacio(uuid, text) to service_role;
 revoke execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text, boolean)
   from public, anon, authenticated;
 grant execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text, boolean) to service_role;

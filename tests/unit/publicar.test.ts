@@ -78,6 +78,7 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     horariosOcupados: vi.fn(async (): Promise<number[]> => []),
     cubrirConReserva: vi.fn(async (): Promise<string | null> => null),
     anotarAviso: vi.fn(async () => {}),
+    registrarFallaDeEspacio: vi.fn(async (): Promise<boolean> => true),
     linkedin: {
       crearPost: vi.fn(async () => {
         orden.push("crearPost")
@@ -419,9 +420,59 @@ describe("cubrirSinFirma (D21)", () => {
     expect(await cubrirSinFirma(p)).toBe(0)
     expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
       titulo: "Federico",
-      cuerpo: "No firmaste «Hola» a tiempo; la corrí al miércoles 4 de noviembre, 11:00.",
+      cuerpo: "«Hola» no salió en su espacio; la corrí al miércoles 4 de noviembre, 11:00.",
       url: "/piezas/pendiente-1",
     })
+  })
+
+  test("a piece that cannot be moved is recorded once and its digest line asks for a date by hand", async () => {
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      cubrirConReserva: vi.fn(async () => {
+        throw new Error("23505")
+      }),
+    })
+    silenciar()
+    await cubrirSinFirma(p)
+    expect(p.registrarFallaDeEspacio).toHaveBeenCalledWith(
+      "pendiente-1",
+      "No encontré un espacio para correr esta pieza: elige su fecha a mano.",
+    )
+    expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
+      titulo: "Federico",
+      cuerpo: "«Hola» no salió en su espacio y no encontré otro: elige su fecha a mano.",
+      url: "/piezas/pendiente-1",
+    })
+  })
+
+  test("a repeated failure is recorded but does not queue the line again", async () => {
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      cubrirConReserva: vi.fn(async () => {
+        throw new Error("23505")
+      }),
+      registrarFallaDeEspacio: vi.fn(async () => false),
+    })
+    silenciar()
+    await cubrirSinFirma(p)
+    expect(p.anotarAviso).not.toHaveBeenCalled()
+  })
+
+  test("failing to record the failure is logged and the next piece is still covered", async () => {
+    const otra = { ...PENDIENTE, id: "pendiente-2" }
+    const cubrir = vi.fn(async (): Promise<string | null> => {
+      throw new Error("sin base")
+    })
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE, otra]),
+      cubrirConReserva: cubrir,
+      registrarFallaDeEspacio: vi.fn(async () => {
+        throw new Error("sin base")
+      }),
+    })
+    silenciar()
+    await cubrirSinFirma(p)
+    expect(cubrir).toHaveBeenCalledTimes(2)
   })
 
   test("one failing piece is logged and the next is still covered", async () => {

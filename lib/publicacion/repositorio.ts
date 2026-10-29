@@ -19,10 +19,12 @@ type PuertosDeBase = Pick<
   | "horariosOcupados"
   | "cubrirConReserva"
   | "anotarAviso"
+  | "registrarFallaDeEspacio"
 >
 
 const LARGO_DE_EXTRACTO = 40
 const PENDIENTES_POR_CORRIDA = 10
+const UNA_HORA_MS = 3_600_000
 
 const MOTIVO_ILEGIBLE = "No pude leer la pieza para publicarla. Revísala y fírmala de nuevo."
 
@@ -187,6 +189,8 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
         .select("id, planeada_para, cuentas!inner(id, nombre, tipo, marca_id), versiones(numero, texto)")
         .eq("estado", "por_aprobar")
         .lte("planeada_para", new Date().toISOString())
+        // A piece that failed in the last hour waits its turn: a few stuck ones must not fill the whole batch.
+        .or(`plan_fallo_en.is.null,plan_fallo_en.lt.${new Date(Date.now() - UNA_HORA_MS).toISOString()}`)
         .order("planeada_para")
         .limit(PENDIENTES_POR_CORRIDA)
       if (error) fallo("No pude buscar las piezas sin firma vencidas", error)
@@ -216,5 +220,11 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
     },
 
     anotarAviso: (marcaId, aviso) => anotarAviso(db, marcaId, aviso),
+
+    async registrarFallaDeEspacio(piezaId, motivo) {
+      const { data, error } = await db.rpc("registrar_falla_de_espacio", { p_pieza: piezaId, p_motivo: motivo })
+      if (error) fallo("No pude registrar la falla de la pieza", error)
+      return data
+    },
   }
 }

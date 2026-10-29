@@ -67,6 +67,8 @@ export interface PuertosDePublicacion {
   horariosOcupados(cuentaId: string, desde: number): Promise<number[]>
   cubrirConReserva(pendienteId: string, siguiente: string): Promise<string | null>
   anotarAviso(marcaId: string, aviso: Aviso): Promise<void>
+  /** Marks a piece whose slot could not be covered; true the first time, so the digest says it only once. */
+  registrarFallaDeEspacio(piezaId: string, motivo: string): Promise<boolean>
   linkedin: {
     crearPost: typeof crearPost
     subirDocumento: typeof subirDocumento
@@ -239,6 +241,25 @@ export async function publicarPieza(
   return "publicada"
 }
 
+/** A slot that cannot be covered is written on the piece and told once, so it is not a log line nobody reads. */
+async function registrarFalla(p: PuertosDePublicacion, pendiente: PendienteSinFirma): Promise<void> {
+  try {
+    const primera = await p.registrarFallaDeEspacio(
+      pendiente.id,
+      "No encontré un espacio para correr esta pieza: elige su fecha a mano.",
+    )
+    if (primera) {
+      await p.anotarAviso(pendiente.marcaId, {
+        titulo: pendiente.cuentaNombre,
+        cuerpo: `«${pendiente.extracto}» no salió en su espacio y no encontré otro: elige su fecha a mano.`,
+        url: `/piezas/${pendiente.id}`,
+      })
+    }
+  } catch (error) {
+    console.error(`No pude registrar la falla de la pieza ${pendiente.id}: ${describir(error)}`)
+  }
+}
+
 /**
  * D21 (plano: usarReserva): a planned piece nobody signed in time gives its slot to the reserve and moves to the next
  * free slot. Not urgent: it goes to the digest (D26). Runs before taking due pieces so the reserve piece goes out now.
@@ -254,7 +275,7 @@ export async function cubrirSinFirma(p: PuertosDePublicacion): Promise<number> {
       const reserva = await p.cubrirConReserva(pendiente.id, siguiente)
       const cuerpo = reserva
         ? `Una pieza salió de la reserva de ${pendiente.cuentaNombre} para el ${fechaLarga(pendiente.planeadaPara)}; «${pendiente.extracto}» pasó al ${fechaLarga(siguiente)}.`
-        : `No firmaste «${pendiente.extracto}» a tiempo; la corrí al ${fechaLarga(siguiente)}.`
+        : `«${pendiente.extracto}» no salió en su espacio; la corrí al ${fechaLarga(siguiente)}.`
       if (reserva) cubiertas++
       try {
         await p.anotarAviso(pendiente.marcaId, {
@@ -268,6 +289,7 @@ export async function cubrirSinFirma(p: PuertosDePublicacion): Promise<number> {
       }
     } catch (error) {
       console.error(`No pude correr la pieza sin firma ${pendiente.id}: ${describir(error)}`)
+      await registrarFalla(p, pendiente)
     }
   }
   return cubiertas

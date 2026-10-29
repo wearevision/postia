@@ -357,6 +357,24 @@ describe("covering unsigned slots from the reserve", () => {
     expect((await estadoDe(c.pendiente))?.estado).toBe("por_aprobar")
   })
 
+  test("a piece that failed to move is recorded once, skipped for an hour and cleared once it moves", async () => {
+    const c = await reservaYPendiente()
+    expect(await repo().registrarFallaDeEspacio(c.pendiente, "No encontré espacio.")).toBe(true)
+    expect(await repo().registrarFallaDeEspacio(c.pendiente, "No encontré espacio.")).toBe(false)
+    expect((await estadoDe(c.pendiente))?.motivo).toBe("No encontré espacio.")
+    expect((await repo().vencidasSinFirma()).find((x) => x.id === c.pendiente)).toBeUndefined()
+
+    await admin()
+      .from("piezas")
+      .update({ plan_fallo_en: new Date(Date.now() - 2 * 3_600_000).toISOString() })
+      .eq("id", c.pendiente)
+    expect((await repo().vencidasSinFirma()).find((x) => x.id === c.pendiente)).toBeDefined()
+
+    await repo().cubrirConReserva(c.pendiente, enTresDias())
+    const { data } = await admin().from("piezas").select("plan_fallo_en").eq("id", c.pendiente).single()
+    expect(data?.plan_fallo_en).toBeNull()
+  })
+
   test("a reserve piece sent back for a cause in the piece itself goes to the gate with its reserve signature dropped", async () => {
     const c = await reservaYPendiente()
     await repo().cubrirConReserva(c.pendiente, enTresDias())

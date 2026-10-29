@@ -309,6 +309,7 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          plan_fallo_en: string | null
           planeada_para: string | null
           programada_para: string | null
           ventana_minutos: number
@@ -323,6 +324,7 @@ export type Database = {
           formato: string
           id?: string
           motivo?: string | null
+          plan_fallo_en?: string | null
           planeada_para?: string | null
           programada_para?: string | null
           ventana_minutos?: number
@@ -337,6 +339,7 @@ export type Database = {
           formato?: string
           id?: string
           motivo?: string | null
+          plan_fallo_en?: string | null
           planeada_para?: string | null
           programada_para?: string | null
           ventana_minutos?: number
@@ -568,6 +571,10 @@ export type Database = {
         Args: { p_fecha: string; p_pieza: string }
         Returns: undefined
       }
+      registrar_falla_de_espacio: {
+        Args: { p_motivo: string; p_pieza: string }
+        Returns: boolean
+      }
       reservar_envio: {
         Args: { p_firma: string; p_pieza: string; p_version: string }
         Returns: string
@@ -586,6 +593,7 @@ export type Database = {
           formato: string
           id: string
           motivo: string | null
+          plan_fallo_en: string | null
           planeada_para: string | null
           programada_para: string | null
           ventana_minutos: number
