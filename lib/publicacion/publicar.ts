@@ -9,6 +9,8 @@ import {
 } from "@/lib/linkedin/api"
 import { esperarDocumento } from "@/lib/linkedin/documento"
 import { aLittleText, enlaceDePost } from "@/lib/linkedin/dominio"
+import { fechaLarga } from "@/lib/piezas/fechas"
+import { proponerFecha } from "@/lib/piezas/horarios"
 import { sha256 } from "@/lib/piezas/huella"
 import { type Ruta, revisarAntesDeEnviar } from "./revision"
 
@@ -32,6 +34,16 @@ export interface PiezaParaPublicar {
   firma: { id: string; huella: string } | null
 }
 
+export interface PendienteSinFirma {
+  id: string
+  marcaId: string
+  cuentaId: string
+  cuentaNombre: string
+  tipo: "persona" | "empresa"
+  planeadaPara: string
+  extracto: string
+}
+
 export interface Credencial {
   token: string
   titular: string
@@ -49,6 +61,10 @@ export interface PuertosDePublicacion {
   cerrarEnvio(piezaId: string, urn: string, enlace: string): Promise<void>
   mover(piezaId: string, a: "por_aprobar" | "a_mano" | "envio_dudoso", motivo: string): Promise<void>
   avisar(marcaId: string, aviso: Aviso): Promise<void>
+  vencidasSinFirma(): Promise<PendienteSinFirma[]>
+  horariosOcupados(cuentaId: string, desde: number): Promise<number[]>
+  cubrirConReserva(pendienteId: string, siguiente: string): Promise<string | null>
+  anotarAviso(marcaId: string, aviso: Aviso): Promise<void>
   linkedin: {
     crearPost: typeof crearPost
     subirDocumento: typeof subirDocumento
@@ -208,9 +224,49 @@ export async function publicarPieza(
   return "publicada"
 }
 
-/** One run of the scheduled task: due pieces one by one, then sends left without an answer. */
+/**
+ * D21 (plano: usarReserva): a planned piece nobody signed in time gives its slot to the reserve and moves to the next
+ * free slot. Not urgent: it goes to the digest (D26). Runs before taking due pieces so the reserve piece goes out now.
+ * A reserve piece of an account published by hand is covered the same way; the publisher then asks for the manual post.
+ */
+export async function cubrirSinFirma(p: PuertosDePublicacion): Promise<number> {
+  let cubiertas = 0
+  for (const pendiente of await p.vencidasSinFirma()) {
+    try {
+      const ahora = p.ahora()
+      const ocupados = await p.horariosOcupados(pendiente.cuentaId, ahora)
+      const siguiente = proponerFecha(pendiente.tipo, ocupados, ahora).toISOString()
+      const reserva = await p.cubrirConReserva(pendiente.id, siguiente)
+      const cuerpo = reserva
+        ? `Una pieza salió de la reserva de ${pendiente.cuentaNombre} para el ${fechaLarga(pendiente.planeadaPara)}; «${pendiente.extracto}» pasó al ${fechaLarga(siguiente)}.`
+        : `No firmaste «${pendiente.extracto}» a tiempo; la corrí al ${fechaLarga(siguiente)}.`
+      if (reserva) cubiertas++
+      try {
+        await p.anotarAviso(pendiente.marcaId, {
+          titulo: pendiente.cuentaNombre,
+          cuerpo,
+          url: `/piezas/${reserva ?? pendiente.id}`,
+        })
+      } catch (error) {
+        // The move already happened; a lost digest line must not undo or hide it.
+        console.error(`No pude anotar el aviso de la pieza ${pendiente.id}: ${describir(error)}`)
+      }
+    } catch (error) {
+      console.error(`No pude correr la pieza sin firma ${pendiente.id}: ${describir(error)}`)
+    }
+  }
+  return cubiertas
+}
+
+/** One run of the scheduled task: unsigned slots, due pieces one by one, then sends left without an answer. */
 export async function publicarPendientes(p: PuertosDePublicacion): Promise<Record<ResultadoDePublicacion, number>> {
   const cuenta = { publicada: 0, por_aprobar: 0, a_mano: 0, envio_dudoso: 0, reintentar: 0 }
+  try {
+    await cubrirSinFirma(p)
+  } catch (error) {
+    // Covering is a convenience; publishing what is signed must happen anyway.
+    console.error(`No pude revisar las piezas sin firma: ${describir(error)}`)
+  }
   try {
     for (const pieza of await p.tomarPendientes()) {
       try {

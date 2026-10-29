@@ -23,6 +23,8 @@ create trigger piezas_alinear_plan before insert or update on public.piezas
 update public.piezas set planeada_para = programada_para where programada_para is not null and estado <> 'por_aprobar';
 
 -- One account never holds two pieces in one slot, signed or planned (plano: horarioLibreEnCuenta, only inside the account).
+-- The C1 index piezas_un_horario_por_cuenta (signed pieces only) is now redundant: this one covers a superset of its
+-- rows. It stays on purpose because C1 is in production and dropping it buys nothing.
 create unique index piezas_un_plan_por_cuenta on public.piezas (cuenta_id, planeada_para)
   where estado in ('por_aprobar', 'programada', 'publicando', 'publicada');
 
@@ -233,9 +235,37 @@ begin
   return v_reserva;
 end $$;
 
+-- The publisher's way back to the gate (service role only). A piece that came out of the reserve (its current signature
+-- is a reserve one for the current version) and fails before sending returns to the reserve with that signature intact
+-- and no dates, instead of looking like an unsigned due piece; any other piece goes to por_aprobar as before.
+-- Two moves in one transaction because the state table has no programada -> en_reserva edge. Returns the new state.
+create function public.devolver_pieza(p_pieza uuid, p_motivo text) returns text
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_huella text;
+begin
+  perform 1 from public.piezas where id = p_pieza for update;
+  if not found then
+    raise exception using errcode = '22023', message = 'pieza_no_existe';
+  end if;
+  update public.piezas set estado = 'por_aprobar', motivo = p_motivo, arrendada_hasta = null where id = p_pieza;
+  select v.huella into v_huella from public.versiones v where v.pieza_id = p_pieza order by v.numero desc limit 1;
+  if not exists (
+    select 1 from public.firmas f where f.pieza_id = p_pieza and f.vigente and f.para_reserva and f.huella = v_huella
+  ) then
+    return 'por_aprobar';
+  end if;
+  update public.firmas set programada_para = null where pieza_id = p_pieza and vigente and para_reserva;
+  update public.piezas set estado = 'en_reserva', planeada_para = null, programada_para = null,
+         motivo = 'Volvió a la reserva: no alcanzó a salir en su espacio.'
+   where id = p_pieza;
+  return 'en_reserva';
+end $$;
+
 -- Service role only: Supabase's default privileges grant execute to anon and authenticated otherwise.
-revoke execute on function public.cubrir_con_reserva(uuid, timestamptz) from public, anon, authenticated;
-grant execute on function public.cubrir_con_reserva(uuid, timestamptz) to service_role;
+revoke execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.cubrir_con_reserva(uuid, timestamptz), public.devolver_pieza(uuid, text) to service_role;
 
 -- D26: non-urgent notices wait here for the 9:00 and 17:00 digest (trigger/resumen.ts). Service role only.
 create table public.avisos_pendientes (

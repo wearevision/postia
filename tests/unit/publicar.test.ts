@@ -4,6 +4,8 @@ import { enlaceDePost } from "@/lib/linkedin/dominio"
 import { type EstadoDePieza, transicionPermitida } from "@/lib/piezas/estados"
 import { sha256 } from "@/lib/piezas/huella"
 import {
+  cubrirSinFirma,
+  type PendienteSinFirma,
   type PiezaParaPublicar,
   type PuertosDePublicacion,
   publicarPendientes,
@@ -68,6 +70,10 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     cerrarEnvio: vi.fn(async (id: string) => pasar(id, "publicada")),
     mover: vi.fn(async (id: string, a: "por_aprobar" | "a_mano" | "envio_dudoso") => pasar(id, a)),
     avisar: vi.fn(async () => {}),
+    vencidasSinFirma: vi.fn(async (): Promise<PendienteSinFirma[]> => []),
+    horariosOcupados: vi.fn(async (): Promise<number[]> => []),
+    cubrirConReserva: vi.fn(async (): Promise<string | null> => null),
+    anotarAviso: vi.fn(async () => {}),
     linkedin: {
       crearPost: vi.fn(async () => {
         orden.push("crearPost")
@@ -338,5 +344,87 @@ describe("publicarPendientes", () => {
     const cuenta = await publicarPendientes(p)
     expect(estadoDe("h1")).toBe("envio_dudoso")
     expect(cuenta.envio_dudoso).toBe(1)
+  })
+})
+
+const PENDIENTE: PendienteSinFirma = {
+  id: "pendiente-1",
+  marcaId: "marca-1",
+  cuentaId: "cuenta-1",
+  cuentaNombre: "Federico",
+  tipo: "persona",
+  planeadaPara: "2026-11-03T14:00:00.000Z",
+  extracto: "Hola",
+}
+
+describe("cubrirSinFirma (D21)", () => {
+  test("uses the reserve, moves the unsigned piece to the next free slot and queues a digest line", async () => {
+    const { p, m } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      horariosOcupados: vi.fn(async () => [Date.parse("2026-11-04T14:00:00Z")]),
+      cubrirConReserva: vi.fn(async () => "reserva-1"),
+    })
+    expect(await cubrirSinFirma(p)).toBe(1)
+    expect(p.cubrirConReserva).toHaveBeenCalledWith("pendiente-1", "2026-11-05T14:00:00.000Z")
+    expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
+      titulo: "Federico",
+      cuerpo:
+        "Una pieza salió de la reserva de Federico para el martes 3 de noviembre, 11:00; «Hola» pasó al jueves 5 de noviembre, 11:00.",
+      url: "/piezas/reserva-1",
+    })
+    expect(m.avisar).not.toHaveBeenCalled()
+  })
+
+  test("without a reserve the line says the piece was moved", async () => {
+    const { p } = puertos({ vencidasSinFirma: vi.fn(async () => [PENDIENTE]) })
+    expect(await cubrirSinFirma(p)).toBe(0)
+    expect(p.anotarAviso).toHaveBeenCalledWith("marca-1", {
+      titulo: "Federico",
+      cuerpo: "No firmaste «Hola» a tiempo; la corrí al miércoles 4 de noviembre, 11:00.",
+      url: "/piezas/pendiente-1",
+    })
+  })
+
+  test("one failing piece is logged and the next is still covered", async () => {
+    const otra = { ...PENDIENTE, id: "pendiente-2" }
+    const cubrir = vi.fn(async (id: string) => {
+      if (id === "pendiente-1") throw new Error("23505")
+      return null
+    })
+    const { p } = puertos({ vencidasSinFirma: vi.fn(async () => [PENDIENTE, otra]), cubrirConReserva: cubrir })
+    const error = silenciar()
+    await cubrirSinFirma(p)
+    expect(cubrir).toHaveBeenCalledTimes(2)
+    expect(error).toHaveBeenCalled()
+  })
+
+  test("a lost digest line is logged and does not undo the cover", async () => {
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => [PENDIENTE]),
+      cubrirConReserva: vi.fn(async () => "reserva-1"),
+      anotarAviso: vi.fn(async () => {
+        throw new Error("sin base")
+      }),
+    })
+    const error = silenciar()
+    expect(await cubrirSinFirma(p)).toBe(1)
+    expect(error).toHaveBeenCalled()
+  })
+
+  test("publicarPendientes covers first, so the reserve piece goes out in the same run, and a failed cover never blocks publishing", async () => {
+    const orden: string[] = []
+    const { p } = puertos({
+      vencidasSinFirma: vi.fn(async () => {
+        orden.push("cubrir")
+        throw new Error("sin base")
+      }),
+      tomarPendientes: vi.fn(async () => {
+        orden.push("tomar")
+        return []
+      }),
+    })
+    silenciar()
+    await publicarPendientes(p)
+    expect(orden).toEqual(["cubrir", "tomar"])
   })
 })
