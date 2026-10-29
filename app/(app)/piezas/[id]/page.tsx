@@ -1,4 +1,7 @@
 import { notFound } from "next/navigation"
+import { leerExcepciones } from "@/lib/clientes/lectura"
+import { type Hallazgo, prepararRevision } from "@/lib/clientes/revision"
+import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
@@ -21,6 +24,7 @@ import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controle
 import { FirmaDePieza } from "./firma"
 import { PilarDePieza } from "./pilar"
 import { PlanDePieza } from "./plan"
+import { Veredicto } from "./veredicto"
 
 const SE_PUEDE_CAMBIAR_EL_PILAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada"]
 const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano", "error"]
@@ -43,9 +47,19 @@ export default async function Pieza({
   const pieza = await detalle(db, id)
   if (!pieza) notFound()
   const { estado, version, cuenta } = pieza
-  const pilares = SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
-    ? (await pilaresActivos(db)).filter((p) => p.marcaId === cuenta.marcaId)
-    : []
+
+  /** Gate 1 verdict without AI. The reviewer compiles once per request: the Worker has 10 ms of CPU. */
+  async function revisarAntesDeFirmar(): Promise<Hallazgo[]> {
+    const revisor = prepararRevision(await leerExcepciones(db), diaEnSantiago(Date.now()))
+    return revisor.revisar([version.titulo, version.texto].filter(Boolean).join("\n"), cuenta.voz)
+  }
+
+  const [pilares, hallazgos] = await Promise.all([
+    SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
+      ? pilaresActivos(db).then((todos) => todos.filter((p) => p.marcaId === cuenta.marcaId))
+      : [],
+    estado === "por_aprobar" ? revisarAntesDeFirmar() : [],
+  ])
 
   return (
     <section className="mx-auto max-w-md space-y-5">
@@ -87,6 +101,7 @@ export default async function Pieza({
           sinPlanAlCrear={avisos.has("plan")}
         />
       )}
+      {estado === "por_aprobar" && <Veredicto hallazgos={hallazgos} />}
       {estado === "por_aprobar" && (
         <FirmaDePieza
           key={pieza.fechaPropuesta}
