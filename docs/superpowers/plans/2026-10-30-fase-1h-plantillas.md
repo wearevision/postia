@@ -93,7 +93,7 @@ The Playwright extension auto-detects the version from `playwright` in `dependen
 |---|---|
 | WR3 | «Lee la guía completa», `wr3.wearevision.cl` |
 | WAV | «Conversemos», `wearevision.cl` |
-| Personal | «Sígueme para más», with Federico's real profile URL (gate 3) |
+| Personal | «Sígueme para más», `linkedin.com/in/federico-elgueta-edwards` |
 
 **Not in 4b.**
 - Claude writing slides. That is 4f, where series bring «esqueleto de láminas»; the queue already takes slides from any author.
@@ -107,7 +107,7 @@ The Playwright extension auto-detects the version from `playwright` in `dependen
 
 1. Push the branch and open the PR.
 2. Production migration: Federico runs `pnpm exec supabase db push` from his terminal. The permission classifier blocks it for Claude.
-3. **His LinkedIn profile URL** for the personal CTA default (`PERFIL_DE_FEDERICO` in Task 3). Ask before Task 3's commit; if he has not answered, use `linkedin.com/in/` and flag it in the PR.
+3. ~~His LinkedIn profile URL~~ Resolved on 2026-10-30: `linkedin.com/in/federico-elgueta-edwards` (`PERFIL_DE_FEDERICO` in Task 3).
 4. Merge, which deploys the Worker and the Trigger worker. Check that the worker lists `armar-carruseles`.
 5. Smoke in production. Federico creates one carousel per family from the editor's default slides and checks the 3 renders against his reference PDFs. Then he discards them, because the app stays clean.
 
@@ -682,14 +682,13 @@ export function temasDeLaVoz(voz: "yo" | "nosotros"): IdDeTema[] {
 - [ ] **Step 6: Implement `lib/plantillas/iniciales.ts`.**
   - It is a port of `wr3-web/social/linkedin/plantilla.json`, translated to PostIA's types (cover→portada and so on), with `antetitulo` from `kicker`.
   - The per-family CTA comes from `build-carousels.mjs` 49-54.
-  - **Gate 3:** ask Federico for his profile URL before committing. Without an answer, use `linkedin.com/in/` and say so in the PR.
 
 ```ts
 import type { Familia } from "./estilos"
 import type { Carrusel, Lamina } from "./laminas"
 
-/** Gate 3 of plan 4b: Federico's public profile, without https://. */
-export const PERFIL_DE_FEDERICO = "linkedin.com/in/…"
+/** Federico's public profile, without https:// (given on 2026-10-30). */
+export const PERFIL_DE_FEDERICO = "linkedin.com/in/federico-elgueta-edwards"
 
 const CUERPO: Lamina[] = [
   { tipo: "portada", titulo: "Portada: la pregunta que responde la guía", bajada: "Bajada de una línea: qué se lleva quien llega hasta el final." },
@@ -2164,7 +2163,6 @@ pnpm lint && pnpm type && pnpm test:run && pnpm test:db && pnpm test:render && p
   - the gates;
   - the orphan-files follow-up;
   - the Trigger.dev machine cost (about US$0.003 per render);
-  - whether gate 3 (profile URL) is still open.
 
 - [ ] **Step 2: Production migration.** Show the dry run (`pnpm exec supabase db push --dry-run`). Federico runs `pnpm exec supabase db push` himself. Verify with the Supabase MCP `list_migrations` that `20261104120000` is applied.
 
