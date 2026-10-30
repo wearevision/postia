@@ -19,6 +19,8 @@ export interface PedidoAClaude {
   maxTokens: number
   /** Always explicit: Claude Opus 5.5 defaults to "medium". */
   esfuerzo: "low" | "medium" | "high"
+  /** Structured outputs: the answer is JSON for this schema (callers validate it again with zod). */
+  formato?: Anthropic.JSONOutputFormat
 }
 
 export interface RespuestaDeClaude {
@@ -42,7 +44,7 @@ export function solicitudDe(pedido: PedidoAClaude): Anthropic.MessageCreateParam
     max_tokens: pedido.maxTokens,
     system: [bloque],
     messages: pedido.mensajes,
-    output_config: { effort: pedido.esfuerzo },
+    output_config: pedido.formato ? { effort: pedido.esfuerzo, format: pedido.formato } : { effort: pedido.esfuerzo },
   }
 }
 
@@ -129,3 +131,9 @@ export async function pedirPagando(
     },
   )
 }
+
+/** `pedirPagando` with its ports bound: what product code receives. */
+export type Pedir = (
+  paso: { clave: string; paso: string; marcaId: string | null },
+  pedido: PedidoAClaude,
+) => Promise<RespuestaDeClaude>
