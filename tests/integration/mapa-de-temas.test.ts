@@ -43,6 +43,10 @@ describe("guardar_hallazgo", () => {
     expect(r).toMatchObject({ estado: "guardado", tema: null })
   })
 
+  test("accepts a link whose scheme is in capitals", async () => {
+    expect(await guardar(vectorDe(0), "HTTPS://Medio.cl/nota")).toMatchObject({ estado: "guardado" })
+  })
+
   test("refuses a finding whose normalized link is already saved, whatever its vector", async () => {
     const primero = await idDe(vectorDe(0))
     const { data: fila } = await admin().from("hallazgos").select("enlace").eq("id", primero).single()

@@ -19,7 +19,7 @@ create table public.hallazgos (
   id uuid primary key default gen_random_uuid(),
   resumen text not null check (length(resumen) between 1 and 1200),
   cita text check (length(cita) <= 300),
-  enlace text not null check (enlace ~ '^https?://'),
+  enlace text not null check (enlace ~* '^https?://'),
   enlace_normalizado text not null check (length(enlace_normalizado) > 0),
   medio text not null default '' check (length(medio) <= 200),
   publicado_en date,
