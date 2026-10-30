@@ -123,6 +123,14 @@ describe("hallazgos_pendientes and temas_casi_iguales", () => {
     expect(JSON.parse(data[0].vector)[5]).toBe(1)
   })
 
+  test("returns the newest loose findings first, so old singletons cannot starve new ones", async () => {
+    await idDe(vectorDe(5))
+    const nuevo = await idDe(vectorDe(300))
+    const { data, error } = await admin().rpc("hallazgos_pendientes", { p_limite: 1 })
+    if (error) throw error
+    expect(data.map((h) => h.id)).toEqual([nuevo])
+  })
+
   test("pairs active topics whose centroids reach the threshold, with their sizes", async () => {
     // Every finding is saved before any topic exists, or a later one would join an earlier topic on its own.
     // Pairwise similarities stay under 0.95 (no repeats); the A and B centroids land at ≈ 0.926.

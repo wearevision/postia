@@ -119,7 +119,9 @@ language sql stable security definer set search_path = '' as $$
   select h.id, h.resumen, h.vector::text
   from public.hallazgos h
   where h.tema_id is null and h.estado <> 'descartado'
-  order by h.creado_en, h.id
+  -- Newest first: findings that never group stay loose for good, and oldest-first would let them fill the
+  -- nightly limit and starve the new ones.
+  order by h.creado_en desc, h.id
   limit greatest(p_limite, 0)
 $$;
 
