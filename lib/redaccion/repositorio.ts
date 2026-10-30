@@ -34,7 +34,8 @@ export function repositorioDeRedaccion(db: Db): Omit<PuertosDeAtencion, "pedir">
       const { data, error } = await db.rpc("tomar_pedidos")
       if (error) fallo("No pude tomar los pedidos de texto", error)
       if (data.length === 0) return []
-      const [cuentas, pilares] = await Promise.all([
+      const piezas = data.flatMap((p) => (p.tipo !== "escribir" && p.pieza_id ? [p.pieza_id] : []))
+      const [cuentas, pilares, escritos] = await Promise.all([
         db
           .from("cuentas")
           .select("id, marca_id")
@@ -46,16 +47,26 @@ export function repositorioDeRedaccion(db: Db): Omit<PuertosDeAtencion, "pedir">
             "id",
             data.flatMap((p) => (p.pilar_id ? [p.pilar_id] : [])),
           ),
+        // A rewrite or a review keeps the material pasted when the piece was asked for.
+        db
+          .from("pedidos_de_texto")
+          .select("resultado_pieza_id, material")
+          .eq("tipo", "escribir")
+          .in("resultado_pieza_id", piezas),
       ])
       if (cuentas.error) fallo("No pude leer las cuentas de los pedidos", cuentas.error)
       if (pilares.error) fallo("No pude leer los pilares de los pedidos", pilares.error)
+      if (escritos.error) fallo("No pude leer el material de los pedidos", escritos.error)
       return data.map(
         (p): PedidoDeTexto => ({
           id: p.id,
           tipo: z.enum(["escribir", "reescribir", "revisar"]).parse(p.tipo),
           marcaId: cuentas.data.find((c) => c.id === p.cuenta_id)?.marca_id ?? "",
           encargo: p.encargo,
-          material: p.material,
+          material:
+            p.tipo === "escribir"
+              ? p.material
+              : (escritos.data.find((x) => x.resultado_pieza_id === p.pieza_id)?.material ?? null),
           pilar: pilares.data.find((x) => x.id === p.pilar_id)?.nombre ?? null,
           instruccion: p.instruccion,
           piezaId: p.pieza_id,

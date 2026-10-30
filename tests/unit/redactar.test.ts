@@ -59,7 +59,12 @@ describe("escribir", () => {
 describe("reescribir", () => {
   test("sends the current text and the instruction", async () => {
     const pedir = responde({ texto: JSON.stringify({ texto: "Corto", nota: "" }), detenido: "end_turn" })
-    await reescribir(pedir, CONTEXTO, { clave: "reescribir:p2", textoActual: "Largo", instruccion: "Más corto" })
+    await reescribir(pedir, CONTEXTO, {
+      clave: "reescribir:p2",
+      textoActual: "Largo",
+      instruccion: "Más corto",
+      material: null,
+    })
     const [paso, pedido] = pedir.mock.calls[0] ?? []
     expect(paso?.paso).toBe("reescribir")
     expect(JSON.stringify(pedido?.mensajes)).toContain("Más corto")

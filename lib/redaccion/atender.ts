@@ -11,6 +11,7 @@ export interface PedidoDeTexto {
   tipo: "escribir" | "reescribir" | "revisar"
   marcaId: string
   encargo: string | null
+  /** For a rewrite or a review, the material of the request that wrote the piece. */
   material: string | null
   /** The pillar's name, for the prompt. */
   pilar: string | null
@@ -97,16 +98,17 @@ async function atenderUno(p: PuertosDeAtencion, pedido: PedidoDeTexto): Promise<
       clave: `reescribir:${pedido.id}`,
       textoActual: base.texto,
       instruccion: pedido.instruccion ?? "",
+      material: pedido.material,
     })
     const versionId = await p.nuevaVersion(pedido, escrito.texto, c.linea.version)
-    if (versionId) await revisarSinPerder(p, c, versionId, escrito.texto, null)
+    if (versionId) await revisarSinPerder(p, c, versionId, escrito.texto, pedido.material)
     return
   }
   const versionId = pedido.versionId ?? ""
   const veredicto = await revisar(p.pedir, c, {
     clave: `revisar:${versionId}:${pedido.id}`,
     texto: base.texto,
-    material: null,
+    material: pedido.material,
   })
   await p.guardarRevision(versionId, veredicto, pedido.id)
 }

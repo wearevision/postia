@@ -75,13 +75,13 @@ export async function escribir(
 export async function reescribir(
   pedir: Pedir,
   c: ContextoDeRedaccion,
-  r: { clave: string; textoActual: string; instruccion: string },
+  r: { clave: string; textoActual: string; instruccion: string; material: string | null },
 ): Promise<Escrito> {
   const respuesta = await pedir(
     { clave: r.clave, paso: "reescribir", marcaId: c.marca.id },
     {
       sistema: instruccionesDeEscritura(c),
-      mensajes: [{ role: "user", content: mensajeDeReescritura(r.textoActual, r.instruccion) }],
+      mensajes: [{ role: "user", content: mensajeDeReescritura(r.textoActual, r.instruccion, r.material) }],
       ...ESCRITURA,
       formato: zodOutputFormat(Escrito),
     },

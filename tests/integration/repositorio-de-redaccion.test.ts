@@ -83,4 +83,20 @@ describe("repositorioDeRedaccion", () => {
     await repo.guardarRevision(p.versionId ?? "", { voz: { ok: true, comentario: "" }, hallazgos: [] }, null)
     expect((await repo.base(p)).revisada).toBe(true)
   })
+
+  test("a rewrite or review request carries the material of the request that wrote the piece", async () => {
+    const e = await conLinea()
+    const { data: escrito } = await e.db.rpc("pedir_texto", {
+      p_cuenta: e.cuenta,
+      p_encargo: "Montaje",
+      p_material: "Fuente original",
+    })
+    const repo = repositorioDeRedaccion(admin())
+    const { piezaId } = await repo.crearPieza(await tomado(repo, escrito), "Texto", 1)
+    const { data: reescritura } = await e.db.rpc("pedir_reescritura", { p_pieza: piezaId, p_instruccion: "Corto" })
+    expect((await tomado(repo, reescritura)).material).toBe("Fuente original")
+    await repo.terminar(reescritura ?? "", "fallo", "Prueba")
+    const { data: revision } = await e.db.rpc("pedir_revision", { p_pieza: piezaId })
+    expect((await tomado(repo, revision)).material).toBe("Fuente original")
+  })
 })

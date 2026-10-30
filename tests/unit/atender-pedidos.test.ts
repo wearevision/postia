@@ -143,6 +143,25 @@ describe("atenderPedidos", () => {
     expect(p.terminar).toHaveBeenCalledWith("p6", "obsoleto", "Esta versión ya tenía revisión de Claude.")
   })
 
+  test("a rewrite and a requested review carry the material of the request that wrote the piece", async () => {
+    const reescritura: PedidoDeTexto = {
+      ...escribirPedido,
+      id: "p8",
+      tipo: "reescribir",
+      encargo: null,
+      material: "Fuente original",
+      instruccion: "Corto",
+      piezaId: "pz",
+      versionId: "v1",
+    }
+    const revision: PedidoDeTexto = { ...reescritura, id: "p9", tipo: "revisar", instruccion: null }
+    const p = puertos({ tomar: vi.fn(async () => [reescritura, revision]) })
+    await atenderPedidos(p)
+    const mensajes = vi.mocked(p.pedir).mock.calls.map(([paso, pedido]) => [paso.clave, pedido.mensajes[0]?.content])
+    expect(mensajes.map(([clave]) => clave)).toEqual(["reescribir:p8", "revisar:v2:auto", "revisar:v1:p9"])
+    for (const [, contenido] of mensajes) expect(contenido).toContain("<material>\nFuente original\n</material>")
+  })
+
   test("closes a failing request with its reason and keeps going; an unexpected error fails the run afterwards", async () => {
     const otro: PedidoDeTexto = { ...escribirPedido, id: "p5" }
     const p = puertos({
