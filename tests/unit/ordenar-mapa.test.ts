@@ -110,20 +110,49 @@ describe("ordenarMapa", () => {
     expect(r).toMatchObject({ temasNuevos: 0, sinNombre: 2, fusionados: 1 })
   })
 
-  test("merges the smaller topic into the bigger one and skips pairs whose topic already merged", async () => {
-    const fusionar = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+  test("merges the smaller topic into the bigger one and follows a topic that already merged to its survivor", async () => {
     const p = puertos({
-      fusionar,
       casiIguales: vi.fn(async () => [
         { a: "t1", b: "t2", similitud: 0.97, hallazgos: { a: 5, b: 2 } },
         { a: "t2", b: "t3", similitud: 0.93, hallazgos: { a: 2, b: 2 } },
       ]),
     })
     const r = await ordenarMapa(p, "run", UMBRALES)
-    expect(fusionar.mock.calls).toEqual([
+    expect(vi.mocked(p.fusionar).mock.calls).toEqual([
       ["t2", "t1"],
-      ["t3", "t2"],
+      ["t3", "t1"],
     ])
-    expect(r.fusionados).toBe(1)
+    expect(r.fusionados).toBe(2)
+  })
+
+  test("skips a pair whose two topics already ended in the same survivor", async () => {
+    const p = puertos({
+      casiIguales: vi.fn(async () => [
+        { a: "t1", b: "t2", similitud: 0.97, hallazgos: { a: 5, b: 2 } },
+        { a: "t1", b: "t3", similitud: 0.96, hallazgos: { a: 5, b: 1 } },
+        { a: "t2", b: "t3", similitud: 0.95, hallazgos: { a: 2, b: 1 } },
+      ]),
+    })
+    const r = await ordenarMapa(p, "run", UMBRALES)
+    expect(vi.mocked(p.fusionar).mock.calls).toEqual([
+      ["t2", "t1"],
+      ["t3", "t1"],
+    ])
+    expect(r.fusionados).toBe(2)
+  })
+
+  test("sums sizes after a merge so the next pair compares current sizes", async () => {
+    const p = puertos({
+      casiIguales: vi.fn(async () => [
+        { a: "t1", b: "t2", similitud: 0.97, hallazgos: { a: 3, b: 3 } },
+        { a: "t2", b: "t3", similitud: 0.95, hallazgos: { a: 3, b: 4 } },
+      ]),
+    })
+    await ordenarMapa(p, "run", UMBRALES)
+    // Tie: the second goes into the first (t2 into t1, size 6). t3 (4) is smaller than t1 (6): t3 into t1.
+    expect(vi.mocked(p.fusionar).mock.calls).toEqual([
+      ["t2", "t1"],
+      ["t3", "t1"],
+    ])
   })
 })

@@ -63,10 +63,32 @@ export async function ordenarMapa(
     }
   }
 
+  // Pairs were computed before any merge: follow each end to its current survivor, so a topic merged earlier
+  // in the night is never merged again, and sizes are the sums so far.
+  const destino = new Map<string, string>()
+  const tamano = new Map<string, number>()
+  const sobreviviente = (id: string): string => {
+    let actual = id
+    for (let siguiente = destino.get(actual); siguiente !== undefined; siguiente = destino.get(actual)) {
+      actual = siguiente
+    }
+    return actual
+  }
   let fusionados = 0
   for (const par of await puertos.casiIguales(umbrales.fusion)) {
-    const [de, en] = par.hallazgos.a >= par.hallazgos.b ? [par.b, par.a] : [par.a, par.b]
-    if (await puertos.fusionar(de, en)) fusionados += 1
+    if (!tamano.has(par.a)) tamano.set(par.a, par.hallazgos.a)
+    if (!tamano.has(par.b)) tamano.set(par.b, par.hallazgos.b)
+    const a = sobreviviente(par.a)
+    const b = sobreviviente(par.b)
+    if (a === b) continue
+    const tamanoA = tamano.get(a) ?? 0
+    const tamanoB = tamano.get(b) ?? 0
+    const [de, en] = tamanoA >= tamanoB ? [b, a] : [a, b]
+    if (await puertos.fusionar(de, en)) {
+      destino.set(de, en)
+      tamano.set(en, (tamano.get(en) ?? 0) + (tamano.get(de) ?? 0))
+      fusionados += 1
+    }
   }
 
   return { reubicados, temasNuevos, sinNombre, sinCrear, fusionados }
