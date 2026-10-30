@@ -205,6 +205,8 @@ begin
                from unnest(v_en.alias || v_de.nombre || v_de.alias) a
                where a <> v_en.nombre)
   where id = p_en;
+  -- Topics that already pointed at p_de now point at the survivor: pointers never chain.
+  update public.temas set fusionado_en = p_en where fusionado_en = p_de;
   update public.temas set fusionado_en = p_en where id = p_de;
   perform public.recalcular_centroide(p_en);
   return true;

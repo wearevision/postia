@@ -190,6 +190,18 @@ describe("the map after a merge", () => {
   })
 })
 
+describe("fusionar_temas chains", () => {
+  test("re-points topics already merged into the one that merges away, so pointers never chain", async () => {
+    const x = await tema("X", [await idDe(vectorDe(0))])
+    const b = await tema("B", [await idDe(vectorDe(100))])
+    const a = await tema("A", [await idDe(vectorDe(200))])
+    await admin().rpc("fusionar_temas", { p_de: x, p_en: b })
+    await admin().rpc("fusionar_temas", { p_de: b, p_en: a })
+    const { data } = await admin().from("temas").select("id, fusionado_en").in("id", [x, b])
+    expect(Object.fromEntries((data ?? []).map((t) => [t.id, t.fusionado_en]))).toEqual({ [x]: a, [b]: a })
+  })
+})
+
 describe("access", () => {
   test("a member reads topics and findings but cannot call the service RPCs", async () => {
     await tema("Visible", [await idDe(vectorDe(0))])
