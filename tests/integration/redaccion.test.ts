@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, test } from "vitest"
-import { admin, cuentaDe, marcaConDueno, personaConSesion, piezaDe, versionVigente } from "./entorno"
+import {
+  admin,
+  cerrarPedidosAbiertos,
+  cuentaDe,
+  marcaConDueno,
+  personaConSesion,
+  piezaDe,
+  versionVigente,
+} from "./entorno"
 
 const SECCIONES = {
   deQueHablamos: "Eventos",
@@ -12,17 +20,7 @@ const SECCIONES = {
 
 // tomar_pedidos leases the oldest open requests of every brand, so requests an earlier test left open would be leased
 // instead of the one under test. Only accounts this file created are touched: the local database is shared with dev.
-const cuentasDeEsteArchivo: string[] = []
-
-beforeEach(async () => {
-  if (cuentasDeEsteArchivo.length === 0) return
-  const { error } = await admin()
-    .from("pedidos_de_texto")
-    .update({ estado: "fallo", motivo: "Cerrado entre pruebas." })
-    .in("cuenta_id", cuentasDeEsteArchivo)
-    .in("estado", ["pendiente", "trabajando"])
-  if (error) throw error
-})
+beforeEach(cerrarPedidosAbiertos)
 
 async function conLinea(prefijo = "redaccion") {
   const persona = await personaConSesion(prefijo)
@@ -36,7 +34,6 @@ async function conLinea(prefijo = "redaccion") {
   if (error) throw error
   const { data: pilares } = await admin().from("pilares").select("id").eq("marca_id", marca)
   const cuenta = await cuentaDe(marca)
-  cuentasDeEsteArchivo.push(cuenta)
   return { ...persona, marca, cuenta, pilar: pilares?.[0]?.id ?? null }
 }
 
