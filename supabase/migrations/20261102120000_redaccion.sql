@@ -143,8 +143,8 @@ begin
   return v_id;
 end $$;
 
--- The writer (service role only). Two at a time: a write plus its review takes a few minutes, and the task's
--- maxDuration is 540 s, below the 10-minute lease.
+-- The writer (service role only). One at a time: a write plus its review takes a few minutes, and a run cut by the
+-- task's maxDuration (540 s, below the 10-minute lease) mid-second-request would lose a result already paid.
 create function public.tomar_pedidos() returns setof public.pedidos_de_texto
 language sql security definer set search_path = '' as $$
   update public.pedidos_de_texto p set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes'
@@ -152,7 +152,7 @@ language sql security definer set search_path = '' as $$
      select id from public.pedidos_de_texto
       where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
       order by creado_en
-      limit 2
+      limit 1
       for update skip locked)
   returning p.*
 $$;

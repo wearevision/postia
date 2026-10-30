@@ -162,6 +162,14 @@ describe("tomar_pedidos and crear_pieza_de_claude", () => {
     expect((await admin().from("piezas").select("pilar_id").eq("id", pieza).single()).data?.pilar_id).toBeNull()
   })
 
+  test("leases one request per run, the oldest first, so a run cut short loses at most one paid result", async () => {
+    const e = await conLinea()
+    const primero = await pedir(e.db, e.cuenta, "Primero")
+    const segundo = await pedir(e.db, e.cuenta, "Segundo")
+    expect((await tomar()).map((p) => p.id)).toEqual([primero])
+    expect((await tomar()).map((p) => p.id)).toEqual([segundo])
+  })
+
   test("re-leases a request whose lease expired", async () => {
     const e = await conLinea()
     const pedido = await pedir(e.db, e.cuenta)
