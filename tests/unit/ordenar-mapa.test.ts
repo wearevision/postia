@@ -25,6 +25,7 @@ describe("ordenarMapa", () => {
       reubicados: 0,
       temasNuevos: 0,
       sinNombre: 0,
+      sinCrear: 0,
       fusionados: 0,
     })
     expect(p.nombrar).not.toHaveBeenCalled()
@@ -67,6 +68,27 @@ describe("ordenarMapa", () => {
     expect(p.crearTema).toHaveBeenCalledTimes(1)
     expect(p.crearTema).toHaveBeenCalledWith({ nombre: "Segundo", descripcion: "" }, ["c", "d"])
     expect(r).toMatchObject({ temasNuevos: 1, sinNombre: 1 })
+  })
+
+  test("counts a topic that could not be created and goes on with the next group and the merges", async () => {
+    const crearTema = vi.fn().mockRejectedValueOnce(new Error("sin hallazgos sueltos")).mockResolvedValueOnce("t")
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    const p = puertos({
+      crearTema,
+      pendientes: vi.fn(async () => [
+        suelto("a", [1, 0]),
+        suelto("b", [1, 0]),
+        suelto("c", [0, 1]),
+        suelto("d", [0, 1]),
+      ]),
+      casiIguales: vi.fn(async () => [{ a: "t1", b: "t2", similitud: 0.95, hallazgos: { a: 3, b: 1 } }]),
+    })
+    const r = await ordenarMapa(p, "run", UMBRALES)
+    expect(crearTema).toHaveBeenCalledTimes(2)
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("sin hallazgos sueltos"))
+    expect(p.fusionar).toHaveBeenCalledWith("t2", "t1")
+    expect(r).toMatchObject({ temasNuevos: 1, sinCrear: 1, fusionados: 1 })
+    error.mockRestore()
   })
 
   test("stops naming when the spending cap is reached, and still merges", async () => {

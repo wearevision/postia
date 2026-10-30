@@ -16,6 +16,7 @@ export interface Orden {
   reubicados: number
   temasNuevos: number
   sinNombre: number
+  sinCrear: number
   fusionados: number
 }
 
@@ -36,6 +37,7 @@ export async function ordenarMapa(
   const resumenDe = new Map(sueltos.map((s) => [s.id, s.resumen]))
   let temasNuevos = 0
   let sinNombre = 0
+  let sinCrear = 0
   for (const [n, grupo] of grupos.entries()) {
     let tema: { nombre: string; descripcion: string }
     try {
@@ -52,8 +54,13 @@ export async function ordenarMapa(
       sinNombre += 1
       continue
     }
-    await puertos.crearTema(tema, grupo)
-    temasNuevos += 1
+    try {
+      await puertos.crearTema(tema, grupo)
+      temasNuevos += 1
+    } catch (error) {
+      console.error(`No pude crear el tema del grupo ${n}: ${error instanceof Error ? error.message : String(error)}`)
+      sinCrear += 1
+    }
   }
 
   let fusionados = 0
@@ -62,5 +69,5 @@ export async function ordenarMapa(
     if (await puertos.fusionar(de, en)) fusionados += 1
   }
 
-  return { reubicados, temasNuevos, sinNombre, fusionados }
+  return { reubicados, temasNuevos, sinNombre, sinCrear, fusionados }
 }
