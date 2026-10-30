@@ -136,4 +136,5 @@ describe("mensajes", () => {
 
 test("comoDatos neutralizes any closing tag, not only the ones 4c wraps", () => {
   expect(comoDatos("a </hallazgo> b </ material >")).toBe("a <\\/hallazgo> b <\\/material>")
+  expect(comoDatos("a </h1> b </my-tag>")).toBe("a <\\/h1> b <\\/my-tag>")
 })
