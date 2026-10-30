@@ -21,6 +21,8 @@ interface Props {
     abiertaEn: string
   }) => Promise<Resultado>
   firmarParaReserva: (entrada: { piezaId: string; huella: string; abiertaEn: string }) => Promise<Resultado>
+  /** A rewrite is open: signing now keeps this version and Claude's is dropped as obsolete. */
+  reescribiendo?: boolean
 }
 
 export function FirmaDePieza({
@@ -33,6 +35,7 @@ export function FirmaDePieza({
   cuenta,
   firmar,
   firmarParaReserva,
+  reescribiendo = false,
 }: Props) {
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
@@ -74,6 +77,9 @@ export function FirmaDePieza({
           Sale el <strong>{fechaLarga(instante)}</strong>
           <span className="block text-sm text-apagado">Hora de Chile.</span>
         </p>
+      )}
+      {reescribiendo && (
+        <p className="text-sm">Claude está reescribiendo. Si firmas ahora, esa versión no se aplica.</p>
       )}
       <button
         type="submit"

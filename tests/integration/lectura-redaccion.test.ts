@@ -38,10 +38,11 @@ describe("estadoDeRedaccion", () => {
       revision: null,
       ultimoFallo: null,
       revisandoAuto: false,
+      reescribiendo: false,
     })
     await e.db.rpc("pedir_reescritura", { p_pieza: pieza, p_instruccion: "Corto" })
     const estado = await estadoDeRedaccion(e.db, pieza, (await versionVigente(pieza)).id)
-    expect(estado).toMatchObject({ pedidoAbierto: true, reescriturasQuedan: 2 })
+    expect(estado).toMatchObject({ pedidoAbierto: true, reescriturasQuedan: 2, reescribiendo: true })
     await admin()
       .from("pedidos_de_texto")
       .update({ estado: "fallo", motivo: "Se alcanzó el tope." })
@@ -66,6 +67,16 @@ describe("estadoDeRedaccion", () => {
       .from("revisiones_ia")
       .insert({ version_id: version.id, veredicto: { voz: { ok: true, comentario: "" }, hallazgos: [] } })
     expect((await estadoDeRedaccion(e.db, pieza, version.id, creada + 60_000)).revisandoAuto).toBe(false)
+  })
+
+  test("an open review request is not a rewrite", async () => {
+    const e = await conLinea()
+    const pieza = await piezaDe(e.db, e.cuenta, "Uno")
+    await e.db.rpc("pedir_revision", { p_pieza: pieza })
+    expect(await estadoDeRedaccion(e.db, pieza, (await versionVigente(pieza)).id)).toMatchObject({
+      pedidoAbierto: true,
+      reescribiendo: false,
+    })
   })
 
   test("a version written by hand is never waiting for an automatic review", async () => {

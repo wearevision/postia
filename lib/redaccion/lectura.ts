@@ -57,6 +57,8 @@ export interface EstadoDeRedaccion {
    * «Revisar con Claude» and pay a second review; it waits for the automatic one instead.
    */
   revisandoAuto: boolean
+  /** A rewrite is open: the signature warns that signing now drops it. */
+  reescribiendo: boolean
 }
 
 const MAXIMO_DE_REESCRITURAS = 3
@@ -84,9 +86,10 @@ export async function estadoDeRedaccion(
   const usadas = pedidos.data.filter(
     (p) => p.tipo === "reescribir" && ["pendiente", "trabajando", "hecho"].includes(p.estado),
   ).length
+  const abiertos = pedidos.data.filter((p) => p.estado === "pendiente" || p.estado === "trabajando")
   const ultimo = pedidos.data[0]
   return {
-    pedidoAbierto: pedidos.data.some((p) => p.estado === "pendiente" || p.estado === "trabajando"),
+    pedidoAbierto: abiertos.length > 0,
     reescriturasQuedan: Math.max(0, MAXIMO_DE_REESCRITURAS - usadas),
     revision: revision.data ? VeredictoGuardado.parse(revision.data.veredicto) : null,
     ultimoFallo: ultimo?.estado === "fallo" || ultimo?.estado === "obsoleto" ? ultimo.motivo : null,
@@ -94,5 +97,6 @@ export async function estadoDeRedaccion(
       version.data.origen === "claude" &&
       !revision.data &&
       ahora - Date.parse(version.data.creada_en) < ESPERA_DE_REVISION_AUTO_MS,
+    reescribiendo: abiertos.some((p) => p.tipo === "reescribir"),
   }
 }

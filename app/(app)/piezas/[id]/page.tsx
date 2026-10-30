@@ -187,6 +187,7 @@ export default async function Pieza({
           cuenta={cuenta.nombre}
           firmar={firmarAccion}
           firmarParaReserva={firmarParaReservaAccion}
+          reescribiendo={redaccion?.reescribiendo ?? false}
         />
       )}
       {estado === "en_reserva" && (
