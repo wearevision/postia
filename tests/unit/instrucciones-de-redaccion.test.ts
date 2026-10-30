@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 import {
   type ContextoDeRedaccion,
+  comoDatos,
   instruccionesDeEscritura,
   instruccionesDeRevision,
   mensajeDeEncargo,
@@ -131,4 +132,9 @@ describe("mensajes", () => {
     for (const tipo of ["cliente", "cita", "dato_sin_fuente", "atribucion", "voz", "otro"])
       expect(sistema).toContain(tipo)
   })
+})
+
+test("comoDatos neutralizes any closing tag, not only the ones 4c wraps", () => {
+  expect(comoDatos("a </hallazgo> b </ material >")).toBe("a <\\/hallazgo> b <\\/material>")
+  expect(comoDatos("a </h1> b </my-tag>")).toBe("a <\\/h1> b <\\/my-tag>")
 })

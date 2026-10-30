@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest"
 import { Falla } from "@/lib/dominio/falla"
-import { costoReal, enDolares, estimarCosto, type ModeloClaude } from "@/lib/gasto/precios"
+import {
+  costoDeVoyage,
+  costoReal,
+  enDolares,
+  estimarCosto,
+  estimarVoyage,
+  type ModeloClaude,
+} from "@/lib/gasto/precios"
 
 describe("costoReal", () => {
   test("prices each kind of token for Claude Opus 5.5 and rounds up to the micro-dollar", () => {
@@ -87,5 +94,17 @@ describe("enDolares", () => {
     expect(enDolares(1_234_567)).toBe("US$1,23")
     expect(enDolares(1_000_000_000)).toBe("US$1.000,00")
     expect(enDolares(0)).toBe("US$0,00")
+  })
+})
+
+describe("Voyage", () => {
+  test("charges US$0.06 per million tokens, rounded up to a whole micro-dollar", () => {
+    expect(costoDeVoyage(1_000_000)).toBe(60_000)
+    expect(costoDeVoyage(1)).toBe(1)
+    expect(costoDeVoyage(0)).toBe(0)
+  })
+
+  test("estimates two tokens per character, which stays above the real count", () => {
+    expect(estimarVoyage(1_000)).toBe(costoDeVoyage(2_000))
   })
 })
