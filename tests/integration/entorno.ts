@@ -96,5 +96,17 @@ export async function versionVigente(piezaId: string): Promise<{ id: string; hue
   return data
 }
 
+/**
+ * tomar_pedidos leases the oldest open text requests of every brand, so a test that leases starts with none open:
+ * requests left by earlier files or earlier runs would otherwise be taken first. Local test database only.
+ */
+export async function cerrarPedidosAbiertos(): Promise<void> {
+  const { error } = await admin()
+    .from("pedidos_de_texto")
+    .update({ estado: "fallo", motivo: "Cerrado entre pruebas." })
+    .in("estado", ["pendiente", "trabajando"])
+  if (error) throw error
+}
+
 export const enDias = (dias: number) => new Date(Date.now() + dias * 86_400_000).toISOString()
 export const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString()

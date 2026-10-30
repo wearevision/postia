@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
 import type { Resultado } from "@/lib/marcas/acciones"
@@ -34,6 +34,15 @@ describe("FirmaDePieza", () => {
     expect(screen.getByText("martes 3 de noviembre, 11:00")).toBeInTheDocument()
     expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
     expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeInTheDocument()
+  })
+
+  test("warns that signing now drops the rewrite Claude is working on, only while it is", () => {
+    const AVISO = "Claude está reescribiendo. Si firmas ahora, esa versión no se aplica."
+    montar({ reescribiendo: true })
+    expect(screen.getByText(AVISO)).toBeVisible()
+    cleanup()
+    montar()
+    expect(screen.queryByText(AVISO)).toBeNull()
   })
 
   test("keeps one date line that follows the field", () => {

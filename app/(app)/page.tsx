@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, type TarjetaDePieza } from "@/lib/piezas/lectura"
-import { RUTA_DE_NUEVA_PIEZA, rutaDePieza } from "@/lib/sesion/rutas"
+import { RUTA_DE_NUEVA_PIEZA, RUTA_DE_PEDIR_TEXTO, rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 
 function Seccion({ titulo, tarjetas }: { titulo: string; tarjetas: TarjetaDePieza[] }) {
@@ -36,6 +36,9 @@ export default async function Inicio() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Inicio</h1>
+      <Link href={RUTA_DE_PEDIR_TEXTO} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
+        Pedir texto a Claude
+      </Link>
       <Seccion titulo="Por firmar" tarjetas={porFirmar} />
       <Seccion titulo="Publicar a mano" tarjetas={aMano} />
       <Seccion titulo="Revisar" tarjetas={revisar} />

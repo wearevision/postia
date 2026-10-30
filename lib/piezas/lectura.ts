@@ -224,6 +224,8 @@ export interface DetalleDePieza {
   /** Shown even when the pillar left the editorial line. */
   pilarNombre: string | null
   version: {
+    id: string
+    origen: "persona" | "claude"
     texto: string
     titulo: string | null
     huella: string
@@ -238,7 +240,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   const { data: p, error } = await db
     .from("piezas")
     .select(
-      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(numero, texto, titulo, huella, archivo_ruta)",
+      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(id, origen, numero, texto, titulo, huella, archivo_ruta)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -280,7 +282,15 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
     },
     pilarId: p.pilar_id,
     pilarNombre: p.pilares?.nombre ?? null,
-    version: { texto: v.texto, titulo: v.titulo, huella: v.huella, archivoUrl, archivoDescarga },
+    version: {
+      id: v.id,
+      origen: v.origen === "claude" ? "claude" : "persona",
+      texto: v.texto,
+      titulo: v.titulo,
+      huella: v.huella,
+      archivoUrl,
+      archivoDescarga,
+    },
     fechaPropuesta:
       planSigueVigente && p.planeada_para
         ? new Date(p.planeada_para).toISOString()

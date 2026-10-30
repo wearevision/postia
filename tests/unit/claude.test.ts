@@ -24,6 +24,18 @@ describe("solicitudDe", () => {
     expect(s.system).toEqual([{ type: "text", text: "Breve." }])
   })
 
+  test("asks for a JSON schema output when the request carries a format, next to the effort", () => {
+    const formato = { type: "json_schema" as const, schema: { type: "object", properties: {} } }
+    const s = solicitudDe({
+      sistema: "Breve.",
+      mensajes: [{ role: "user", content: "Hola" }],
+      maxTokens: 512,
+      esfuerzo: "high",
+      formato,
+    })
+    expect(s.output_config).toEqual({ effort: "high", format: formato })
+  })
+
   test("caches a system prompt over about 1,024 tokens", () => {
     const s = solicitudDe({
       sistema: SISTEMA_LARGO,
