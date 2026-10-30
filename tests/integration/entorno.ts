@@ -110,3 +110,31 @@ export async function cerrarPedidosAbiertos(): Promise<void> {
 
 export const enDias = (dias: number) => new Date(Date.now() + dias * 86_400_000).toISOString()
 export const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString()
+
+/**
+ * A 1,024-dimension unit vector on axis `eje`, or tilted towards a second axis so its cosine similarity with the plain
+ * `eje` vector is exactly `similitud`. Lets tests place findings at known distances without calling Voyage.
+ */
+export function vectorDe(eje: number, inclinado?: { hacia: number; similitud: number }): number[] {
+  const v = new Array<number>(1024).fill(0)
+  if (!inclinado) {
+    v[eje] = 1
+    return v
+  }
+  v[eje] = inclinado.similitud
+  v[inclinado.hacia] = Math.sqrt(1 - inclinado.similitud ** 2)
+  return v
+}
+
+export const literal = (v: number[]) => `[${v.join(",")}]`
+
+/** The topic map is shared by every brand, so each map test starts empty. Local test database only. */
+export async function limpiarMapa(): Promise<void> {
+  const db = admin()
+  const hallazgos = await db.from("hallazgos").delete().not("id", "is", null)
+  if (hallazgos.error) throw hallazgos.error
+  const punteros = await db.from("temas").update({ fusionado_en: null }).not("fusionado_en", "is", null)
+  if (punteros.error) throw punteros.error
+  const temas = await db.from("temas").delete().not("id", "is", null)
+  if (temas.error) throw temas.error
+}

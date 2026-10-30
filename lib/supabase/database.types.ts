@@ -417,6 +417,56 @@ export type Database = {
           },
         ]
       }
+      hallazgos: {
+        Row: {
+          cita: string | null
+          creado_en: string
+          enlace: string
+          enlace_normalizado: string
+          estado: string
+          id: string
+          medio: string
+          publicado_en: string | null
+          resumen: string
+          tema_id: string | null
+          vector: string
+        }
+        Insert: {
+          cita?: string | null
+          creado_en?: string
+          enlace: string
+          enlace_normalizado: string
+          estado?: string
+          id?: string
+          medio?: string
+          publicado_en?: string | null
+          resumen: string
+          tema_id?: string | null
+          vector: string
+        }
+        Update: {
+          cita?: string | null
+          creado_en?: string
+          enlace?: string
+          enlace_normalizado?: string
+          estado?: string
+          id?: string
+          medio?: string
+          publicado_en?: string | null
+          resumen?: string
+          tema_id?: string | null
+          vector?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hallazgos_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lineas_editoriales: {
         Row: {
           creada_en: string
@@ -831,6 +881,44 @@ export type Database = {
         }
         Relationships: []
       }
+      temas: {
+        Row: {
+          alias: string[]
+          centroide: string | null
+          creado_en: string
+          descripcion: string
+          fusionado_en: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          alias?: string[]
+          centroide?: string | null
+          creado_en?: string
+          descripcion?: string
+          fusionado_en?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          alias?: string[]
+          centroide?: string | null
+          creado_en?: string
+          descripcion?: string
+          fusionado_en?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temas_fusionado_en_fkey"
+            columns: ["fusionado_en"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topes: {
         Row: {
           desde_mes: string
@@ -972,6 +1060,10 @@ export type Database = {
         }
         Returns: Json
       }
+      crear_tema: {
+        Args: { p_descripcion: string; p_hallazgos: string[]; p_nombre: string }
+        Returns: string
+      }
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {
@@ -1006,7 +1098,22 @@ export type Database = {
         Args: { p_huella: string; p_pieza: string; p_programada_para: string }
         Returns: string
       }
+      fusionar_temas: { Args: { p_de: string; p_en: string }; Returns: boolean }
       gastado: { Args: { p_marca?: string; p_mes: string }; Returns: number }
+      guardar_hallazgo: {
+        Args: {
+          p_cita?: string
+          p_enlace: string
+          p_enlace_normalizado: string
+          p_medio: string
+          p_publicado_en?: string
+          p_resumen: string
+          p_umbral_repetido: number
+          p_umbral_tema: number
+          p_vector: string
+        }
+        Returns: Json
+      }
       guardar_linea: {
         Args: {
           p_autor: string
@@ -1033,6 +1140,14 @@ export type Database = {
       guardar_tope: {
         Args: { p_marca?: string; p_monto_micro?: number }
         Returns: undefined
+      }
+      hallazgos_pendientes: {
+        Args: { p_limite: number }
+        Returns: {
+          id: string
+          resumen: string
+          vector: string
+        }[]
       }
       liberar_gasto: {
         Args: { p_ahora?: string; p_clave: string }
@@ -1109,6 +1224,7 @@ export type Database = {
         Returns: undefined
       }
       quitar_excepcion: { Args: { p_id: string }; Returns: undefined }
+      recalcular_centroide: { Args: { p_tema: string }; Returns: undefined }
       registrar_falla_de_espacio: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: boolean
@@ -1129,7 +1245,31 @@ export type Database = {
         Returns: Json
       }
       resumen_de_gasto: { Args: never; Returns: Json }
+      reubicar_pendientes: { Args: { p_umbral: number }; Returns: number }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
+      tema_mas_cercano: {
+        Args: { p_umbral: number; p_vector: string }
+        Returns: string
+      }
+      temas_casi_iguales: {
+        Args: { p_umbral: number }
+        Returns: {
+          hallazgos_a: number
+          hallazgos_b: number
+          similitud: number
+          tema_a: string
+          tema_b: string
+        }[]
+      }
+      temas_cercanos: {
+        Args: { p_cantidad: number; p_vector: string }
+        Returns: {
+          descripcion: string
+          id: string
+          nombre: string
+          similitud: number
+        }[]
+      }
       terminar_pedido: {
         Args: { p_estado: string; p_motivo?: string; p_pedido: string }
         Returns: undefined
