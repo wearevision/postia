@@ -22,8 +22,11 @@ export interface PedidoDeTexto {
 export interface PuertosDeAtencion {
   tomar(): Promise<PedidoDeTexto[]>
   contexto(pedido: PedidoDeTexto): Promise<ContextoDeRedaccion>
-  /** The text of the version a rewrite or review starts from, and whether it is still the unsigned current one. */
-  base(pedido: PedidoDeTexto): Promise<{ texto: string; vigente: boolean }>
+  /**
+   * The text of the version a rewrite or review starts from, whether it is still the unsigned current one and whether
+   * it already has Claude's review.
+   */
+  base(pedido: PedidoDeTexto): Promise<{ texto: string; vigente: boolean; revisada: boolean }>
   crearPieza(
     pedido: PedidoDeTexto,
     texto: string,
@@ -81,6 +84,11 @@ async function atenderUno(p: PuertosDeAtencion, pedido: PedidoDeTexto): Promise<
   const base = await p.base(pedido)
   if (!base.vigente) {
     await p.terminar(pedido.id, "obsoleto", "La pieza cambió antes de que Claude empezara; no se aplicó.")
+    return
+  }
+  // The automatic review can land after the page offered «Revisar con Claude»: never pay twice for one version.
+  if (pedido.tipo === "revisar" && base.revisada) {
+    await p.terminar(pedido.id, "obsoleto", "Esta versión ya tenía revisión de Claude.")
     return
   }
   const c = await p.contexto(pedido)

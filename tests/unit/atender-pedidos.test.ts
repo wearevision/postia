@@ -34,7 +34,7 @@ function puertos(cambios: Partial<PuertosDeAtencion> = {}, pedir?: Pedir): Puert
   return {
     tomar: vi.fn(async () => [escribirPedido]),
     contexto: vi.fn(async () => CONTEXTO),
-    base: vi.fn(async () => ({ texto: "Actual", vigente: true })),
+    base: vi.fn(async () => ({ texto: "Actual", vigente: true, revisada: false })),
     crearPieza: vi.fn(async () => ({ piezaId: "pz", versionId: "v1" })),
     nuevaVersion: vi.fn(async () => "v2"),
     guardarRevision: vi.fn(async () => {}),
@@ -82,7 +82,7 @@ describe("atenderPedidos", () => {
     }
     const p = puertos({
       tomar: vi.fn(async () => [reescritura]),
-      base: vi.fn(async () => ({ texto: "x", vigente: false })),
+      base: vi.fn(async () => ({ texto: "x", vigente: false, revisada: false })),
     })
     await atenderPedidos(p)
     expect(p.pedir).not.toHaveBeenCalled()
@@ -122,6 +122,25 @@ describe("atenderPedidos", () => {
     await atenderPedidos(p)
     expect(vi.mocked(p.pedir).mock.calls[0]?.[0].clave).toBe("revisar:v7:p4")
     expect(p.guardarRevision).toHaveBeenCalledWith("v7", VEREDICTO, "p4")
+  })
+
+  test("a requested review of a version that already has Claude's review is obsolete and pays nothing", async () => {
+    const revision: PedidoDeTexto = {
+      ...escribirPedido,
+      id: "p6",
+      tipo: "revisar",
+      encargo: null,
+      piezaId: "pz",
+      versionId: "v7",
+    }
+    const p = puertos({
+      tomar: vi.fn(async () => [revision]),
+      base: vi.fn(async () => ({ texto: "Actual", vigente: true, revisada: true })),
+    })
+    expect(await atenderPedidos(p)).toEqual({ atendidos: 1, fallidos: 0 })
+    expect(p.pedir).not.toHaveBeenCalled()
+    expect(p.guardarRevision).not.toHaveBeenCalled()
+    expect(p.terminar).toHaveBeenCalledWith("p6", "obsoleto", "Esta versión ya tenía revisión de Claude.")
   })
 
   test("closes a failing request with its reason and keeps going; an unexpected error fails the run afterwards", async () => {

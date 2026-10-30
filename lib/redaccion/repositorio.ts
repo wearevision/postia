@@ -82,7 +82,7 @@ export function repositorioDeRedaccion(db: Db): Omit<PuertosDeAtencion, "pedir">
     },
 
     async base(pedido) {
-      const [pieza, version] = await Promise.all([
+      const [pieza, version, revision] = await Promise.all([
         db
           .from("piezas")
           .select("estado")
@@ -95,12 +95,19 @@ export function repositorioDeRedaccion(db: Db): Omit<PuertosDeAtencion, "pedir">
           .order("numero", { ascending: false })
           .limit(1)
           .single(),
+        db
+          .from("revisiones_ia")
+          .select("version_id")
+          .eq("version_id", pedido.versionId ?? "")
+          .maybeSingle(),
       ])
       if (pieza.error) fallo("No pude leer la pieza del pedido", pieza.error)
       if (version.error) fallo("No pude leer la versión del pedido", version.error)
+      if (revision.error) fallo("No pude leer la revisión de la versión del pedido", revision.error)
       return {
         texto: version.data.texto,
         vigente: pieza.data.estado === "por_aprobar" && version.data.id === pedido.versionId,
+        revisada: revision.data !== null,
       }
     },
 
