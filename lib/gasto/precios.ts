@@ -47,6 +47,21 @@ export function costoReal(modelo: ModeloClaude, uso: Uso): number {
 }
 
 /**
+ * voyage-4 list price, US$0.06 per million tokens (docs.voyageai.com/docs/pricing, 2026-10-30), in micro-dollars per
+ * token times 100. The 200 million free tokens are not discounted: the ledger never under-reports.
+ */
+const VOYAGE_CENTIMICRO_POR_TOKEN = 6
+
+export function costoDeVoyage(tokens: number): number {
+  return Math.ceil((tokens * VOYAGE_CENTIMICRO_POR_TOKEN) / 100)
+}
+
+/** A token is at least one character and rarely more than two; two per character keeps the estimate above. */
+export function estimarVoyage(caracteres: number): number {
+  return costoDeVoyage(caracteres * 2)
+}
+
+/**
  * The worst case before calling: every input token written to cache and the whole max_tokens produced. Calls with web
  * searches are refused: their results come back as billed input tokens of unknown size, so no bound exists yet. The
  * research sub-plan defines one.
