@@ -1,7 +1,8 @@
 import { z } from "zod"
 
 /** The template fonts are Latin subsets: any other glyph would render in a fallback font. */
-const GLIFOS = /^[ -ÿ -⁯]*$/
+// biome-ignore lint/complexity/useRegexLiterals: as a literal, Biome's fix turns the \u escapes into invisible characters
+const GLIFOS = new RegExp("^[\\u0020-\\u00FF\\u2000-\\u206F]*$")
 const palabras = (s: string) => s.split(/\s+/).filter(Boolean).length
 const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
