@@ -20,4 +20,9 @@ describe("calibrar", () => {
     expect(r.pares).toHaveLength(PARES.length)
     for (const par of r.pares) expect(["repetido", "mismo_tema", "vecino", "ajeno"]).toContain(par.etiqueta)
   })
+
+  test("fails instead of comparing against an empty vector when the embedder returns too few", async () => {
+    const embeber = vi.fn(async () => [[1, 0]])
+    await expect(calibrar({ confirmacion: "GASTAR" }, "run_1", embeber)).rejects.toThrow(/vector/)
+  })
 })

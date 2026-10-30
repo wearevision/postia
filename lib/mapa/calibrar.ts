@@ -57,11 +57,16 @@ export async function calibrar(
   const frases = [...new Set(PARES.flatMap((p) => [p.a, p.b]))]
   const vectores = await embeber({ clave: `probar-voyage:${runId}`, paso: "probar" }, frases)
   const vectorDe = new Map(frases.map((f, i) => [f, vectores[i]]))
+  const vectorExigido = (frase: string): number[] => {
+    const vector = vectorDe.get(frase)
+    if (!vector) throw new Error(`Falta el vector de «${frase}».`)
+    return vector
+  }
   return {
     hecho: true,
     pares: PARES.map((p) => ({
       etiqueta: p.etiqueta,
-      similitud: Math.round(similitud(vectorDe.get(p.a) ?? [], vectorDe.get(p.b) ?? []) * 1000) / 1000,
+      similitud: Math.round(similitud(vectorExigido(p.a), vectorExigido(p.b)) * 1000) / 1000,
       a: p.a,
       b: p.b,
     })),
