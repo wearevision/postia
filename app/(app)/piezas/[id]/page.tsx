@@ -150,7 +150,7 @@ export default async function Pieza({
             </p>
           )}
           {redaccion.ultimoFallo && <p className="text-sm">{redaccion.ultimoFallo}</p>}
-          {redaccion.pedidoAbierto ? (
+          {redaccion.pedidoAbierto || redaccion.revisandoAuto ? (
             <Refrescar />
           ) : (
             <>

@@ -37,6 +37,7 @@ describe("estadoDeRedaccion", () => {
       reescriturasQuedan: 3,
       revision: null,
       ultimoFallo: null,
+      revisandoAuto: false,
     })
     await e.db.rpc("pedir_reescritura", { p_pieza: pieza, p_instruccion: "Corto" })
     const estado = await estadoDeRedaccion(e.db, pieza, (await versionVigente(pieza)).id)
@@ -48,6 +49,29 @@ describe("estadoDeRedaccion", () => {
     expect((await estadoDeRedaccion(e.db, pieza, (await versionVigente(pieza)).id)).ultimoFallo).toBe(
       "Se alcanzó el tope.",
     )
+  })
+  test("a Claude version without a review is still being reviewed for 5 minutes after it was created", async () => {
+    const e = await conLinea()
+    const pieza = await piezaDe(e.db, e.cuenta, "Uno")
+    const { data: version, error } = await admin()
+      .from("versiones")
+      .insert({ pieza_id: pieza, numero: 2, texto: "Dos", huella: "", origen: "claude", linea_version: 1 })
+      .select("id, creada_en")
+      .single()
+    if (error) throw error
+    const creada = Date.parse(version.creada_en)
+    expect((await estadoDeRedaccion(e.db, pieza, version.id, creada + 60_000)).revisandoAuto).toBe(true)
+    expect((await estadoDeRedaccion(e.db, pieza, version.id, creada + 5 * 60_000 + 1)).revisandoAuto).toBe(false)
+    await admin()
+      .from("revisiones_ia")
+      .insert({ version_id: version.id, veredicto: { voz: { ok: true, comentario: "" }, hallazgos: [] } })
+    expect((await estadoDeRedaccion(e.db, pieza, version.id, creada + 60_000)).revisandoAuto).toBe(false)
+  })
+
+  test("a version written by hand is never waiting for an automatic review", async () => {
+    const e = await conLinea()
+    const pieza = await piezaDe(e.db, e.cuenta, "Uno")
+    expect((await estadoDeRedaccion(e.db, pieza, (await versionVigente(pieza)).id)).revisandoAuto).toBe(false)
   })
 })
 

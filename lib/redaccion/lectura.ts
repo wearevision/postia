@@ -52,21 +52,35 @@ export interface EstadoDeRedaccion {
   revision: VeredictoGuardado | null
   /** The reason of the latest request on the piece when it failed, so the page can say why. */
   ultimoFallo: string | null
+  /**
+   * A Claude version whose automatic review has not landed yet. Its request is already done, so the page would offer
+   * «Revisar con Claude» and pay a second review; it waits for the automatic one instead.
+   */
+  revisandoAuto: boolean
 }
 
 const MAXIMO_DE_REESCRITURAS = 3
+// A write or rewrite plus its review fits in the task's 540 s; after this a missing review has failed.
+const ESPERA_DE_REVISION_AUTO_MS = 5 * 60_000
 
-export async function estadoDeRedaccion(db: Db, piezaId: string, versionId: string): Promise<EstadoDeRedaccion> {
-  const [pedidos, revision] = await Promise.all([
+export async function estadoDeRedaccion(
+  db: Db,
+  piezaId: string,
+  versionId: string,
+  ahora: number = Date.now(),
+): Promise<EstadoDeRedaccion> {
+  const [pedidos, revision, version] = await Promise.all([
     db
       .from("pedidos_de_texto")
       .select("tipo, estado, motivo")
       .eq("pieza_id", piezaId)
       .order("creado_en", { ascending: false }),
     db.from("revisiones_ia").select("veredicto").eq("version_id", versionId).maybeSingle(),
+    db.from("versiones").select("origen, creada_en").eq("id", versionId).single(),
   ])
   if (pedidos.error) fallo("No pude leer los pedidos de la pieza", pedidos.error)
   if (revision.error) fallo("No pude leer la revisión de Claude", revision.error)
+  if (version.error) fallo("No pude leer la versión de la pieza", version.error)
   const usadas = pedidos.data.filter(
     (p) => p.tipo === "reescribir" && ["pendiente", "trabajando", "hecho"].includes(p.estado),
   ).length
@@ -76,5 +90,9 @@ export async function estadoDeRedaccion(db: Db, piezaId: string, versionId: stri
     reescriturasQuedan: Math.max(0, MAXIMO_DE_REESCRITURAS - usadas),
     revision: revision.data ? VeredictoGuardado.parse(revision.data.veredicto) : null,
     ultimoFallo: ultimo?.estado === "fallo" || ultimo?.estado === "obsoleto" ? ultimo.motivo : null,
+    revisandoAuto:
+      version.data.origen === "claude" &&
+      !revision.data &&
+      ahora - Date.parse(version.data.creada_en) < ESPERA_DE_REVISION_AUTO_MS,
   }
 }
