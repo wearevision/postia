@@ -6,16 +6,21 @@ import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { lineaEnReserva } from "@/lib/piezas/textos"
+import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
+import { Refrescar } from "../refrescar"
 import { PublicarAMano } from "./a-mano"
 import {
   cerrarAManoAccion,
+  corregirTextoAccion,
   descartarAccion,
   desprogramarAccion,
   dudosoAManoAccion,
   firmarAccion,
   firmarParaReservaAccion,
+  pedirReescrituraAccion,
+  pedirRevisionAccion,
   planearAccion,
   ponerPilarAccion,
   sacarDeReservaAccion,
@@ -24,6 +29,8 @@ import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controle
 import { FirmaDePieza } from "./firma"
 import { PilarDePieza } from "./pilar"
 import { PlanDePieza } from "./plan"
+import { CorregirTexto, PedirOtraVersion } from "./redaccion"
+import { RevisionDeClaude } from "./revision-ia"
 import { Veredicto } from "./veredicto"
 
 const SE_PUEDE_CAMBIAR_EL_PILAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada"]
@@ -68,11 +75,29 @@ export default async function Pieza({
     return revisor.revisar(textoARevisar(version.titulo, version.texto), cuenta.voz)
   }
 
-  const [pilares, hallazgos] = await Promise.all([
+  const conClaude = estado === "por_aprobar" && pieza.formato === "texto"
+  const piezaId = pieza.id
+
+  /** Claude's requests and review on the piece; null when they could not be read. */
+  async function leerRedaccion(): Promise<EstadoDeRedaccion | null> {
+    try {
+      return await estadoDeRedaccion(db, piezaId, version.id)
+    } catch (error) {
+      // The Claude tools only help; the page must still open, and it says it could not read them.
+      console.error(
+        "No pude leer lo que hizo Claude en la pieza",
+        error instanceof Error ? error.message : String(error),
+      )
+      return null
+    }
+  }
+
+  const [pilares, hallazgos, redaccion] = await Promise.all([
     SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
       ? pilaresActivos(db).then((todos) => todos.filter((p) => p.marcaId === cuenta.marcaId))
       : [],
     estado === "por_aprobar" ? revisarAntesDeFirmar() : [],
+    conClaude ? leerRedaccion() : null,
   ])
 
   return (
@@ -116,6 +141,40 @@ export default async function Pieza({
         />
       )}
       {estado === "por_aprobar" && <Veredicto hallazgos={hallazgos} />}
+      {conClaude && !redaccion && <p className="text-sm">No pude leer lo que hizo Claude. Recarga en un rato.</p>}
+      {conClaude && redaccion && (
+        <>
+          {version.origen === "claude" && (
+            <p className="text-sm text-apagado">
+              Texto escrito con IA: puede tener errores. Léelo entero antes de firmar.
+            </p>
+          )}
+          {redaccion.ultimoFallo && <p className="text-sm">{redaccion.ultimoFallo}</p>}
+          {redaccion.pedidoAbierto ? (
+            <Refrescar />
+          ) : (
+            <>
+              <RevisionDeClaude
+                piezaId={pieza.id}
+                revision={redaccion.revision}
+                pedirRevision={pedirRevisionAccion}
+                puedePedir={!redaccion.pedidoAbierto}
+              />
+              <CorregirTexto
+                key={version.huella}
+                piezaId={pieza.id}
+                texto={version.texto}
+                corregir={corregirTextoAccion}
+              />
+              <PedirOtraVersion
+                piezaId={pieza.id}
+                quedan={redaccion.reescriturasQuedan}
+                pedir={pedirReescrituraAccion}
+              />
+            </>
+          )}
+        </>
+      )}
       {estado === "por_aprobar" && (
         <FirmaDePieza
           key={pieza.fechaPropuesta}

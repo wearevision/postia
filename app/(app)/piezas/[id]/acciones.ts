@@ -13,6 +13,7 @@ import {
   ponerPilar,
   sacarDeReserva,
 } from "@/lib/piezas/acciones"
+import { corregirTexto, pedirReescritura, pedirRevision } from "@/lib/redaccion/acciones"
 import { RUTA_DE_CALENDARIO, RUTA_DE_INICIO, rutaDePieza } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
@@ -69,4 +70,16 @@ export async function sacarDeReservaAccion(piezaId: string): Promise<Resultado> 
 
 export async function ponerPilarAccion(entrada: { piezaId: string; pilarId: string | null }): Promise<Resultado> {
   return despues(entrada.piezaId, await ponerPilar(await createActionClient(), entrada))
+}
+
+export async function corregirTextoAccion(entrada: { piezaId: string; texto: string }): Promise<Resultado> {
+  return despues(entrada.piezaId, await corregirTexto(await createActionClient(), entrada))
+}
+
+export async function pedirReescrituraAccion(entrada: { piezaId: string; instruccion: string }): Promise<Resultado> {
+  return despues(entrada.piezaId, await pedirReescritura(await createActionClient(), entrada))
+}
+
+export async function pedirRevisionAccion(piezaId: string): Promise<Resultado> {
+  return despues(piezaId, await pedirRevision(await createActionClient(), piezaId))
 }
