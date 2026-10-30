@@ -46,7 +46,7 @@ describe("ordenarMapa", () => {
     const r = await ordenarMapa(p, "run_1", UMBRALES)
     expect(orden).toEqual(["reubicar", "pendientes"])
     expect(p.nombrar).toHaveBeenCalledWith("nombrar-tema:run_1:0", ["resumen a", "resumen b"])
-    expect(p.crearTema).toHaveBeenCalledWith({ nombre: "Nombre", descripcion: "D" }, ["a", "b"])
+    expect(p.crearTema).toHaveBeenCalledWith({ nombre: "Nombre", descripcion: "D" }, ["a", "b"], 2)
     expect(r).toMatchObject({ reubicados: 2, temasNuevos: 1 })
   })
 
@@ -66,7 +66,7 @@ describe("ordenarMapa", () => {
     })
     const r = await ordenarMapa(p, "run", UMBRALES)
     expect(p.crearTema).toHaveBeenCalledTimes(1)
-    expect(p.crearTema).toHaveBeenCalledWith({ nombre: "Segundo", descripcion: "" }, ["c", "d"])
+    expect(p.crearTema).toHaveBeenCalledWith({ nombre: "Segundo", descripcion: "" }, ["c", "d"], 2)
     expect(r).toMatchObject({ temasNuevos: 1, sinNombre: 1 })
   })
 

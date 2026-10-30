@@ -25,11 +25,12 @@ async function idDe(v: number[]): Promise<string> {
   return r.id
 }
 
-async function tema(nombre: string, ids: string[]): Promise<string> {
+async function tema(nombre: string, ids: string[], minimo = 1): Promise<string> {
   const { data, error } = await admin().rpc("crear_tema", {
     p_nombre: nombre,
     p_descripcion: "",
     p_hallazgos: ids,
+    p_minimo: minimo,
   })
   if (error) throw error
   return data
@@ -81,8 +82,39 @@ describe("crear_tema", () => {
   test("refuses to create a topic when none of its findings is still loose", async () => {
     const id = await idDe(vectorDe(0))
     await tema("Primero", [id])
-    const { error } = await admin().rpc("crear_tema", { p_nombre: "Segundo", p_descripcion: "", p_hallazgos: [id] })
-    expect(error?.message).toMatch(/ningún hallazgo suelto/)
+    const { error } = await admin().rpc("crear_tema", {
+      p_nombre: "Segundo",
+      p_descripcion: "",
+      p_hallazgos: [id],
+      p_minimo: 1,
+    })
+    expect(error?.message).toMatch(/hallazgos sueltos/)
+  })
+
+  test("refuses a group with fewer loose findings than the minimum and leaves nothing behind", async () => {
+    const asignado = await idDe(vectorDe(0))
+    await tema("Ocupado", [asignado])
+    const suelto = await idDe(vectorDe(300))
+    const { error } = await admin().rpc("crear_tema", {
+      p_nombre: "Incompleto",
+      p_descripcion: "",
+      p_hallazgos: [asignado, suelto],
+      p_minimo: 2,
+    })
+    expect(error?.message).toMatch(/necesita 2 hallazgos sueltos/)
+    const { data: temas } = await admin().from("temas").select("id").eq("nombre", "Incompleto")
+    expect(temas).toEqual([])
+    const { data: fila } = await admin().from("hallazgos").select("tema_id").eq("id", suelto).single()
+    expect(fila?.tema_id).toBeNull()
+  })
+
+  test("does not assign a discarded finding to the new topic", async () => {
+    const bueno = await idDe(vectorDe(0))
+    const descartado = await idDe(vectorDe(300))
+    await admin().from("hallazgos").update({ estado: "descartado" }).eq("id", descartado)
+    const id = await tema("Con descartado", [bueno, descartado])
+    const { data } = await admin().from("hallazgos").select("id, tema_id").in("id", [bueno, descartado])
+    expect(Object.fromEntries((data ?? []).map((h) => [h.id, h.tema_id]))).toEqual({ [bueno]: id, [descartado]: null })
   })
 })
 

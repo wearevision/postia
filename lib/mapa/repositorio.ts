@@ -74,11 +74,16 @@ export function repositorioDelMapa(db: Db) {
       return data
     },
 
-    async crearTema(tema: { nombre: string; descripcion: string }, hallazgos: string[]): Promise<string> {
+    async crearTema(
+      tema: { nombre: string; descripcion: string },
+      hallazgos: string[],
+      minimo: number,
+    ): Promise<string> {
       const { data, error } = await db.rpc("crear_tema", {
         p_nombre: tema.nombre,
         p_descripcion: tema.descripcion,
         p_hallazgos: hallazgos,
+        p_minimo: minimo,
       })
       if (error) fallo("No pude crear el tema", error)
       return data

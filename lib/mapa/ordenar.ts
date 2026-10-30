@@ -6,7 +6,7 @@ import { NUEVOS_TEMAS_POR_NOCHE, UMBRALES } from "./umbrales"
 export interface PuertosDelMapa {
   reubicar(umbral: number): Promise<number>
   pendientes(): Promise<{ id: string; resumen: string; vector: number[] }[]>
-  crearTema(tema: { nombre: string; descripcion: string }, hallazgos: string[]): Promise<string>
+  crearTema(tema: { nombre: string; descripcion: string }, hallazgos: string[], minimo: number): Promise<string>
   casiIguales(umbral: number): Promise<ParDeTemas[]>
   fusionar(de: string, en: string): Promise<boolean>
   nombrar(clave: string, resumenes: string[]): Promise<{ nombre: string; descripcion: string }>
@@ -55,7 +55,7 @@ export async function ordenarMapa(
       continue
     }
     try {
-      await puertos.crearTema(tema, grupo)
+      await puertos.crearTema(tema, grupo, umbrales.minimoParaTema)
       temasNuevos += 1
     } catch (error) {
       console.error(`No pude crear el tema del grupo ${n}: ${error instanceof Error ? error.message : String(error)}`)

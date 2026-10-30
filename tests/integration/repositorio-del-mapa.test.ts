@@ -39,6 +39,7 @@ describe("repositorioDelMapa", () => {
     const id = await mapa.crearTema(
       { nombre: "Eventos", descripcion: "d" },
       sueltos.map((s) => s.id),
+      3,
     )
     const cercanos = await mapa.cercanos(vectorDe(0), 5)
     expect(cercanos).toEqual([{ id, nombre: "Eventos", descripcion: "d", similitud: expect.any(Number) }])
@@ -56,8 +57,8 @@ describe("repositorioDelMapa", () => {
     // Saved before any topic exists, so B's finding does not join A on its own.
     const enA = [await guardado(vectorDe(0)), await guardado(vectorDe(0, { hacia: 9, similitud: 0.99 }))]
     const enB = [await guardado(vectorDe(0, { hacia: 1, similitud: 0.97 }))]
-    const a = await mapa.crearTema({ nombre: "A", descripcion: "" }, enA)
-    const b = await mapa.crearTema({ nombre: "B", descripcion: "" }, enB)
+    const a = await mapa.crearTema({ nombre: "A", descripcion: "" }, enA, 1)
+    const b = await mapa.crearTema({ nombre: "B", descripcion: "" }, enB, 1)
     expect(await mapa.reubicar(0.8)).toBe(0)
     const pares = await mapa.casiIguales(0.92)
     expect(pares).toHaveLength(1)

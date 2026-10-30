@@ -1061,7 +1061,12 @@ export type Database = {
         Returns: Json
       }
       crear_tema: {
-        Args: { p_descripcion: string; p_hallazgos: string[]; p_nombre: string }
+        Args: {
+          p_descripcion: string
+          p_hallazgos: string[]
+          p_minimo: number
+          p_nombre: string
+        }
         Returns: string
       }
       credencial_de_cuenta: {

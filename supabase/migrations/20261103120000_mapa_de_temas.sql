@@ -150,7 +150,7 @@ begin
   return v_movidos;
 end $$;
 
-create function public.crear_tema(p_nombre text, p_descripcion text, p_hallazgos uuid[]) returns uuid
+create function public.crear_tema(p_nombre text, p_descripcion text, p_hallazgos uuid[], p_minimo int) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
   v_id uuid;
@@ -159,10 +159,13 @@ begin
   -- One writer on the map at a time; same lock as guardar_hallazgo.
   perform pg_advisory_xact_lock(hashtext('mapa_de_temas'));
   insert into public.temas (nombre, descripcion) values (p_nombre, p_descripcion) returning id into v_id;
-  update public.hallazgos set tema_id = v_id where id = any (p_hallazgos) and tema_id is null;
+  update public.hallazgos set tema_id = v_id
+  where id = any (p_hallazgos) and tema_id is null and estado <> 'descartado';
   get diagnostics v_asignados = row_count;
-  if v_asignados = 0 then
-    raise exception 'El tema «%» no tiene ningún hallazgo suelto.', p_nombre;
+  -- The group was chosen before naming it (and paying for it); if the map moved meanwhile, the whole
+  -- transaction rolls back rather than leave a smaller topic than the one that was named.
+  if v_asignados < greatest(p_minimo, 1) then
+    raise exception 'El tema «%» necesita % hallazgos sueltos y solo hay %.', p_nombre, greatest(p_minimo, 1), v_asignados;
   end if;
   perform public.recalcular_centroide(v_id);
   return v_id;
@@ -220,7 +223,7 @@ revoke execute on function
   public.temas_cercanos(text, int),
   public.hallazgos_pendientes(int),
   public.reubicar_pendientes(real),
-  public.crear_tema(text, text, uuid[]),
+  public.crear_tema(text, text, uuid[], int),
   public.temas_casi_iguales(real),
   public.fusionar_temas(uuid, uuid)
 from public, anon, authenticated;
@@ -231,7 +234,7 @@ grant execute on function
   public.temas_cercanos(text, int),
   public.hallazgos_pendientes(int),
   public.reubicar_pendientes(real),
-  public.crear_tema(text, text, uuid[]),
+  public.crear_tema(text, text, uuid[], int),
   public.temas_casi_iguales(real),
   public.fusionar_temas(uuid, uuid)
 to service_role;
