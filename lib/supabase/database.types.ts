@@ -520,6 +520,99 @@ export type Database = {
           },
         ]
       }
+      pedidos_de_texto: {
+        Row: {
+          arrendado_hasta: string | null
+          creado_en: string
+          cuenta_id: string
+          encargo: string | null
+          estado: string
+          id: string
+          instruccion: string | null
+          material: string | null
+          motivo: string | null
+          pedido_por: string
+          pieza_id: string | null
+          pilar_id: string | null
+          resultado_pieza_id: string | null
+          terminado_en: string | null
+          tipo: string
+          version_id: string | null
+        }
+        Insert: {
+          arrendado_hasta?: string | null
+          creado_en?: string
+          cuenta_id: string
+          encargo?: string | null
+          estado?: string
+          id?: string
+          instruccion?: string | null
+          material?: string | null
+          motivo?: string | null
+          pedido_por: string
+          pieza_id?: string | null
+          pilar_id?: string | null
+          resultado_pieza_id?: string | null
+          terminado_en?: string | null
+          tipo: string
+          version_id?: string | null
+        }
+        Update: {
+          arrendado_hasta?: string | null
+          creado_en?: string
+          cuenta_id?: string
+          encargo?: string | null
+          estado?: string
+          id?: string
+          instruccion?: string | null
+          material?: string | null
+          motivo?: string | null
+          pedido_por?: string
+          pieza_id?: string | null
+          pilar_id?: string | null
+          resultado_pieza_id?: string | null
+          terminado_en?: string | null
+          tipo?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_de_texto_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_texto_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_texto_pilar_id_fkey"
+            columns: ["pilar_id"]
+            isOneToOne: false
+            referencedRelation: "pilares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_texto_resultado_pieza_id_fkey"
+            columns: ["resultado_pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_texto_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       piezas: {
         Row: {
           arrendada_hasta: string | null
@@ -682,6 +775,32 @@ export type Database = {
           },
         ]
       }
+      revisiones_ia: {
+        Row: {
+          creada_en: string
+          veredicto: Json
+          version_id: string
+        }
+        Insert: {
+          creada_en?: string
+          veredicto: Json
+          version_id: string
+        }
+        Update: {
+          creada_en?: string
+          veredicto?: Json
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revisiones_ia_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: true
+            referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suscripciones_push: {
         Row: {
           auth: string
@@ -755,7 +874,9 @@ export type Database = {
           creada_por: string | null
           huella: string
           id: string
+          linea_version: number | null
           numero: number
+          origen: string
           pieza_id: string
           texto: string
           titulo: string | null
@@ -767,7 +888,9 @@ export type Database = {
           creada_por?: string | null
           huella: string
           id?: string
+          linea_version?: number | null
           numero: number
+          origen?: string
           pieza_id: string
           texto: string
           titulo?: string | null
@@ -779,7 +902,9 @@ export type Database = {
           creada_por?: string | null
           huella?: string
           id?: string
+          linea_version?: number | null
           numero?: number
+          origen?: string
           pieza_id?: string
           texto?: string
           titulo?: string | null
@@ -838,6 +963,15 @@ export type Database = {
         }
         Returns: string
       }
+      crear_pieza_de_claude: {
+        Args: {
+          p_linea_version: number
+          p_pedido: string
+          p_planeada_para?: string
+          p_texto: string
+        }
+        Returns: Json
+      }
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {
@@ -892,6 +1026,10 @@ export type Database = {
         }
         Returns: number
       }
+      guardar_revision_ia: {
+        Args: { p_pedido?: string; p_veredicto: Json; p_version: string }
+        Returns: undefined
+      }
       guardar_tope: {
         Args: { p_marca?: string; p_monto_micro?: number }
         Returns: undefined
@@ -923,6 +1061,45 @@ export type Database = {
         }
         Returns: string
       }
+      pedir_reescritura: {
+        Args: { p_instruccion: string; p_pieza: string }
+        Returns: string
+      }
+      pedir_revision: { Args: { p_pieza: string }; Returns: string }
+      pedir_texto: {
+        Args: {
+          p_cuenta: string
+          p_encargo: string
+          p_material?: string
+          p_pilar?: string
+        }
+        Returns: string
+      }
+      pieza_para_pedido: {
+        Args: { p_pieza: string }
+        Returns: {
+          arrendada_hasta: string | null
+          creada_en: string
+          creada_por: string
+          cuenta_id: string
+          enlace: string | null
+          estado: string
+          formato: string
+          id: string
+          motivo: string | null
+          pilar_id: string | null
+          plan_fallo_en: string | null
+          planeada_para: string | null
+          programada_para: string | null
+          ventana_minutos: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "piezas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       planear_pieza: {
         Args: { p_fecha: string; p_pieza: string }
         Returns: undefined
@@ -953,6 +1130,10 @@ export type Database = {
       }
       resumen_de_gasto: { Args: never; Returns: Json }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
+      terminar_pedido: {
+        Args: { p_estado: string; p_motivo?: string; p_pedido: string }
+        Returns: undefined
+      }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_para_publicar: {
         Args: never
@@ -979,6 +1160,33 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      tomar_pedidos: {
+        Args: never
+        Returns: {
+          arrendado_hasta: string | null
+          creado_en: string
+          cuenta_id: string
+          encargo: string | null
+          estado: string
+          id: string
+          instruccion: string | null
+          material: string | null
+          motivo: string | null
+          pedido_por: string
+          pieza_id: string | null
+          pilar_id: string | null
+          resultado_pieza_id: string | null
+          terminado_en: string | null
+          tipo: string
+          version_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pedidos_de_texto"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       tope_vigente: {
         Args: { p_marca: string; p_mes: string }
         Returns: number
@@ -993,6 +1201,10 @@ export type Database = {
       umbrales_de: {
         Args: { p_frenado: boolean; p_marca: string; p_mes: string }
         Returns: Json
+      }
+      version_de_claude: {
+        Args: { p_linea_version: number; p_pedido: string; p_texto: string }
+        Returns: string
       }
     }
     Enums: {
