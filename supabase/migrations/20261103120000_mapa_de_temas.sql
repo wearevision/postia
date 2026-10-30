@@ -78,8 +78,9 @@ declare
   v_tema uuid;
   v_id uuid;
 begin
-  -- One writer at a time: two runs saving the same story must not both pass the duplicate check.
-  perform pg_advisory_xact_lock(hashtext('guardar_hallazgo'));
+  -- One writer on the map at a time (guardar_hallazgo, crear_tema, reubicar_pendientes, fusionar_temas): two runs
+  -- must not save the same story twice, nor attach a finding to a topic that is being merged away.
+  perform pg_advisory_xact_lock(hashtext('mapa_de_temas'));
 
   select h.id into v_repetido
   from public.hallazgos h
@@ -130,6 +131,8 @@ declare
   v_tocados uuid[] := '{}';
   v_movidos int := 0;
 begin
+  -- One writer on the map at a time; same lock as guardar_hallazgo.
+  perform pg_advisory_xact_lock(hashtext('mapa_de_temas'));
   for v_fila in
     select h.id, h.vector from public.hallazgos h where h.tema_id is null and h.estado <> 'descartado'
   loop
@@ -151,6 +154,8 @@ declare
   v_id uuid;
   v_asignados int;
 begin
+  -- One writer on the map at a time; same lock as guardar_hallazgo.
+  perform pg_advisory_xact_lock(hashtext('mapa_de_temas'));
   insert into public.temas (nombre, descripcion) values (p_nombre, p_descripcion) returning id into v_id;
   update public.hallazgos set tema_id = v_id where id = any (p_hallazgos) and tema_id is null;
   get diagnostics v_asignados = row_count;
@@ -182,6 +187,8 @@ declare
   v_de public.temas;
   v_en public.temas;
 begin
+  -- One writer on the map at a time; same lock as guardar_hallazgo.
+  perform pg_advisory_xact_lock(hashtext('mapa_de_temas'));
   if p_de = p_en then
     return false;
   end if;

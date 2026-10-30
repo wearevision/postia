@@ -160,6 +160,28 @@ describe("fusionar_temas", () => {
   })
 })
 
+describe("the map after a merge", () => {
+  test("a finding saved with the merged topic's old vector lands in the survivor and never in a merged topic", async () => {
+    const enA = await idDe(vectorDe(0))
+    const enB = await idDe(vectorDe(0, { hacia: 1, similitud: 0.9 }))
+    const a = await tema("A", [enA])
+    const b = await tema("B", [enB])
+    await admin().rpc("fusionar_temas", { p_de: b, p_en: a })
+    const r = await guardar(vectorDe(0, { hacia: 2, similitud: 0.9 }))
+    if (r.estado !== "guardado") throw new Error("se esperaba guardado")
+    expect([a, null]).toContain(r.tema)
+    const { data: fusionados } = await admin().from("temas").select("id").not("fusionado_en", "is", null)
+    const { count } = await admin()
+      .from("hallazgos")
+      .select("id", { count: "exact", head: true })
+      .in(
+        "tema_id",
+        (fusionados ?? []).map((t) => t.id),
+      )
+    expect(count).toBe(0)
+  })
+})
+
 describe("access", () => {
   test("a member reads topics and findings but cannot call the service RPCs", async () => {
     await tema("Visible", [await idDe(vectorDe(0))])
