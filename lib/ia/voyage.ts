@@ -63,7 +63,11 @@ export function llamarVoyageReal(
     if (datos.data.length !== textos.length) {
       throw new Error(`Voyage devolvió ${datos.data.length} vectores para ${textos.length} textos.`)
     }
-    const vectores = [...datos.data].sort((a, b) => a.index - b.index).map((d) => d.embedding)
+    const ordenados = [...datos.data].sort((a, b) => a.index - b.index)
+    if (ordenados.some((d, i) => d.index !== i)) {
+      throw new Error("Voyage devolvió índices repetidos o fuera de rango: no sé qué vector va con qué texto.")
+    }
+    const vectores = ordenados.map((d) => d.embedding)
     return { vectores, tokens: datos.usage.total_tokens }
   }
 }

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test, vi } from "vitest"
+import { ZodError } from "zod"
 import type { LibroDeGastos } from "@/lib/gasto/pagar"
 import { PasoYaPagado } from "@/lib/gasto/pagar"
 import { costoDeVoyage, estimarVoyage } from "@/lib/gasto/precios"
@@ -85,7 +86,21 @@ describe("llamarVoyageReal", () => {
     const llamar = llamarVoyageReal({ VOYAGE_API_KEY: "llave" }, async () =>
       Response.json({ data: [{ embedding: [1, 2], index: 0 }], usage: { total_tokens: 1 } }),
     )
-    await expect(llamar(["uno"])).rejects.toThrow()
+    await expect(llamar(["uno"])).rejects.toThrow(ZodError)
+  })
+
+  test("refuses an answer whose indexes repeat, so a vector cannot land on the wrong text", async () => {
+    const vector = Array.from({ length: DIMENSIONES }, () => 0)
+    const llamar = llamarVoyageReal({ VOYAGE_API_KEY: "llave" }, async () =>
+      Response.json({
+        data: [
+          { embedding: vector, index: 0 },
+          { embedding: vector, index: 0 },
+        ],
+        usage: { total_tokens: 1 },
+      }),
+    )
+    await expect(llamar(["uno", "dos"])).rejects.toThrow(/índices/)
   })
 
   test("fails before calling when the key is missing", () => {
