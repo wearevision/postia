@@ -570,6 +570,89 @@ export type Database = {
           },
         ]
       }
+      pedidos_de_diseno: {
+        Row: {
+          arrendado_hasta: string | null
+          creado_en: string
+          cuenta_id: string
+          diseno: Json
+          estado: string
+          id: string
+          motivo: string | null
+          pedido_por: string
+          pieza_id: string | null
+          resultado_pieza_id: string | null
+          tema: string
+          terminado_en: string | null
+          texto: string
+          titulo: string
+          version_base_id: string | null
+        }
+        Insert: {
+          arrendado_hasta?: string | null
+          creado_en?: string
+          cuenta_id: string
+          diseno: Json
+          estado?: string
+          id?: string
+          motivo?: string | null
+          pedido_por: string
+          pieza_id?: string | null
+          resultado_pieza_id?: string | null
+          tema: string
+          terminado_en?: string | null
+          texto: string
+          titulo: string
+          version_base_id?: string | null
+        }
+        Update: {
+          arrendado_hasta?: string | null
+          creado_en?: string
+          cuenta_id?: string
+          diseno?: Json
+          estado?: string
+          id?: string
+          motivo?: string | null
+          pedido_por?: string
+          pieza_id?: string | null
+          resultado_pieza_id?: string | null
+          tema?: string
+          terminado_en?: string | null
+          texto?: string
+          titulo?: string
+          version_base_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_de_diseno_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_diseno_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_diseno_resultado_pieza_id_fkey"
+            columns: ["resultado_pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_de_diseno_version_base_id_fkey"
+            columns: ["version_base_id"]
+            isOneToOne: false
+            referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos_de_texto: {
         Row: {
           arrendado_hasta: string | null
@@ -960,12 +1043,14 @@ export type Database = {
           archivo_sha256: string | null
           creada_en: string
           creada_por: string | null
+          diseno: Json | null
           huella: string
           id: string
           linea_version: number | null
           numero: number
           origen: string
           pieza_id: string
+          tema: string | null
           texto: string
           titulo: string | null
         }
@@ -974,12 +1059,14 @@ export type Database = {
           archivo_sha256?: string | null
           creada_en?: string
           creada_por?: string | null
+          diseno?: Json | null
           huella: string
           id?: string
           linea_version?: number | null
           numero: number
           origen?: string
           pieza_id: string
+          tema?: string | null
           texto: string
           titulo?: string | null
         }
@@ -988,12 +1075,14 @@ export type Database = {
           archivo_sha256?: string | null
           creada_en?: string
           creada_por?: string | null
+          diseno?: Json | null
           huella?: string
           id?: string
           linea_version?: number | null
           numero?: number
           origen?: string
           pieza_id?: string
+          tema?: string | null
           texto?: string
           titulo?: string | null
         }
@@ -1105,6 +1194,15 @@ export type Database = {
       }
       fusionar_temas: { Args: { p_de: string; p_en: string }; Returns: boolean }
       gastado: { Args: { p_marca?: string; p_mes: string }; Returns: number }
+      guardar_diseno: {
+        Args: {
+          p_archivo_ruta: string
+          p_archivo_sha256: string
+          p_pedido: string
+          p_planeada_para?: string
+        }
+        Returns: Json
+      }
       guardar_hallazgo: {
         Args: {
           p_cita?: string
@@ -1181,6 +1279,17 @@ export type Database = {
         }
         Returns: string
       }
+      pedir_diseno: {
+        Args: {
+          p_cuenta: string
+          p_diseno: Json
+          p_pieza?: string
+          p_tema: string
+          p_texto: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       pedir_reescritura: {
         Args: { p_instruccion: string; p_pieza: string }
         Returns: string
@@ -1252,6 +1361,10 @@ export type Database = {
       resumen_de_gasto: { Args: never; Returns: Json }
       reubicar_pendientes: { Args: { p_umbral: number }; Returns: number }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
+      tema_de_la_voz: {
+        Args: { p_tema: string; p_voz: string }
+        Returns: boolean
+      }
       tema_mas_cercano: {
         Args: { p_umbral: number; p_vector: string }
         Returns: string
@@ -1277,6 +1390,10 @@ export type Database = {
       }
       terminar_pedido: {
         Args: { p_estado: string; p_motivo?: string; p_pedido: string }
+        Returns: undefined
+      }
+      terminar_pedido_de_diseno: {
+        Args: { p_estado: string; p_motivo: string; p_pedido: string }
         Returns: undefined
       }
       tiene_acceso: { Args: never; Returns: boolean }
@@ -1328,6 +1445,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "pedidos_de_texto"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      tomar_pedidos_de_diseno: {
+        Args: never
+        Returns: {
+          arrendado_hasta: string | null
+          creado_en: string
+          cuenta_id: string
+          diseno: Json
+          estado: string
+          id: string
+          motivo: string | null
+          pedido_por: string
+          pieza_id: string | null
+          resultado_pieza_id: string | null
+          tema: string
+          terminado_en: string | null
+          texto: string
+          titulo: string
+          version_base_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pedidos_de_diseno"
           isOneToOne: false
           isSetofReturn: true
         }

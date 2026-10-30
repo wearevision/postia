@@ -75,13 +75,19 @@ async function borrarArchivosHuerfanos(): Promise<void> {
   const bucket = db.storage.from("piezas")
   const { data: carpetas, error: errorDeCarpetas } = await bucket.list("", { limit: 1000 })
   if (errorDeCarpetas) throw new Error(`No pude listar los archivos de prueba: ${errorDeCarpetas.message}`)
-  for (const carpeta of carpetas.filter((c) => !vigentes.has(c.name))) {
-    const { data: archivos, error: errorDeArchivos } = await bucket.list(carpeta.name, { limit: 1000 })
-    if (errorDeArchivos) throw new Error(`No pude listar ${carpeta.name}: ${errorDeArchivos.message}`)
-    if (archivos.length === 0) continue
-    const { error: errorAlBorrar } = await bucket.remove(archivos.map((a) => `${carpeta.name}/${a.name}`))
-    if (errorAlBorrar) throw new Error(`No pude borrar archivos de prueba: ${errorAlBorrar.message}`)
-  }
+  for (const carpeta of carpetas.filter((c) => !vigentes.has(c.name))) await borrarCarpeta(carpeta.name)
+}
+
+/** Slide previews live one level down (<marca>/<archivo>/NN.jpg); list() shows a subfolder as an entry without id. */
+async function borrarCarpeta(ruta: string): Promise<void> {
+  const bucket = admin().storage.from("piezas")
+  const { data: entradas, error: errorDeArchivos } = await bucket.list(ruta, { limit: 1000 })
+  if (errorDeArchivos) throw new Error(`No pude listar ${ruta}: ${errorDeArchivos.message}`)
+  for (const subcarpeta of entradas.filter((e) => e.id === null)) await borrarCarpeta(`${ruta}/${subcarpeta.name}`)
+  const archivos = entradas.filter((e) => e.id !== null)
+  if (archivos.length === 0) return
+  const { error: errorAlBorrar } = await bucket.remove(archivos.map((a) => `${ruta}/${a.name}`))
+  if (errorAlBorrar) throw new Error(`No pude borrar archivos de prueba: ${errorAlBorrar.message}`)
 }
 
 const ARCHIVO_DE_CANDADO = join(tmpdir(), "postia-test-db.lock")
