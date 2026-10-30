@@ -87,7 +87,8 @@ export function FormularioDePedido({ cuentas, pilares, pedir }: Props) {
           Material (opcional)
         </label>
         <p id="material-ayuda" className="text-sm text-apagado">
-          Notas, una cita o una fuente con su enlace. Claude cita solo lo que esté aquí.
+          Notas, una cita o una fuente con su enlace. Claude cita solo lo que esté aquí. No pegues publicaciones ni
+          datos de otras personas o páginas de LinkedIn.
         </p>
         <textarea
           id="material"

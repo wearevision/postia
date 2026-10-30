@@ -32,6 +32,13 @@ describe("FormularioDePedido", () => {
     expect(await screen.findByText(/Claude lo escribe en unos minutos/)).toBeVisible()
   })
 
+  test("tells not to paste other people's or pages' LinkedIn posts or data into the material", () => {
+    render(<FormularioDePedido cuentas={CUENTAS} pilares={PILARES} pedir={vi.fn()} />)
+    expect(screen.getByLabelText("Material (opcional)")).toHaveAccessibleDescription(
+      /No pegues publicaciones ni datos de otras personas o páginas de LinkedIn\./,
+    )
+  })
+
   test("shows the reason when the request is refused", async () => {
     const pedir = vi.fn(async () => ({
       ok: false as const,
