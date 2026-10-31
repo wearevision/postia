@@ -167,6 +167,17 @@ afterAll(async () => {
   await admin().from("hallazgos").delete().in("investigacion_id", investigaciones)
 })
 
+/** Brands made in bulk, with their accounts, in batches that keep the id filter short. */
+async function borrarMarcas(ids: string[]): Promise<void> {
+  for (let i = 0; i < ids.length; i += 50) {
+    const { error } = await admin()
+      .from("marcas")
+      .delete()
+      .in("id", ids.slice(i, i + 50))
+    if (error) throw error
+  }
+}
+
 describe("repositorioDeSeries", () => {
   test("the research queue hands a series job over as a series job", async () => {
     const { id } = await informeAprobado()
@@ -198,6 +209,40 @@ describe("repositorioDeSeries", () => {
       temasVetados: "Política",
     })
     expect(cuentas.map((c) => c.id)).not.toContain(pausada)
+  })
+
+  test("still lists the accounts when hundreds of brands publish: no request carries every brand's id", async () => {
+    const { data: marcas, error } = await admin()
+      .from("marcas")
+      .insert(
+        Array.from({ length: 400 }, (_, n) => ({
+          nombre: `Marca masiva ${n} ${randomUUID().slice(0, 8)}`,
+          voz: "nosotros",
+        })),
+      )
+      .select("id")
+    if (error) throw error
+    try {
+      const { error: errorDeCuentas } = await admin()
+        .from("cuentas")
+        .insert(
+          marcas.map((m, n) => ({
+            marca_id: m.id,
+            red: "linkedin",
+            tipo: "empresa",
+            ruta: "a_mano",
+            nombre: `C ${n}`,
+          })),
+        )
+      if (errorDeCuentas) throw errorDeCuentas
+      const cuentas = await repo().cuentasDeSerie()
+      expect(cuentas.find((c) => c.id === cuenta)?.pilares).toEqual([
+        { id: pilar, nombre: "Oficio", deQueHabla: "Cómo trabajamos" },
+      ])
+      expect(new Set(cuentas.map((c) => c.marca.id))).toContain(marcas[399]?.id)
+    } finally {
+      await borrarMarcas(marcas.map((m) => m.id))
+    }
   })
 
   test("runs a series job end to end: ideas saved as proposals, the newest first among earlier ones", async () => {
