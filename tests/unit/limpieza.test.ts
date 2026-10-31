@@ -1,5 +1,11 @@
 import { describe, expect, test, vi } from "vitest"
-import { archivosParaBorrar, limpiarCarpetas, mantenimientoNocturno } from "@/lib/mantenimiento/limpieza"
+import {
+  archivosParaBorrar,
+  barrerElecciones,
+  limpiarCarpetas,
+  mantenimientoNocturno,
+} from "@/lib/mantenimiento/limpieza"
+import type { Db } from "@/lib/supabase/database"
 
 const AHORA = Date.parse("2026-11-03T06:00:00Z")
 const HACE_HORAS = (h: number) => new Date(AHORA - h * 3_600_000).toISOString()
@@ -35,6 +41,7 @@ describe("mantenimientoNocturno", () => {
     const registroDeError = vi.spyOn(console, "error").mockImplementation(() => {})
     const avisos = vi.fn(async () => {})
     const gastos = vi.fn(async () => 2)
+    const elecciones = vi.fn(async () => 1)
     await expect(
       mantenimientoNocturno({
         archivos: async () => {
@@ -42,10 +49,12 @@ describe("mantenimientoNocturno", () => {
         },
         avisos,
         gastos,
+        elecciones,
       }),
     ).rejects.toThrow("sin storage")
     expect(avisos).toHaveBeenCalledTimes(1)
     expect(gastos).toHaveBeenCalledTimes(1)
+    expect(elecciones).toHaveBeenCalledTimes(1)
     registroDeError.mockRestore()
   })
 
@@ -62,13 +71,14 @@ describe("mantenimientoNocturno", () => {
       gastos: async () => {
         throw sinBase
       },
+      elecciones: async () => 0,
     })
     const error = await resultado.catch((e: unknown) => e)
     expect(error).toBeInstanceOf(AggregateError)
     expect(error instanceof AggregateError ? error.errors : []).toEqual([sinStorage, sinBase])
     expect(registroDeError).toHaveBeenCalledWith("Falló el paso nocturno «archivos»: sin storage")
     expect(registroDeError).toHaveBeenCalledWith("Falló el paso nocturno «gastos»: sin base")
-    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: avisos")
+    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: avisos, elecciones=0")
     registroDeError.mockRestore()
     registro.mockRestore()
   })
@@ -82,17 +92,36 @@ describe("mantenimientoNocturno", () => {
         throw new Error("sin push")
       },
       gastos: async () => 2,
+      elecciones: async () => 1,
     }).catch((e: unknown) => e)
     expect(error instanceof AggregateError ? error.errors.map((e: Error) => e.message) : []).toEqual(["sin push"])
     expect(registroDeError).toHaveBeenCalledWith("Falló el paso nocturno «avisos»: sin push")
-    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: archivos=3, gastos=2")
+    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: archivos=3, gastos=2, elecciones=1")
     registroDeError.mockRestore()
     registro.mockRestore()
   })
 
-  test("returns how many files were removed and how many reservations expired", async () => {
+  test("returns how many files were removed, how many reservations expired and how many page choices were swept", async () => {
     expect(
-      await mantenimientoNocturno({ archivos: async () => 3, avisos: async () => {}, gastos: async () => 2 }),
-    ).toEqual({ archivos: 3, gastosVencidos: 2 })
+      await mantenimientoNocturno({
+        archivos: async () => 3,
+        avisos: async () => {},
+        gastos: async () => 2,
+        elecciones: async () => 1,
+      }),
+    ).toEqual({ archivos: 3, gastosVencidos: 2, eleccionesVencidas: 1 })
+  })
+})
+
+describe("barrerElecciones", () => {
+  test("runs barrer_elecciones and returns how many choices it removed", async () => {
+    const rpc = vi.fn(async () => ({ data: 2, error: null }))
+    expect(await barrerElecciones({ rpc } as unknown as Db)).toBe(2)
+    expect(rpc).toHaveBeenCalledWith("barrer_elecciones")
+  })
+
+  test("a database failure surfaces", async () => {
+    const rpc = vi.fn(async () => ({ data: null, error: { message: "sin base" } }))
+    await expect(barrerElecciones({ rpc } as unknown as Db)).rejects.toThrow("sin base")
   })
 })

@@ -79,4 +79,37 @@ describe("revisarConexion", () => {
     expect(despues.urgente).toBeNull()
     expect(despues.lineas[0]?.cuerpo).toBe("La conexión de LinkedIn de Federico venció. Reconéctala en Marcas.")
   })
+
+  describe("a connection that renews itself", () => {
+    const seRenueva = (diasDeAcceso: number, diasDeRenovacion: number) => ({
+      ...base,
+      cuentas: ["Página de WAV"],
+      expiraEn: en(diasDeAcceso * DIA),
+      renovacionExpiraEn: en(diasDeRenovacion * DIA),
+    })
+
+    test("says nothing at 14 or 3 days of its access token", () => {
+      expect(revisarConexion(seRenueva(14, 300), AHORA)).toEqual({ urgente: null, lineas: [] })
+      expect(revisarConexion(seRenueva(3, 300), AHORA)).toEqual({ urgente: null, lineas: [] })
+    })
+
+    test("queues a line 14 and 3 days before its refresh token runs out", () => {
+      expect(revisarConexion(seRenueva(5, 14), AHORA).lineas.map((l) => l.cuerpo)).toEqual([
+        "La conexión de LinkedIn de Página de WAV deja de renovarse sola en 14 días. Reconéctala en Marcas.",
+      ])
+      expect(revisarConexion(seRenueva(2, 3), AHORA).lineas).toHaveLength(1)
+      expect(revisarConexion(seRenueva(5, 10), AHORA).lineas).toEqual([])
+    })
+
+    test("is still urgent when the renewal failed and the token is about to run out or ran out", () => {
+      expect(revisarConexion(seRenueva(0.4, 300), AHORA).urgente?.cuerpo).toContain("menos de un día")
+      expect(revisarConexion(seRenueva(-0.1, 300), AHORA).urgente?.cuerpo).toContain("venció")
+    })
+
+    test("a refresh token that ends before the access token is no renewal: the access token's marks apply", () => {
+      expect(revisarConexion(seRenueva(14, 10), AHORA).lineas.map((l) => l.cuerpo)).toEqual([
+        "La conexión de LinkedIn de Página de WAV vence en 14 días. Reconéctala en Marcas.",
+      ])
+    })
+  })
 })

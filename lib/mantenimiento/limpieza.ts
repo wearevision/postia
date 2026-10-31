@@ -99,15 +99,27 @@ export async function mantenimientoNocturno(pasos: {
   archivos(): Promise<number>
   avisos(): Promise<void>
   gastos(): Promise<number>
-}): Promise<{ archivos: number; gastosVencidos: number }> {
-  const [archivos, avisos, gastos] = await Promise.allSettled([pasos.archivos(), pasos.avisos(), pasos.gastos()])
-  if (archivos.status === "fulfilled" && avisos.status === "fulfilled" && gastos.status === "fulfilled") {
-    return { archivos: archivos.value, gastosVencidos: gastos.value }
+  elecciones(): Promise<number>
+}): Promise<{ archivos: number; gastosVencidos: number; eleccionesVencidas: number }> {
+  const [archivos, avisos, gastos, elecciones] = await Promise.allSettled([
+    pasos.archivos(),
+    pasos.avisos(),
+    pasos.gastos(),
+    pasos.elecciones(),
+  ])
+  if (
+    archivos.status === "fulfilled" &&
+    avisos.status === "fulfilled" &&
+    gastos.status === "fulfilled" &&
+    elecciones.status === "fulfilled"
+  ) {
+    return { archivos: archivos.value, gastosVencidos: gastos.value, eleccionesVencidas: elecciones.value }
   }
   const resultados = [
     { paso: "archivos", resultado: archivos },
     { paso: "avisos", resultado: avisos },
     { paso: "gastos", resultado: gastos },
+    { paso: "elecciones", resultado: elecciones },
   ]
   const fallas: { paso: string; razon: unknown }[] = []
   const terminados: string[] = []
@@ -124,4 +136,11 @@ export async function mantenimientoNocturno(pasos: {
     fallas.map((f) => f.razon),
     `Fallaron pasos nocturnos: ${fallas.map((f) => `${f.paso} (${mensajeDe(f.razon)})`).join("; ")}`,
   )
+}
+
+/** Page choices older than 10 minutes, with their tokens in Vault (supabase/migrations/…_pagina_por_api.sql). */
+export async function barrerElecciones(db: Db): Promise<number> {
+  const { data, error } = await db.rpc("barrer_elecciones")
+  if (error) throw new Error(`No pude barrer las elecciones de página: ${error.message}`, { cause: error })
+  return data
 }

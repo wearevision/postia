@@ -12,6 +12,8 @@ function texto(estado: EstadoDeConexion): string {
       return `Vence en ${dias(estado.dias)} · renuévala`
     case "conectada":
       return `Conectada · vence en ${dias(estado.dias)}`
+    case "se_renueva":
+      return "Se renueva sola"
   }
 }
 

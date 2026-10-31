@@ -168,4 +168,16 @@ describe("Worker boundary", () => {
     )
     expect([...grafo.paquetes].filter((p) => p === "playwright" || p.startsWith("playwright/"))).toEqual([])
   })
+
+  test("the token refresh stays Trigger-only: no route, component or the proxy reaches it", () => {
+    const entradas = [
+      ...archivos("app"),
+      ...archivos("components"),
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos].filter((a) => a === "lib/linkedin/renovar.ts")).toEqual([])
+    expect([...recorrerImports(["trigger/conexiones.ts"], disco).archivos]).toContain("lib/linkedin/renovar.ts")
+  })
 })
