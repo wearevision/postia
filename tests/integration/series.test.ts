@@ -850,6 +850,45 @@ describe("carousels", () => {
     expect(data).toEqual({ estado: "fallo", motivo })
   })
 
+  test("guardar_diseno writes the piece but leaves an assignment that already closed as it was", async () => {
+    const c = await carruselPedido(habil(1, 56))
+    await tomarDisenoSolo(c.pedido)
+    await admin().from("asignaciones").update({ estado: "fallo", motivo: "Cerrada antes." }).eq("id", c.asignacion)
+    const { error } = await admin().rpc("guardar_diseno", {
+      p_pedido: c.pedido,
+      p_archivo_ruta: `${marcaWav}/${randomUUID()}.pdf`,
+      p_archivo_sha256: SHA,
+      p_planeada_para: habil(30),
+    })
+    expect(error).toBeNull()
+    const { data } = await admin().from("asignaciones").select("estado, motivo").eq("id", c.asignacion).single()
+    expect(data).toEqual({ estado: "fallo", motivo: "Cerrada antes." })
+  })
+
+  test("a carousel whose design request is gone or closed does not hold its slot: the next lease closes it", async () => {
+    const motivo = "El carrusel no se pudo armar. Pídelo de nuevo desde la idea."
+    const estadoDe = async (id: string) =>
+      (await admin().from("asignaciones").select("estado, motivo").eq("id", id).single()).data
+
+    const borrado = await carruselPedido(habil(1, 57))
+    const { error: errorAlBorrar } = await admin().from("pedidos_de_diseno").delete().eq("id", borrado.pedido)
+    if (errorAlBorrar) throw errorAlBorrar
+    expect(await tomarAsignaciones(habil(4, 57))).toEqual([])
+    expect(await estadoDe(borrado.asignacion)).toEqual({ estado: "fallo", motivo })
+
+    const cerrado = await carruselPedido(habil(2, 57))
+    await admin().from("pedidos_de_diseno").update({ estado: "obsoleto" }).eq("id", cerrado.pedido)
+    // A carousel still being written (leased, no request yet) is left alone.
+    const escribiendose = await ideaAprobada(cerrado.cuenta, habil(3, 57), { formato: "carrusel_pdf" })
+    await admin()
+      .from("asignaciones")
+      .update({ estado: "escribiendo", arrendado_hasta: new Date(Date.now() + 600_000).toISOString() })
+      .eq("id", escribiendose.asignacion)
+    expect(await tomarAsignaciones(habil(4, 57))).toEqual([])
+    expect(await estadoDe(cerrado.asignacion)).toEqual({ estado: "fallo", motivo })
+    expect(await estadoDe(escribiendose.asignacion)).toEqual({ estado: "escribiendo", motivo: null })
+  })
+
   test("pedir_diseno_de_asignacion is for the service only and keeps the brand's themes", async () => {
     const wav = await cuentaDe(marcaWav, "empresa", "a_mano")
     const { asignacion } = await ideaAprobada(wav, habil(1, 58), { formato: "carrusel_pdf" })

@@ -472,13 +472,20 @@ end $$;
 
 -- Leases due assignments (planeada_para <= p_hasta), soonest first. A lease that expired means the run died on it;
 -- after two of those it is closed instead of taken again (the guard of 4b and 4e). An assignment whose carousel is
--- rendering has no lease (pedido_de_diseno_id set): 4b's request owns it then.
+-- rendering has no lease (pedido_de_diseno_id set): 4b's request owns it then. If that request is gone (deleted:
+-- on delete set null) or closed without closing the assignment, nothing would ever release its slot, so it closes here.
 create function public.tomar_asignaciones(p_hasta timestamptz, p_limite integer) returns setof public.asignaciones
 language plpgsql security definer set search_path = '' as $$
 begin
   update public.asignaciones
      set estado = 'fallo', motivo = 'No pude escribir esta pieza después de dos intentos.', arrendado_hasta = null
    where estado = 'escribiendo' and arrendado_hasta < now() and intentos >= 2;
+  update public.asignaciones a
+     set estado = 'fallo', motivo = 'El carrusel no se pudo armar. Pídelo de nuevo desde la idea.'
+   where a.estado = 'escribiendo' and a.formato = 'carrusel_pdf' and a.arrendado_hasta is null
+     and (a.pedido_de_diseno_id is null
+          or exists (select 1 from public.pedidos_de_diseno p
+                      where p.id = a.pedido_de_diseno_id and p.estado in ('fallo', 'obsoleto')));
   return query
   update public.asignaciones a
      set estado = 'escribiendo', arrendado_hasta = now() + interval '15 minutes', intentos = a.intentos + 1,
@@ -717,8 +724,9 @@ begin
   if v_pedido.pieza_id is null then
     if v_pedido.asignacion_id is not null then
       select * into v_asignacion from public.asignaciones where id = v_pedido.asignacion_id for update;
+      -- Only one still being written: an assignment closed meanwhile (failed, discarded) keeps its state and reason.
       update public.asignaciones set estado = 'escrita', arrendado_hasta = null, motivo = null
-       where id = v_pedido.asignacion_id;
+       where id = v_pedido.asignacion_id and estado = 'escribiendo';
       v_pilar := public.pilar_de_idea_en_cuenta(v_asignacion.idea_id, v_pedido.cuenta_id);
       perform pg_advisory_xact_lock(hashtext('horario:' || v_pedido.cuenta_id::text));
       if v_pedido.planeada_para >= now() + interval '1 minute'
