@@ -288,6 +288,35 @@ describe("aprobarSerie", () => {
     expect(Date.parse(tercera?.planeada_para ?? "")).toBeGreaterThan(Date.parse(primera?.planeada_para ?? ""))
   })
 
+  test("skips an idea approved on its own while the series was being approved and keeps going", async () => {
+    const informe = await informeAprobado()
+    const [a, b, c] = await serieDe(informe, [
+      { gancho: "Primera", cuenta: perfil },
+      { gancho: "Segunda", cuenta: pagina },
+      { gancho: "Tercera", cuenta: perfil },
+    ])
+    let aprobadaAparte = false
+    const conCarrera = new Proxy(dueno.db, {
+      get(db, propiedad, receptor) {
+        if (propiedad !== "rpc") return Reflect.get(db, propiedad, receptor)
+        return async (...args: Parameters<Db["rpc"]>) => {
+          if (!aprobadaAparte) {
+            aprobadaAparte = true
+            await aprobarIdea(dueno.db, { ideaId: b, cuentas: [pagina] })
+          }
+          return db.rpc(...args)
+        }
+      },
+    })
+
+    expect(await aprobarSerie(conCarrera, informe.id)).toEqual({ ok: true, aprobadas: 2 })
+
+    expect(await estadoDe(a)).toBe("aprobada")
+    expect(await estadoDe(b)).toBe("aprobada")
+    expect(await estadoDe(c)).toBe("aprobada")
+    expect(await asignacionesDe(b)).toHaveLength(1)
+  })
+
   test("a series with nothing to approve says so", async () => {
     const informe = await informeAprobado()
     expect(await aprobarSerie(dueno.db, informe.id)).toEqual({

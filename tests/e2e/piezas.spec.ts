@@ -112,3 +112,41 @@ test("an owner uploads a carousel PDF, and the piece keeps the file the server h
     .single()
   expect(version?.archivo_sha256).toBe(createHash("sha256").update(pdf).digest("hex"))
 })
+
+test("a signed piece keeps the bottom bar and leads to the next one waiting; a missing piece says so in Spanish", async ({
+  page,
+  request,
+}) => {
+  const db = admin()
+  const correo = correoUnico("e2e-siguiente")
+  const { marcaId } = await invitar(db, { correo, marca: `Marca ${correo}`, voz: "yo" })
+  const { error } = await db.from("cuentas").insert({
+    marca_id: marcaId,
+    red: "linkedin",
+    tipo: "persona",
+    ruta: "api",
+    nombre: "Perfil E2E",
+    ritmo_semanal: 3,
+  })
+  if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
+
+  await entrar(page, request, correo)
+  for (const texto of ["Primera pieza por firmar.", "Segunda pieza por firmar."]) {
+    await page.goto("/piezas/nueva")
+    await page.getByRole("textbox", { name: "Texto" }).fill(texto)
+    await page.getByRole("button", { name: "Crear pieza" }).click()
+    await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeVisible()
+  }
+
+  await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Volver" })).toBeVisible()
+  await leerHastaElFinal(page)
+  await page.getByRole("button", { name: /^Firmar (?!para).+ · / }).click()
+  await expect(page.getByText("Programada", { exact: true })).toBeVisible()
+  await page.getByRole("link", { name: "Siguiente por firmar" }).click()
+  await expect(page.getByText("Primera pieza por firmar.")).toBeVisible()
+
+  await page.goto("/piezas/00000000-0000-0000-0000-000000000000")
+  await expect(page.getByRole("heading", { name: "No encontré esta página" })).toBeVisible()
+  await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible()
+})

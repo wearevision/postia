@@ -84,8 +84,9 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   await expect(primera.getByRole("checkbox", { name: nombreDeCuenta })).toBeChecked()
 
   await primera.getByRole("button", { name: "Aprobar" }).click()
+  await expect(primera.getByText("Se aprueba en 10 s")).toBeVisible()
   const pieza = primera.getByRole("listitem", { name: nombreDeCuenta })
-  await expect(pieza.getByText("Por escribir")).toBeVisible()
+  await expect(pieza.getByText("Por escribir")).toBeVisible({ timeout: 15_000 })
   await expect(pieza.getByRole("button", { name: "Mover fecha" })).toBeVisible()
   await expect(primera.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
 
@@ -175,7 +176,10 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
   await expect(origen.getByText("La minería empieza a medir a sus comunidades.")).toBeVisible()
 
   await cruce.getByRole("button", { name: "Aprobar" }).click()
-  await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible()
+  await expect(cruce.getByText("Se aprueba en 10 s")).toBeVisible()
+  await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible({
+    timeout: 15_000,
+  })
   await expect(cruce.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
 
   // Open assignments are leased globally by escribir-piezas: leave none behind. Local test database only.

@@ -1,5 +1,3 @@
-import Link from "next/link"
-
 interface Props {
   cuentaId: string
   tipo: string
@@ -18,8 +16,9 @@ export function ConectarLinkedin({ cuentaId, tipo, conectada }: Props) {
       ? "Renovar LinkedIn"
       : "Conectar LinkedIn"
   return (
-    <Link href={`${ruta}?cuenta=${cuentaId}`} className="boton px-3 text-sm">
+    // A route handler that redirects to LinkedIn: a plain anchor so it is never prefetched (each prefetch began an OAuth flow).
+    <a href={`${ruta}?cuenta=${cuentaId}`} className="boton px-3 text-sm">
       {texto}
-    </Link>
+    </a>
   )
 }

@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useTransition } from "react"
+import { createContext, useContext, useEffect, useState, useTransition } from "react"
+import { enDolares } from "@/lib/gasto/precios"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { costoAproximado } from "@/lib/series/costo"
 import { lineaDelPaso, textoDelEsqueleto } from "@/lib/series/esqueleto"
 import type {
   AsignacionDeIdea,
@@ -14,7 +16,29 @@ import type {
   IdeaDeSerie,
   IdeaSuelta,
 } from "@/lib/series/lectura"
+import type { FormatoDeIdea } from "@/lib/series/propuestas"
 import { rutaDePieza } from "@/lib/sesion/rutas"
+import { useAccionDiferida } from "./aprobacion-diferida"
+
+interface ConteoDeSerie {
+  /** Cards of the series whose single approval is counting down. */
+  enCurso: number
+  contar: (delta: number) => void
+}
+
+/** Cards outside a series (crosses, Sunday ideas) have nothing to block. */
+const SIN_SERIE: ConteoDeSerie = { enCurso: 0, contar: () => {} }
+
+const ConteoDeSerieContexto = createContext<ConteoDeSerie>(SIN_SERIE)
+
+/** Lets «Aprobar la serie» know when a card of the series has an approval counting down. */
+export function SerieEnCurso({ children }: { children: React.ReactNode }) {
+  const [enCurso, setEnCurso] = useState(0)
+  const [valor] = useState(() => ({ contar: (delta: number) => setEnCurso((n) => n + delta) }))
+  return <ConteoDeSerieContexto.Provider value={{ enCurso, ...valor }}>{children}</ConteoDeSerieContexto.Provider>
+}
+
+const ESPERA_EN_CURSO = "Espera a que termine la aprobación en curso."
 
 const BOTON = "boton w-full"
 const PRIMARIO = "boton-primario w-full"
@@ -193,6 +217,15 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
   const [elegidas, setElegidas] = useState<ReadonlySet<string>>(() => new Set([idea.cuentaSugerida.id]))
   const [editando, setEditando] = useState(false)
   const { error, setError, pendiente, ejecutar } = useAccion()
+  const diferida = useAccionDiferida()
+  const { contar } = useContext(ConteoDeSerieContexto)
+  useEffect(() => {
+    if (!diferida.esperando) return
+    contar(1)
+    return () => contar(-1)
+  }, [diferida.esperando, contar])
+  // While an approval counts down nothing else may run: a discard would land before the approval it cannot undo.
+  const ocupada = pendiente || diferida.esperando
   // The suggested account always shows, even if it is not among the person's own.
   const opciones = cuentas.some((c) => c.id === idea.cuentaSugerida.id) ? cuentas : [idea.cuentaSugerida, ...cuentas]
 
@@ -208,12 +241,12 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
   function aprobar() {
     const ids = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.id)
     if (ids.length === 0) return setError("Elige al menos una cuenta.")
-    ejecutar(() => a.aprobar(idea.id, ids))
+    diferida.programar(() => ejecutar(() => a.aprobar(idea.id, ids)))
   }
 
   return (
     <div className="space-y-3">
-      <fieldset className="space-y-1">
+      <fieldset disabled={ocupada} className="space-y-1">
         <legend className="text-sm">Cuentas</legend>
         {opciones.map((c) => (
           <label key={c.id} className="flex min-h-11 items-center gap-3">
@@ -222,27 +255,31 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
           </label>
         ))}
       </fieldset>
-      <button type="button" disabled={pendiente} onClick={aprobar} className={PRIMARIO}>
-        Aprobar
-      </button>
+      {diferida.esperando ? (
+        <div className="space-y-1">
+          <button type="button" onClick={diferida.cancelar} className={BOTON}>
+            Deshacer
+          </button>
+          <output className="block text-sm text-apagado">Se aprueba en 10 s. Si sales antes, no se aprueba.</output>
+        </div>
+      ) : (
+        <button type="button" disabled={pendiente} onClick={aprobar} className={PRIMARIO}>
+          Aprobar
+        </button>
+      )}
       <div className="grid grid-cols-3 gap-2">
-        <button type="button" disabled={pendiente} onClick={() => setEditando(true)} className={BOTON}>
+        <button type="button" disabled={ocupada} onClick={() => setEditando(true)} className={BOTON}>
           Editar
         </button>
         <button
           type="button"
-          disabled={pendiente || idea.pidiendoOtra}
+          disabled={ocupada || idea.pidiendoOtra}
           onClick={() => ejecutar(() => a.pedirOtra(idea.id))}
           className={BOTON}
         >
           Pedir otra
         </button>
-        <button
-          type="button"
-          disabled={pendiente}
-          onClick={() => ejecutar(() => a.descartar(idea.id))}
-          className={BOTON}
-        >
+        <button type="button" disabled={ocupada} onClick={() => ejecutar(() => a.descartar(idea.id))} className={BOTON}>
           Descartar
         </button>
       </div>
@@ -313,28 +350,50 @@ export function TarjetaDeIdea({
 /** Every proposal of the series with its suggested account, dates spread in the series' order. */
 export function AprobarSerie({
   investigacionId,
-  propuestas,
+  formatos,
   aprobar,
 }: {
   investigacionId: string
-  propuestas: number
+  formatos: readonly FormatoDeIdea[]
   aprobar: (investigacionId: string) => Promise<Resultado>
 }) {
   const { error, pendiente, ejecutar } = useAccion()
+  const { enCurso } = useContext(ConteoDeSerieContexto)
+  const [confirmando, setConfirmando] = useState(false)
+  const esperaAprobacion = enCurso > 0
+  const piezas = formatos.length === 1 ? "1 pieza" : `${formatos.length} piezas`
+  if (!confirmando)
+    return (
+      <div className="space-y-1">
+        <button type="button" disabled={esperaAprobacion} onClick={() => setConfirmando(true)} className={PRIMARIO}>
+          Aprobar la serie
+        </button>
+        <p className="text-sm text-apagado">
+          {esperaAprobacion ? ESPERA_EN_CURSO : `Aprueba ${piezas} con su cuenta sugerida.`}
+        </p>
+      </div>
+    )
   return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        disabled={pendiente}
-        onClick={() => ejecutar(() => aprobar(investigacionId))}
-        className={PRIMARIO}
-      >
-        Aprobar la serie
-      </button>
-      <p className="text-sm text-apagado">
-        {propuestas === 1 ? "Aprueba la propuesta" : `Aprueba las ${propuestas} propuestas`} con su cuenta sugerida.
+    <fieldset className="min-w-0 space-y-2 tarjeta p-3">
+      <legend className="sr-only">Confirmar la serie</legend>
+      <p>
+        Claude escribe {piezas} en unos minutos. Cuesta cerca de {enDolares(costoAproximado(formatos))}.
       </p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={pendiente || esperaAprobacion}
+          onClick={() => ejecutar(() => aprobar(investigacionId))}
+          className={PRIMARIO}
+        >
+          Confirmar
+        </button>
+        <button type="button" disabled={pendiente} onClick={() => setConfirmando(false)} className={BOTON}>
+          Cancelar
+        </button>
+      </div>
+      {esperaAprobacion && <p className="text-sm text-apagado">{ESPERA_EN_CURSO}</p>}
       <Alerta error={error} />
-    </div>
+    </fieldset>
   )
 }

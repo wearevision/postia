@@ -7,11 +7,12 @@ import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import type { EstadoDePieza } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
-import { detalle } from "@/lib/piezas/lectura"
+import { bandeja, detalle } from "@/lib/piezas/lectura"
+import { siguientePorFirmar } from "@/lib/piezas/siguiente"
 import { lineaEnReserva } from "@/lib/piezas/textos"
 import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
-import { rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
+import { rutaDeEditarCarrusel, rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
 import { MarcaDeEstado } from "../../marca-de-estado"
@@ -42,6 +43,7 @@ import { CorregirTexto, PedirOtraVersion } from "./redaccion"
 import { RevisionDeClaude } from "./revision-ia"
 import { Veredicto } from "./veredicto"
 import { VistasDelCarrusel } from "./vistas"
+import { Volver } from "./volver"
 
 const SE_PUEDE_CAMBIAR_EL_PILAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada"]
 const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano", "error"]
@@ -124,13 +126,29 @@ export default async function Pieza({
     }
   }
 
-  const [pilares, hallazgos, redaccion, diseno] = await Promise.all([
+  /** The next piece waiting for a signature; null when none is left or the inbox could not be read. */
+  async function leerSiguiente(): Promise<string | null> {
+    try {
+      return siguientePorFirmar((await bandeja(db)).porFirmar, piezaId)
+    } catch (error) {
+      // Only a shortcut: the signed piece must still open without it.
+      console.error(
+        "No pude leer la bandeja para la siguiente pieza",
+        error instanceof Error ? error.message : String(error),
+      )
+      return null
+    }
+  }
+
+  const recienFirmada = estado === "programada" || estado === "en_reserva"
+  const [pilares, hallazgos, redaccion, diseno, siguiente] = await Promise.all([
     SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
       ? pilaresActivos(db).then((todos) => todos.filter((p) => p.marcaId === cuenta.marcaId))
       : [],
     estado === "por_aprobar" ? revisarAntesDeFirmar() : [],
     conClaude ? leerRedaccion() : null,
     rearmable ? leerDiseno() : null,
+    recienFirmada ? leerSiguiente() : null,
   ])
   const armando = diseno?.abierto ?? false
   const firmaCaida = estado === "por_aprobar" && pieza.motivo === MOTIVO_DE_FIRMA_CAIDA
@@ -151,6 +169,7 @@ export default async function Pieza({
 
   return (
     <LecturaDePieza key={version.huella} laminas={version.vistas.length} className="mx-auto max-w-md space-y-5">
+      <Volver />
       <header className="space-y-2">
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
         <h1 className="text-2xl font-semibold">{version.titulo ?? "Post de texto"}</h1>
@@ -254,7 +273,12 @@ export default async function Pieza({
           reescribiendo={redaccion?.reescribiendo ?? false}
         />
       )}
-      {(estado === "programada" || estado === "en_reserva") && <FirmaConfirmada huella={version.huella} />}
+      {recienFirmada && <FirmaConfirmada huella={version.huella} />}
+      {recienFirmada && siguiente && (
+        <Link href={rutaDePieza(siguiente)} className="boton-primario w-full">
+          Siguiente por firmar
+        </Link>
+      )}
       {estado === "en_reserva" && (
         <div className="space-y-3">
           <p>{lineaEnReserva(cuenta.ruta, cuenta.nombre)}</p>

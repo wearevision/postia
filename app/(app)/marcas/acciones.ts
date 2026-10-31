@@ -26,12 +26,10 @@ export async function agregarCuentaAccion(_previo: Resultado | null, datos: Form
   )
 }
 
-export async function desconectarCuentaAccion(datos: FormData): Promise<void> {
+export async function desconectarCuentaAccion(_previo: Resultado | null, datos: FormData): Promise<Resultado> {
   const cuentaId = datos.get("cuentaId")
-  if (typeof cuentaId !== "string") return
-  const resultado = await desconectarCuenta(await createActionClient(), cuentaId)
-  if (!resultado.ok) throw new Error(resultado.error)
-  revalidatePath(RUTA_DE_MARCAS)
+  if (typeof cuentaId !== "string") return { ok: false, error: "Falta la cuenta." }
+  return despues(await desconectarCuenta(await createActionClient(), cuentaId))
 }
 
 export async function cambiarRutaAccion(cuentaId: string, ruta: "api" | "a_mano"): Promise<Resultado> {
