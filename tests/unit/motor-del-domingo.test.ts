@@ -74,7 +74,10 @@ function embeberDistinto() {
 const AHORA = Date.parse("2026-11-01T20:00:00Z")
 
 function puertos(over: Partial<PuertosDelDomingo> = {}): PuertosDelDomingo {
+  // The database's count: the crosses this run saved (no earlier run today unless a test says so).
+  let crucesGuardados = 0
   return {
+    crucesGuardadosDesde: vi.fn(async () => crucesGuardados),
     pedir: vi.fn<Pedir>(async (paso) =>
       paso.paso === "cruces" ? json([cruce("Un cruce")]) : json([suelta("Suelta uno"), suelta("Suelta dos", [2, 3])]),
     ),
@@ -83,7 +86,10 @@ function puertos(over: Partial<PuertosDelDomingo> = {}): PuertosDelDomingo {
     noNombrar: vi.fn(async () => []),
     ideasParecidas: vi.fn(async () => []),
     paresParaCruzar: vi.fn(async () => PARES),
-    guardarIdeasSueltas: vi.fn(async (_o: string, ideas: unknown[]) => ideas.map((_, i) => `id-${i}`)),
+    guardarIdeasSueltas: vi.fn(async (origen: string, ideas: unknown[]) => {
+      if (origen === "cruce") crucesGuardados += ideas.length
+      return ideas.map((_, i) => `id-${i}`)
+    }),
     hallazgosDeLaSemana: vi.fn(async () => SEMANA),
     pilaresPendientes: vi.fn(async () => [{ cuenta: "WAV", pilar: "Oficio" }]),
     ganchosRecientes: vi.fn(async () => ["Una idea de antes"]),
@@ -207,11 +213,44 @@ describe("motorDelDomingo", () => {
         if (paso.paso === "cruces") throw new PasoYaPagado(paso.clave)
         return json([suelta("Suelta uno")])
       }),
+      crucesGuardadosDesde: vi.fn(async () => 0),
     })
     const r = await motorDelDomingo(p, AHORA)
     expect(r.cruces).toEqual({ guardadas: 0, parecidas: 0, invalidas: 0 })
     expect(r.sueltas.guardadas).toBe(1)
     expect(JSON.stringify(vi.mocked(p.pedir).mock.calls[1][1].mensajes)).toContain(`hasta ${IDEAS_DEL_DOMINGO} ideas`)
+  })
+
+  test("a re-run the same day counts the crosses an earlier run saved today, read from the database", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    const p = puertos({
+      pedir: vi.fn<Pedir>(async (paso) => {
+        if (paso.paso === "cruces") throw new PasoYaPagado(paso.clave)
+        return json([suelta("Suelta uno")])
+      }),
+      // Run 1 saved three crosses this morning.
+      crucesGuardadosDesde: vi.fn(async () => 3),
+    })
+    await motorDelDomingo(p, AHORA)
+    // Start of Sunday 1 November in Santiago (UTC−3).
+    expect(p.crucesGuardadosDesde).toHaveBeenCalledWith("2026-11-01T03:00:00.000Z")
+    expect(JSON.stringify(vi.mocked(p.pedir).mock.calls[1][1].mensajes)).toContain(
+      `hasta ${IDEAS_DEL_DOMINGO - 3} ideas`,
+    )
+  })
+
+  test("a re-run after a day that already saved a full Sunday's crosses asks for no loose ideas", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    const p = puertos({
+      pedir: vi.fn<Pedir>(async (paso) => {
+        if (paso.paso === "cruces") throw new PasoYaPagado(paso.clave)
+        return json([suelta("Suelta uno")])
+      }),
+      crucesGuardadosDesde: vi.fn(async () => IDEAS_DEL_DOMINGO),
+    })
+    const r = await motorDelDomingo(p, AHORA)
+    expect(vi.mocked(p.pedir).mock.calls.map(([paso]) => paso.paso)).toEqual(["cruces"])
+    expect(r.sueltas.guardadas).toBe(0)
   })
 
   test("a Falla in the crosses is logged and the loose ideas still run", async () => {

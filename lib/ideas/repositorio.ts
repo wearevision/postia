@@ -44,7 +44,10 @@ async function hallazgosConTema(db: Db, ids: string[]): Promise<Map<string, Hall
 
 type Puertos = Pick<PuertosDeCruce, "paresParaCruzar" | "guardarIdeasSueltas"> &
   Pick<PuertosDeOtraSuelta, "ideaSueltaAReemplazar"> &
-  Pick<PuertosDelDomingo, "hallazgosDeLaSemana" | "pilaresPendientes" | "ganchosRecientes" | "ocupacionDeLaSemana"> &
+  Pick<
+    PuertosDelDomingo,
+    "hallazgosDeLaSemana" | "pilaresPendientes" | "ganchosRecientes" | "crucesGuardadosDesde" | "ocupacionDeLaSemana"
+  > &
   PuertosDeCalibracion
 
 /** How many rows of `filas` belong to each account. */
@@ -145,6 +148,16 @@ export function repositorioDeIdeas(db: Db): Puertos {
         .limit(limite)
       if (error) fallo("No pude leer las ideas anteriores", error)
       return data.map((i) => i.gancho)
+    },
+
+    async crucesGuardadosDesde(desde) {
+      const { count, error } = await db
+        .from("ideas")
+        .select("id", { count: "exact", head: true })
+        .eq("origen", "cruce")
+        .gte("creada_en", desde)
+      if (error) fallo("No pude contar los cruces de hoy", error)
+      return count ?? 0
     },
 
     async ocupacionDeLaSemana(desde, hasta) {

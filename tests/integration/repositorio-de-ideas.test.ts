@@ -392,6 +392,29 @@ describe("repositorioDeIdeas: the Sunday engine", () => {
     expect(await repo().ganchosRecientes(1)).toEqual(["El gancho más nuevo"])
   })
 
+  test("counts the cross ideas saved since an instant, leaving Sunday ideas out", async () => {
+    const desde = new Date(Date.now() - 1000).toISOString()
+    const antes = await repo().crucesGuardadosDesde(desde)
+    const a = await hallazgo({ vector: vectorDe(0) })
+    const b = await hallazgo({ vector: vectorDe(1) })
+    const base = {
+      gancho: "Lo que uno dice del otro",
+      resumen: "Dos hallazgos juntos.",
+      formato: "texto" as const,
+      esqueleto: [{ idea: "Uno" }, { idea: "Otro" }],
+      cuenta,
+      razon: "Cruza dos mundos.",
+      pilar: null,
+    }
+    const ids = [
+      ...(await repo().guardarIdeasSueltas("cruce", [{ ...base, fuentes: [a, b], vector: aleatorio() }])),
+      ...(await repo().guardarIdeasSueltas("domingo", [{ ...base, fuentes: [a], vector: aleatorio() }])),
+    ]
+    for (const id of ids) ideasCreadas.add(id)
+    expect(await repo().crucesGuardadosDesde(desde)).toBe(antes + 1)
+    expect(await repo().crucesGuardadosDesde(new Date(Date.now() + 60_000).toISOString())).toBe(0)
+  })
+
   test("counts each publishing account's open assignments and planned pieces in the span", async () => {
     const desde = enDias(20)
     const hasta = enDias(23)

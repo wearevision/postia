@@ -43,6 +43,8 @@ export interface PuertosDelDomingo extends PuertosDeCruce {
   pilaresPendientes(ahora: number): Promise<PilarPendiente[]>
   /** Hooks of the latest ideas in any state, newest first. */
   ganchosRecientes(limite: number): Promise<string[]>
+  /** Cross ideas saved since `desde` (an ISO instant), whatever run saved them. */
+  crucesGuardadosDesde(desde: string): Promise<number>
   /** Accounts with a weekly rhythm above zero, and their slots taken in [desde, hasta). */
   ocupacionDeLaSemana(desde: string, hasta: string): Promise<OcupacionDeCuenta[]>
 }
@@ -146,9 +148,12 @@ export async function motorDelDomingo(p: PuertosDelDomingo, ahora: number): Prom
   }
 
   const cruces = await paso("cruces", () => cruzar(p, { clave: `cruces:${dia}`, desde }))
-  const cantidad = IDEAS_DEL_DOMINGO - cruces.guardadas
-  if (tope || cantidad <= 0) return terminar({ cruces, sueltas: NADA })
+  if (tope) return terminar({ cruces, sueltas: NADA })
   const sueltas = await paso("ideas sueltas", async () => {
+    // From the database, not this run's result: a re-run the same day finds the crosses step paid and saves none, yet
+    // the crosses of the first run still count against the Sunday's total.
+    const cantidad = IDEAS_DEL_DOMINGO - (await p.crucesGuardadosDesde(inicioDelDia(dia)))
+    if (cantidad <= 0) return NADA
     const { desde: martes, hasta: viernes } = martesAJueves(ahora)
     if (semanaCubierta(await p.ocupacionDeLaSemana(martes, viernes))) return NADA
     return ideasSueltas(p, { clave: `domingo:${dia}`, desde, ahora, cantidad })
