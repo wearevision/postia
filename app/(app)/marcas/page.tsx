@@ -2,6 +2,7 @@ import { piezasProgramadas } from "@/lib/marcas/programadas"
 import { createClient } from "@/lib/supabase/server"
 import { cambiarRutaAccion, desconectarCuentaAccion } from "./acciones"
 import { ConectarLinkedin } from "./conectar-linkedin"
+import { Desconectar } from "./desconectar"
 import { EstadoDeConexionChip } from "./estado-de-conexion"
 import { estadoDeCuenta } from "./estado-de-cuenta"
 import { FormularioCuenta } from "./formulario-cuenta"
@@ -65,14 +66,7 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
                         conectada={cuenta.conexiones !== null}
                       />
                     )}
-                    {cuenta.conexiones && (
-                      <form action={desconectarCuentaAccion}>
-                        <input type="hidden" name="cuentaId" value={cuenta.id} />
-                        <button type="submit" className="min-h-11 px-3 text-sm text-apagado">
-                          Desconectar
-                        </button>
-                      </form>
-                    )}
+                    {cuenta.conexiones && <Desconectar cuentaId={cuenta.id} desconectar={desconectarCuentaAccion} />}
                   </div>
                 )}
               </li>
