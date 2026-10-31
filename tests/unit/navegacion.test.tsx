@@ -23,28 +23,27 @@ describe("Navegacion", () => {
     expect(marcado()).toEqual(["Inicio"])
   })
 
-  test.each(["/investigar", "/investigar/abc"])("marks Investigar on %s", (destino) => {
+  test.each([
+    ["/ideas", "Ideas"],
+    ["/investigar", "Investigar"],
+    ["/investigar/abc", "Investigar"],
+    ["/calendario", "Calendario"],
+    ["/ajustes", "Ajustes"],
+    ["/marcas", "Ajustes"],
+    ["/marcas/pagina", "Ajustes"],
+    ["/voz/abc", "Ajustes"],
+    ["/clientes", "Ajustes"],
+  ])("on %s marks %s", (destino, marcadoEsperado) => {
     ruta.actual = destino
     render(<Navegacion />)
-    expect(marcado()).toEqual(["Investigar"])
+    expect(marcado()).toEqual([marcadoEsperado])
   })
 
-  test.each(["/marcas", "/voz", "/voz/abc"])("marks Marcas on %s", (destino) => {
-    ruta.actual = destino
-    render(<Navegacion />)
-    expect(marcado()).toEqual(["Marcas"])
-  })
-
-  test("marks Ajustes on its own screen", () => {
-    ruta.actual = "/ajustes"
-    render(<Navegacion />)
-    expect(marcado()).toEqual(["Ajustes"])
-  })
-
-  test("stays on a piece page, the screen notifications open", () => {
+  test("marks nothing on a piece, which belongs to no tab", () => {
     ruta.actual = "/piezas/abc"
     render(<Navegacion />)
     expect(screen.getByRole("navigation", { name: "Principal" })).toBeInTheDocument()
+    expect(marcado()).toEqual([])
   })
 
   test("pairs every destination with a decorative icon and a visible label", () => {
@@ -53,9 +52,9 @@ describe("Navegacion", () => {
     const enlaces = screen.getAllByRole("link")
     expect(enlaces.map((enlace) => enlace.textContent)).toEqual([
       "Inicio",
+      "Ideas",
       "Investigar",
       "Calendario",
-      "Marcas",
       "Ajustes",
     ])
     for (const enlace of enlaces) {
