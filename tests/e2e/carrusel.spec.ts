@@ -77,7 +77,9 @@ test("a carousel asked for in the editor shows its slides at gate 1 and opens ag
   await page.getByRole("link", { name: "Editar el carrusel" }).click()
   await expect(page.getByRole("heading", { name: "Editar carrusel" })).toBeVisible()
   await expect(page.getByLabel("Texto del post")).toHaveValue("Un carrusel para probar el editor.")
-  await expect(page.getByRole("combobox", { name: "Cuenta" })).toBeDisabled()
+  // The editor only edits an existing piece: its account is fixed and shown, not chosen.
+  await expect(page.getByText(/^Cuenta:/)).toBeVisible()
+  await expect(page.getByRole("combobox", { name: "Cuenta" })).toHaveCount(0)
 })
 
 test("the empty carousel editor is gone", async ({ page, request }) => {
