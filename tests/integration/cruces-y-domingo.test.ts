@@ -218,6 +218,34 @@ describe("idea origin", () => {
   })
 })
 
+describe("deleting a report", () => {
+  test("a report with ideas cannot be deleted: the foreign key refuses it, not the origin check", async () => {
+    const investigacion = await investigacionAprobada()
+    const fuente = await hallazgo({ vector: vectorDe(0), investigacion })
+    const { data: nueva, error: errorDeIdea } = await admin()
+      .from("ideas")
+      .insert({
+        investigacion_id: investigacion,
+        gancho: "Un gancho",
+        resumen: "Un resumen",
+        formato: "texto",
+        esqueleto: [{ idea: "Uno" }],
+        fuentes: [fuente],
+        cuenta_sugerida: cuenta,
+        razon: "Una razón",
+        vector: literal(vectorDe(902)),
+      })
+      .select("id")
+      .single()
+    if (errorDeIdea) throw errorDeIdea
+    ideasCreadas.add(nueva.id)
+    const { error } = await admin().from("investigaciones").delete().eq("id", investigacion)
+    expect(error?.code).toBe("23503")
+    const { data } = await admin().from("investigaciones").select("id").eq("id", investigacion)
+    expect(data).toHaveLength(1)
+  })
+})
+
 describe("pares_para_cruzar", () => {
   test("returns pairs within the band only, with their similarity", async () => {
     const a = await hallazgo({ vector: vectorDe(0) })

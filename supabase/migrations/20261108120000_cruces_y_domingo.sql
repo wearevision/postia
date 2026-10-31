@@ -7,6 +7,11 @@
 alter table public.ideas add column origen text not null default 'serie' check (origen in ('serie', 'cruce', 'domingo'));
 alter table public.ideas add constraint serie_con_investigacion check ((origen = 'serie') = (investigacion_id is not null));
 create index ideas_sueltas on public.ideas (origen, creada_en desc) where investigacion_id is null;
+-- 4f's «on delete set null» would turn a series idea into one with no research, which serie_con_investigacion refuses
+-- with a check error. The app never deletes research: the refusal is the foreign key's, explicit.
+alter table public.ideas drop constraint ideas_investigacion_id_fkey;
+alter table public.ideas add constraint ideas_investigacion_id_fkey
+  foreign key (investigacion_id) references public.investigaciones (id) on delete restrict;
 
 -- The research queue also runs the crosses of an approved report. A replacement for an idea with no research
 -- (otra_idea of a cross or a Sunday idea) is the only job without a research.
