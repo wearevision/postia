@@ -1,5 +1,6 @@
 import { idempotencyKeys, schedules, tasks } from "@trigger.dev/sdk"
 import { contarPedidosAbiertos, vigilarCarruseles } from "@/lib/carrusel/vigilar"
+import { instanteDe } from "@/lib/dominio/instante"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 // Every 2 minutes on the default small machine: one count query, and armar-carruseles (medium, Chromium) only when
@@ -19,6 +20,6 @@ export const vigilarCarrusel = schedules.task({
           await tasks.trigger("armar-carruseles", undefined, { idempotencyKey, idempotencyKeyTTL: "10m" })
         },
       },
-      payload.timestamp,
+      instanteDe(payload.timestamp),
     ),
 })

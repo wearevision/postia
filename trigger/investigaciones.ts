@@ -1,5 +1,6 @@
 import { schedules } from "@trigger.dev/sdk"
 import { servicioPushReal } from "@/lib/avisos/push"
+import { instanteDe } from "@/lib/dominio/instante"
 import { avisarTope, libroDeGastos } from "@/lib/gasto/repositorio"
 import { crearReal, pedirPagando } from "@/lib/ia/claude"
 import { embeberPagando, llamarVoyageReal } from "@/lib/ia/voyage"
@@ -51,5 +52,5 @@ export const vigilarTemas = schedules.task({
   queue: { concurrencyLimit: 1 },
   retry: { maxAttempts: 1 },
   maxDuration: 1800,
-  run: async (payload) => vigilar(puertos(), payload.timestamp.getTime()),
+  run: async (payload) => vigilar(puertos(), instanteDe(payload.timestamp).getTime()),
 })

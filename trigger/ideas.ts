@@ -1,5 +1,6 @@
 import { schedules, task } from "@trigger.dev/sdk"
 import { servicioPushReal } from "@/lib/avisos/push"
+import { instanteDe } from "@/lib/dominio/instante"
 import { avisarTope, libroDeGastos } from "@/lib/gasto/repositorio"
 import { crearReal, pedirPagando } from "@/lib/ia/claude"
 import { embeberPagando, llamarVoyageReal } from "@/lib/ia/voyage"
@@ -36,7 +37,7 @@ export const motorDelDomingo = schedules.task({
   queue: { concurrencyLimit: 1 },
   retry: { maxAttempts: 1 },
   maxDuration: 840,
-  run: async (payload) => proponer(puertos(), payload.timestamp.getTime()),
+  run: async (payload) => proponer(puertos(), instanteDe(payload.timestamp).getTime()),
 })
 
 // Manual and free: the similarity distribution of candidate pairs, to calibrate UMBRALES.cruce with real data.
