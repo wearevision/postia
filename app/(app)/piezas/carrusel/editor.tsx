@@ -116,6 +116,16 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
     ])
   }
 
+  /** After a queued new carousel: the account and theme stay, everything written goes back to the family's defaults. */
+  function empezarDeNuevo() {
+    const ejemplo = carruselInicial(familia)
+    setLaminas(enEdicion(ejemplo))
+    setAntetitulo(ejemplo.antetitulo)
+    setTitulo(null)
+    setTexto("")
+    setNuevoTipo("punto")
+  }
+
   function enviar(evento: React.FormEvent) {
     evento.preventDefault()
     setError(null)
@@ -130,7 +140,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
       })
       if (!resultado.ok) return setError(resultado.error)
       if (inicial) return router.push(rutaDePieza(inicial.piezaId))
-      setTexto("")
+      empezarDeNuevo()
       router.push(RUTA_DE_CARRUSEL)
       router.refresh()
     })

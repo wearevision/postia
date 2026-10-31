@@ -112,6 +112,31 @@ describe("EditorDeCarrusel", () => {
     expect(router.refresh).toHaveBeenCalled()
   })
 
+  test("after queuing a new carousel the whole form starts over from the chosen family's defaults", async () => {
+    const pedir = vi.fn(async () => ({ ok: true as const, pedidoId: "p1" }))
+    render(<EditorDeCarrusel cuentas={[WAV]} pedir={pedir} />)
+    fireEvent.click(screen.getByRole("radio", { name: "WR3 oscura" }))
+    const wr3 = carruselInicial("wr3")
+    fireEvent.change(screen.getByLabelText("Antetítulo"), { target: { value: "Otro antetítulo" } })
+    fireEvent.change(screen.getByLabelText("Título del documento"), { target: { value: "Guía propia" } })
+    fireEvent.change(within(laminas()[1] as HTMLElement).getByLabelText("Título"), { target: { value: "Cambiado" } })
+    fireEvent.click(within(laminas()[2] as HTMLElement).getByRole("button", { name: "Quitar" }))
+    fireEvent.change(screen.getByLabelText("Texto del post"), { target: { value: "El post" } })
+    fireEvent.click(screen.getByRole("button", { name: "Armar carrusel" }))
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/piezas/carrusel"))
+
+    expect(screen.getByRole("radio", { name: "WR3 oscura" })).toBeChecked()
+    expect(laminas()).toHaveLength(wr3.laminas.length)
+    expect(within(laminas()[1] as HTMLElement).getByLabelText("Título")).toHaveValue(
+      wr3.laminas[1] && "titulo" in wr3.laminas[1] ? wr3.laminas[1].titulo : "",
+    )
+    expect(screen.getByLabelText("Antetítulo")).toHaveValue(wr3.antetitulo)
+    expect(screen.getByLabelText("Título del documento")).toHaveValue(
+      wr3.laminas[0]?.tipo === "portada" ? wr3.laminas[0].titulo : "",
+    )
+    expect(screen.getByLabelText("Texto del post")).toHaveValue("")
+  })
+
   test("edit mode fixes the account, prefills everything and returns to the piece", async () => {
     const pedir = vi.fn(async () => ({ ok: true as const, pedidoId: "p1" }))
     const diseno = carruselInicial("personal")
