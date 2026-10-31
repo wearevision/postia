@@ -20,13 +20,15 @@ interface App {
   redirectUri: string
 }
 
-export function urlDeAutorizacionLinkedin(entrada: Omit<App, "clientSecret"> & { estado: string }): string {
+export function urlDeAutorizacionLinkedin(
+  entrada: Omit<App, "clientSecret"> & { estado: string; scopes?: readonly string[] },
+): string {
   const consulta = new URLSearchParams({
     response_type: "code",
     client_id: entrada.clientId,
     redirect_uri: entrada.redirectUri,
     state: entrada.estado,
-    scope: SCOPES_DE_LINKEDIN.join(" "),
+    scope: (entrada.scopes ?? SCOPES_DE_LINKEDIN).join(" "),
   })
   // URLSearchParams writes a space as "+"; LinkedIn documents URL-encoded, space-delimited scopes.
   const base = baseDe(process.env, "LINKEDIN_OAUTH_BASE_URL", BASE_OAUTH)
