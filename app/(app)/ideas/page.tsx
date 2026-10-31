@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { estadoDelFiltro, parametroDelFiltro } from "@/lib/series/filtro"
+import { estadoDelFiltro, parametroDelFiltro, sinNadaPorRevisar } from "@/lib/series/filtro"
 import {
   cuentasParaIdeas,
   type EstadoDeIdea,
@@ -128,7 +128,7 @@ function Serie({ serie, estado, cuentas }: { serie: SerieDeIdeas; estado: Estado
 export default async function Ideas({ searchParams }: { searchParams: Promise<Parametros> }) {
   const params = await searchParams
   const serie = primero(params.serie)
-  const estado = estadoDelFiltro(primero(params.estado))
+  const estado = estadoDelFiltro(primero(params.estado), serie)
   const db = await createClient()
   const [{ cruces, sueltas, series: lista }, cuentas] = await Promise.all([
     ideasYSeries(db, { investigacionId: serie, estado }),
@@ -137,7 +137,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
   const hayQueRevisar =
     cruces.length > 0 || sueltas.length > 0 || lista.some((s) => s.ideas.some((i) => i.estado === "propuesta"))
   // With no series yet the page keeps its own «Todavía no hay series» guidance.
-  const sinNadaPorRevisar = estado === "propuesta" && !hayQueRevisar && lista.length > 0
+  const vacia = sinNadaPorRevisar(estado, hayQueRevisar, lista)
   const buscandoOtra = [...cruces, ...sueltas].some((i) => i.pidiendoOtra)
 
   return (
@@ -165,7 +165,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
       ) : (
         buscandoOtra && <Refrescar mensaje="Se está buscando otra idea. Esta página se actualiza sola." />
       )}
-      {sinNadaPorRevisar ? (
+      {vacia ? (
         <div className="space-y-3">
           <p className="text-apagado">No hay ideas por revisar.</p>
           <Link href={rutaConFiltro(serie, null)} className="boton w-full py-3">

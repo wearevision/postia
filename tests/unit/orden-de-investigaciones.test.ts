@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 import type { InvestigacionReciente } from "@/lib/investigacion/lectura"
-import { ordenarInvestigaciones } from "@/lib/investigacion/orden"
+import { notaDeUltimaVigilancia, ordenarInvestigaciones } from "@/lib/investigacion/orden"
 
 const i = (sobre: Partial<InvestigacionReciente>): InvestigacionReciente => ({
   id: "x",
@@ -32,5 +32,13 @@ describe("ordenarInvestigaciones", () => {
     const corriendo = i({ id: "c", origen: "vigilancia", hallazgos: 0, estado: "investigando" })
     const fallida = i({ id: "f", origen: "vigilancia", hallazgos: 0, estado: "fallo", motivo: "Sin red" })
     expect(ordenarInvestigaciones([corriendo, fallida]).resto.map((x) => x.id)).toEqual(["c", "f"])
+  })
+})
+
+describe("notaDeUltimaVigilancia", () => {
+  test("says the last watch had no findings, not that nothing was new", () => {
+    expect(notaDeUltimaVigilancia("2026-10-31T20:00:00.000Z")).toBe(
+      "Última vigilancia: sábado 31 de octubre, 17:00, sin hallazgos.",
+    )
   })
 })
