@@ -86,9 +86,13 @@ export function FinDelTexto() {
   useEffect(() => {
     const elemento = marca.current
     if (!elemento || typeof IntersectionObserver === "undefined") return
-    const observador = new IntersectionObserver((entradas) => {
-      if (entradas.some((entrada) => entrada.isIntersecting)) marcarTexto()
-    })
+    // The bottom bar covers the last ~120 px of the page: the end only counts as read once it is above the bar.
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((entrada) => entrada.isIntersecting)) marcarTexto()
+      },
+      { rootMargin: "0px 0px -120px 0px" },
+    )
     observador.observe(elemento)
     return () => observador.disconnect()
   }, [marcarTexto])

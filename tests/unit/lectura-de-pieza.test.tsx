@@ -11,7 +11,10 @@ const observadores: FalsoObservador[] = []
 
 class FalsoObservador {
   elementos = new Set<Element>()
-  constructor(readonly aviso: Aviso) {
+  constructor(
+    readonly aviso: Aviso,
+    readonly opciones?: IntersectionObserverInit,
+  ) {
     observadores.push(this)
   }
   observe(elemento: Element) {
@@ -105,6 +108,12 @@ describe("reading gate before signing", () => {
     verTodas(3)
     expect(botonDeFirma()).toBeDisabled()
     expect(screen.getByText("Falta leer el texto hasta el final.")).toBeInTheDocument()
+  })
+
+  test("the end of the text counts as reached only above the bottom bar that covers the last 120 px", () => {
+    montar()
+    const delFin = observadores.find((o) => o.elementos.has(finDelTexto()))
+    expect(delFin?.opciones).toEqual({ rootMargin: "0px 0px -120px 0px" })
   })
 
   test("unlocks signing when every slide has been seen and the end of the text is reached", () => {
