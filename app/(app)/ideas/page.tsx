@@ -128,7 +128,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
   const estado = FILTROS.find((f) => f.estado !== null && f.estado === primero(params.estado))?.estado ?? null
   const db = await createClient()
   const [{ cruces, sueltas, series: lista }, cuentas] = await Promise.all([
-    ideasYSeries(db, { investigacionId: serie }),
+    ideasYSeries(db, { investigacionId: serie, estado }),
     cuentasParaIdeas(db),
   ])
   const buscandoOtra = [...cruces, ...sueltas].some((i) => i.pidiendoOtra)

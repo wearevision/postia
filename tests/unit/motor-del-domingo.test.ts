@@ -86,6 +86,7 @@ function puertos(over: Partial<PuertosDelDomingo> = {}): PuertosDelDomingo {
     noNombrar: vi.fn(async () => []),
     ideasParecidas: vi.fn(async () => []),
     paresParaCruzar: vi.fn(async () => PARES),
+    descartarPares: vi.fn(async () => {}),
     guardarIdeasSueltas: vi.fn(async (origen: string, ideas: unknown[]) => {
       if (origen === "cruce") crucesGuardados += ideas.length
       return ideas.map((_, i) => `id-${i}`)

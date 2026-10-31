@@ -42,7 +42,7 @@ async function hallazgosConTema(db: Db, ids: string[]): Promise<Map<string, Hall
   )
 }
 
-type Puertos = Pick<PuertosDeCruce, "paresParaCruzar" | "guardarIdeasSueltas"> &
+type Puertos = Pick<PuertosDeCruce, "paresParaCruzar" | "descartarPares" | "guardarIdeasSueltas"> &
   Pick<PuertosDeOtraSuelta, "ideaSueltaAReemplazar"> &
   Pick<
     PuertosDelDomingo,
@@ -77,6 +77,13 @@ export function repositorioDeIdeas(db: Db): Puertos {
         const b = hallazgos.get(p.b)
         return a && b ? [{ a, b }] : []
       })
+    },
+
+    async descartarPares(pares) {
+      // pares_descartados keeps a < b; uuid order is the order of their lowercase text.
+      const filas = pares.map(({ a, b }) => (a < b ? { a, b } : { a: b, b: a }))
+      const { error } = await db.from("pares_descartados").upsert(filas, { onConflict: "a,b", ignoreDuplicates: true })
+      if (error) fallo("No pude recordar los pares descartados", error)
     },
 
     async guardarIdeasSueltas(origen, ideas) {

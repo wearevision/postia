@@ -853,6 +853,39 @@ export type Database = {
           },
         ]
       }
+      pares_descartados: {
+        Row: {
+          a: string
+          b: string
+          creado_en: string
+        }
+        Insert: {
+          a: string
+          b: string
+          creado_en?: string
+        }
+        Update: {
+          a?: string
+          b?: string
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pares_descartados_a_fkey"
+            columns: ["a"]
+            isOneToOne: false
+            referencedRelation: "hallazgos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pares_descartados_b_fkey"
+            columns: ["b"]
+            isOneToOne: false
+            referencedRelation: "hallazgos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos_de_diseno: {
         Row: {
           arrendado_hasta: string | null

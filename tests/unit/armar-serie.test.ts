@@ -240,6 +240,7 @@ describe("atenderInvestigaciones with series jobs", () => {
       tomar: vi.fn(async () => trabajo),
       terminar: vi.fn(async () => {}),
       paresParaCruzar: vi.fn(async () => []),
+      descartarPares: vi.fn(async () => {}),
       guardarIdeasSueltas: vi.fn(async () => []),
       ideaSueltaAReemplazar: vi.fn(async () => ({
         origen: "cruce" as const,

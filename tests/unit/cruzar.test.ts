@@ -92,6 +92,7 @@ function puertos(ideas: unknown[], over: Partial<PuertosDeCruce & PuertosDeOtraS
     noNombrar: vi.fn(async () => ["Cliente Secreto"]),
     ideasParecidas: vi.fn(async () => []),
     paresParaCruzar: vi.fn(async () => PARES),
+    descartarPares: vi.fn(async () => {}),
     guardarIdeasSueltas: vi.fn(async (_o: string, guardar: unknown[]) => guardar.map((_, n) => `idea-${n}`)),
     ideaSueltaAReemplazar: vi.fn(async () => ({
       origen: "cruce" as const,
@@ -179,6 +180,23 @@ describe("cruzar", () => {
     expect(await cruzar(q, { clave: "c", desde: DESDE })).toEqual({ guardadas: 0, parecidas: 1, invalidas: 0 })
     expect(vi.mocked(q.ideasParecidas).mock.calls[0][1]).toBe(UMBRALES.idea)
     expect(q.guardarIdeasSueltas).not.toHaveBeenCalled()
+  })
+
+  test("remembers the pair of a cross dropped as near-duplicate so it is not crossed again", async () => {
+    const p = puertos([cruce("Uno", 1), cruce("Otra vez uno", 2)], {
+      embeberIdeas: embeberPorGancho({ "Otra vez uno": "Uno" }),
+    })
+    await cruzar(p, { clave: "c", desde: DESDE })
+    expect(p.descartarPares).toHaveBeenCalledWith([{ a: "h3", b: "h4" }])
+    const q = puertos([cruce("Uno", 1)], { ideasParecidas: vi.fn(async () => ["vieja"]) })
+    await cruzar(q, { clave: "c", desde: DESDE })
+    expect(q.descartarPares).toHaveBeenCalledWith([{ a: "h1", b: "h2" }])
+  })
+
+  test("records no dropped pair when every cross is saved, nor for a second idea of a saved pair", async () => {
+    const p = puertos([cruce("Uno", 1), cruce("Uno bis", 1), cruce("Dos", 2)])
+    await cruzar(p, { clave: "c", desde: DESDE })
+    expect(p.descartarPares).not.toHaveBeenCalled()
   })
 
   test("with no valid idea it never pays for vectors", async () => {

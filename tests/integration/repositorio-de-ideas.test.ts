@@ -228,6 +228,16 @@ describe("repositorioDeIdeas: crosses", () => {
     ])
   })
 
+  test("a dropped pair is remembered once and never offered again", async () => {
+    const a = await hallazgo({ vector: vectorDe(0) })
+    const b = await hallazgo({ vector: vectorDe(0, { hacia: 1, similitud: 0.65 }), creado: haceHoras(24 * 7) })
+    expect(await repo().paresParaCruzar({ desde: Date.now() - 3_600_000, limite: 3 })).toHaveLength(1)
+    const par = a < b ? { a, b } : { a: b, b: a }
+    await repo().descartarPares([par])
+    await repo().descartarPares([par])
+    expect(await repo().paresParaCruzar({ desde: Date.now() - 3_600_000, limite: 3 })).toEqual([])
+  })
+
   test("saves cross ideas with no research and turns a refusal into a readable Falla", async () => {
     const a = await hallazgo({ vector: vectorDe(0) })
     const b = await hallazgo({ vector: vectorDe(1) })

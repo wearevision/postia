@@ -13,6 +13,19 @@ alter table public.ideas drop constraint ideas_investigacion_id_fkey;
 alter table public.ideas add constraint ideas_investigacion_id_fkey
   foreign key (investigacion_id) references public.investigaciones (id) on delete restrict;
 
+-- A pair whose cross was dropped as near-duplicate of an earlier idea: pares_para_cruzar never offers it again, or every
+-- run would pay to cross it once more. a < b, so a pair has one row. Service role only (RLS on, no policies).
+create table public.pares_descartados (
+  a uuid not null references public.hallazgos (id) on delete cascade,
+  b uuid not null references public.hallazgos (id) on delete cascade,
+  creado_en timestamptz not null default now(),
+  primary key (a, b),
+  constraint par_ordenado check (a < b)
+);
+create index pares_descartados_b on public.pares_descartados (b);
+alter table public.pares_descartados enable row level security;
+revoke all on public.pares_descartados from anon, authenticated;
+
 -- The research queue also runs the crosses of an approved report. A replacement for an idea with no research
 -- (otra_idea of a cross or a Sunday idea) is the only job without a research.
 alter table public.trabajos_de_investigacion drop constraint trabajos_de_investigacion_tipo_check;
@@ -216,7 +229,8 @@ end $$;
 -- Candidate pairs for crossing (plano «Cruzar hallazgos»). Side A: the findings created since p_desde, or the findings of
 -- p_investigacion (then side B is the rest of the map). Both sides leave out discarded findings. Ranked by: topics that
 -- differ (or a finding with none), a topic pair no earlier cross used, newer A, closer to the band's middle. Pairs any
--- idea already used together are left out, and each finding appears once: the best pair it is in wins.
+-- idea already used together, and pairs whose cross was dropped (pares_descartados), are left out, and each finding
+-- appears once: the best pair it is in wins.
 create function public.pares_para_cruzar(
   p_desde timestamptz, p_minimo real, p_maximo real, p_limite integer, p_investigacion uuid default null
 ) returns table (a uuid, b uuid, similitud real, tema_a uuid, tema_b uuid)
@@ -262,6 +276,8 @@ begin
     select c.* from candidatos c
      where c.sim between p_minimo and p_maximo
        and not exists (select 1 from juntos j where j.f1 = least(c.id_a, c.id_b) and j.f2 = greatest(c.id_a, c.id_b))
+       and not exists (select 1 from public.pares_descartados d
+                        where d.a = least(c.id_a, c.id_b) and d.b = greatest(c.id_a, c.id_b))
      order by
        (c.tema_de_a is null or c.tema_de_b is null or c.tema_de_a <> c.tema_de_b) desc,
        exists (select 1 from cruzados x

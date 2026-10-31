@@ -206,13 +206,15 @@ export async function series(db: Db, filtro: { investigacionId?: string } = {}):
 const COLUMNAS_DE_SUELTA =
   "id, orden, estado, gancho, resumen, formato, esqueleto, fuentes, razon, cuenta_sugerida, creada_en, cuentas!ideas_cuenta_sugerida_fkey(nombre), asignaciones(id, cuenta_id, planeada_para, estado, motivo, pieza_id, cuentas(nombre)), trabajos_de_investigacion!trabajos_de_investigacion_idea_id_fkey(estado)"
 
-async function sueltasDe(db: Db, origen: OrigenSuelto) {
-  const { data, error } = await db
+/** With a state, the filter runs here: the newest 30 of that state, not the newest 30 then filtered. */
+async function sueltasDe(db: Db, origen: OrigenSuelto, estado: EstadoDeIdea | null) {
+  const consulta = db
     .from("ideas")
     .select(COLUMNAS_DE_SUELTA)
     .eq("origen", origen)
     .is("investigacion_id", null)
     .neq("estado", "reemplazada")
+  const { data, error } = await (estado ? consulta.eq("estado", estado) : consulta)
     .order("creada_en", { ascending: false })
     .limit(SUELTAS_POR_GRUPO)
   if (error) fallo("No pude leer las ideas sueltas", error)
@@ -220,12 +222,22 @@ async function sueltasDe(db: Db, origen: OrigenSuelto) {
 }
 
 /**
- * The page's three groups: crosses and Sunday ideas (newest first, at most 30 each, with an excerpt of each source)
- * and the series. Filtered to one series, only that series.
+ * The page's three groups: crosses and Sunday ideas (newest first, at most 30 each, of `estado` when given, with an
+ * excerpt of each source) and the series. Filtered to one series, only that series.
  */
-export async function ideasYSeries(db: Db, filtro: { investigacionId?: string } = {}): Promise<IdeasYSeries> {
-  if (filtro.investigacionId !== undefined) return { cruces: [], sueltas: [], series: await series(db, filtro) }
-  const [lista, cruces, delDomingo] = await Promise.all([series(db), sueltasDe(db, "cruce"), sueltasDe(db, "domingo")])
+export async function ideasYSeries(
+  db: Db,
+  filtro: { investigacionId?: string; estado?: EstadoDeIdea | null } = {},
+): Promise<IdeasYSeries> {
+  if (filtro.investigacionId !== undefined) {
+    return { cruces: [], sueltas: [], series: await series(db, { investigacionId: filtro.investigacionId }) }
+  }
+  const estado = filtro.estado ?? null
+  const [lista, cruces, delDomingo] = await Promise.all([
+    series(db),
+    sueltasDe(db, "cruce", estado),
+    sueltasDe(db, "domingo", estado),
+  ])
   const filas = [...cruces, ...delDomingo]
   const ids = [...new Set(filas.flatMap(({ fila }) => fila.fuentes))]
   const hallazgos = new Map<string, FuenteConResumen>()

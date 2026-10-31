@@ -507,6 +507,27 @@ describe("readers", () => {
     expect(cruces.some((i) => i.id === reemplazada)).toBe(false)
   })
 
+  test("a state filter runs in the query: an older discarded cross still shows under «descartada»", async () => {
+    const a = await hallazgoSuelto("Emol")
+    const b = await hallazgoSuelto("Biobío")
+    const [vieja] = await sueltas("cruce", [{ gancho: "Descartada hace rato", fuentes: [a, b] }])
+    await admin().from("ideas").update({ estado: "descartada" }).eq("id", vieja)
+    // Newer proposals push it out of the newest 30; afterAll sets them aside with the file's other loose ideas.
+    await sueltas(
+      "cruce",
+      Array.from({ length: 30 }, (_, n) => ({ gancho: `Cruce nuevo ${n}`, fuentes: [a, b] })),
+    )
+    const todas = await ideasYSeries(dueno.db)
+    expect(todas.cruces.some((i) => i.id === vieja)).toBe(false)
+    const descartadas = await ideasYSeries(dueno.db, { estado: "descartada" })
+    expect(descartadas.cruces.some((i) => i.id === vieja)).toBe(true)
+    expect(descartadas.cruces.every((i) => i.estado === "descartada")).toBe(true)
+    expect(descartadas.cruces.length).toBeLessThanOrEqual(30)
+    const propuestas = await ideasYSeries(dueno.db, { estado: "propuesta" })
+    expect(propuestas.cruces).toHaveLength(30)
+    expect(propuestas.cruces.every((i) => i.estado === "propuesta")).toBe(true)
+  })
+
   test("filtered to one series, ideasYSeries leaves the loose groups out", async () => {
     const informe = await informeAprobado()
     await serieDe(informe, [{ gancho: "Sola", cuenta: perfil }])

@@ -326,6 +326,18 @@ describe("pares_para_cruzar", () => {
     expect(comoPares(await pares(haceHoras(1)))).toEqual([[a, libre]])
   })
 
+  test("a pair whose cross was dropped as near-duplicate is left out", async () => {
+    const a = await hallazgo({ vector: vectorDe(0) })
+    const caido = await viejo(vectorDe(0, { hacia: 1, similitud: 0.65 }))
+    const { error } = await admin()
+      .from("pares_descartados")
+      .insert(a < caido ? { a, b: caido } : { a: caido, b: a })
+    if (error) throw error
+    expect(await pares(haceHoras(1))).toEqual([])
+    const libre = await viejo(vectorDe(0, { hacia: 2, similitud: 0.7 }))
+    expect(comoPares(await pares(haceHoras(1)))).toEqual([[a, libre]])
+  })
+
   test("each finding appears at most once in the result", async () => {
     const comun = await viejo(vectorDe(0))
     await hallazgo({ vector: vectorDe(0, { hacia: 1, similitud: 0.65 }) })
@@ -501,5 +513,9 @@ describe("grants", () => {
       dueno.db.rpc("histograma_de_similitudes", { p_desde: haceHoras(1), ...BANDA }),
     ]
     for (const { error } of await Promise.all(llamadas)) expect(error?.code).toBe("42501")
+    const { data } = await dueno.db.from("pares_descartados").select("a")
+    expect(data ?? []).toEqual([])
+    const insertar = await dueno.db.from("pares_descartados").insert({ a: h, b: h })
+    expect(insertar.error).not.toBeNull()
   })
 })

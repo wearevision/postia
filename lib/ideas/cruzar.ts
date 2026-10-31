@@ -56,6 +56,8 @@ export interface PuertosDeIdeasSueltas {
 export interface PuertosDeCruce extends PuertosDeIdeasSueltas {
   /** pares_para_cruzar in UMBRALES.cruce's band, best first. With a research, side A is its findings. */
   paresParaCruzar(o: { desde: number; limite: number; investigacionId?: string }): Promise<ParDeHallazgos[]>
+  /** Pairs whose cross was dropped as near-duplicate: pares_para_cruzar never offers them again. */
+  descartarPares(pares: { a: string; b: string }[]): Promise<void>
 }
 
 export interface IdeaSueltaAReemplazar {
@@ -115,15 +117,27 @@ export async function cuentasYVetados(p: PuertosDeIdeasSueltas) {
   return { cuentas, noNombrar }
 }
 
-/** Embeds the ideas under `<clave>:vectores`, drops near-duplicates and saves the rest; nothing valid pays nothing. */
+/**
+ * Embeds the ideas under `<clave>:vectores`, drops near-duplicates and saves the rest; nothing valid pays nothing.
+ * `parecidas` receives the ideas dropped as near-duplicates, after the save.
+ */
 export async function guardarDistintas(
   p: PuertosDeIdeasSueltas,
-  o: { clave: string; origen: OrigenSuelto; ideas: IdeaValidada[]; invalidas: number; repetidas?: number },
+  o: {
+    clave: string
+    origen: OrigenSuelto
+    ideas: IdeaValidada[]
+    invalidas: number
+    repetidas?: number
+    parecidas?: (ideas: IdeaValidada[]) => Promise<void>
+  },
 ): Promise<ResultadoDeIdeas> {
   const repetidas = o.repetidas ?? 0
   if (o.ideas.length === 0) return { guardadas: 0, parecidas: repetidas, invalidas: o.invalidas }
   const quedan = await distintas(p, `${o.clave}:vectores`, o.ideas)
   if (quedan.length > 0) await p.guardarIdeasSueltas(o.origen, quedan)
+  const caidas = o.ideas.filter((idea) => !quedan.some((q) => q.gancho === idea.gancho && q.resumen === idea.resumen))
+  if (caidas.length > 0 && o.parecidas) await o.parecidas(caidas)
   return {
     guardadas: quedan.length,
     parecidas: repetidas + o.ideas.length - quedan.length,
@@ -174,6 +188,13 @@ export async function cruzar(
     ideas: unaPorPar,
     invalidas: validada.descartadas.length,
     repetidas: validada.ideas.length - unaPorPar.length,
+    parecidas: (caidas) =>
+      p.descartarPares(
+        caidas.flatMap((idea) => {
+          const [a, b] = [...idea.fuentes].sort()
+          return a && b ? [{ a, b }] : []
+        }),
+      ),
   })
 }
 
