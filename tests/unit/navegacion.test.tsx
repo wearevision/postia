@@ -44,10 +44,10 @@ describe("Navegacion", () => {
     expect(marcado()).toEqual(["Ajustes"])
   })
 
-  test("is hidden inside a piece page, where the signing flow keeps only a way back", () => {
+  test("stays on a piece page, the screen notifications open", () => {
     ruta.actual = "/piezas/abc"
     render(<Navegacion />)
-    expect(screen.queryByRole("navigation", { name: "Principal" })).not.toBeInTheDocument()
+    expect(screen.getByRole("navigation", { name: "Principal" })).toBeInTheDocument()
   })
 
   test("pairs every destination with a decorative icon and a visible label", () => {

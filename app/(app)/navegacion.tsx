@@ -38,14 +38,8 @@ const ENLACES: Enlace[] = [
   { href: RUTA_DE_AJUSTES, texto: "Ajustes", icono: SlidersHorizontal, activa: dentroDe(RUTA_DE_AJUSTES) },
 ]
 
-const CREACION = new Set([RUTA_DE_NUEVA_PIEZA, RUTA_DE_PEDIR_TEXTO, RUTA_DE_CARRUSEL])
-
-/** `/piezas/<id>`: the signing flow, where the bar steps aside and only «Volver» stays. */
-const esDetalleDePieza = (ruta: string) => /^\/piezas\/[^/]+$/.test(ruta) && !CREACION.has(ruta)
-
 export function Navegacion() {
   const ruta = usePathname()
-  if (esDetalleDePieza(ruta)) return null
   return (
     <nav
       aria-label="Principal"
