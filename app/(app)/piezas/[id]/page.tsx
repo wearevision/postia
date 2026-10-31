@@ -195,19 +195,6 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
       <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>
       {porFirmar && !armando && <FinDelTexto />}
-      {version.vistas.length > 0
-        ? version.archivoDescarga &&
-          estado !== "a_mano" && (
-            <a href={version.archivoDescarga} download className="inline-flex min-h-11 items-center text-sm underline">
-              Descargar el PDF
-            </a>
-          )
-        : version.archivoUrl &&
-          estado !== "a_mano" && (
-            <a href={version.archivoUrl} className="boton w-full py-3">
-              Ver el PDF
-            </a>
-          )}
       {rearmable && (!porFirmar || armando) && estadoDelCarrusel()}
 
       {porFirmar && (
@@ -247,7 +234,15 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
         </>
       )}
       {porFirmar && !armando && version.diseno === null && version.disenoCrudo != null && (
-        <p className="text-sm">No pude leer las láminas de esta versión. Revisa el PDF antes de firmar.</p>
+        <div className="space-y-2">
+          <p className="text-sm">No pude leer las láminas de esta versión. Revisa el PDF antes de firmar.</p>
+          {/* The only place left with the PDF before signing: without readable slides it is the piece to review. */}
+          {version.archivoUrl && (
+            <a href={version.archivoUrl} className="boton w-full py-3">
+              Ver el PDF
+            </a>
+          )}
+        </div>
       )}
       {porFirmar && !armando && (
         <FirmaDePieza
