@@ -68,9 +68,7 @@ export default async function Investigar() {
           </ul>
         </section>
       )}
-      {ultimaVigilanciaVacia && (
-        <p className="text-sm text-apagado">{notaDeUltimaVigilancia(ultimaVigilanciaVacia)}</p>
-      )}
+      {ultimaVigilanciaVacia && <p className="text-sm text-apagado">{notaDeUltimaVigilancia(ultimaVigilanciaVacia)}</p>}
     </section>
   )
 }
