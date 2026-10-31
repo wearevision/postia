@@ -226,7 +226,9 @@ export type Database = {
           expira_en: string
           id: string
           nombre: string | null
+          organizacion: string | null
           red: string
+          renovacion_expira_en: string | null
           scopes: string[]
           titular: string
         }
@@ -237,7 +239,9 @@ export type Database = {
           expira_en: string
           id?: string
           nombre?: string | null
+          organizacion?: string | null
           red: string
+          renovacion_expira_en?: string | null
           scopes: string[]
           titular: string
         }
@@ -248,7 +252,9 @@ export type Database = {
           expira_en?: string
           id?: string
           nombre?: string | null
+          organizacion?: string | null
           red?: string
+          renovacion_expira_en?: string | null
           scopes?: string[]
           titular?: string
         }
@@ -301,6 +307,53 @@ export type Database = {
             columns: ["marca_id"]
             isOneToOne: false
             referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elecciones_de_pagina: {
+        Row: {
+          conectada_por: string
+          creada_en: string
+          cuenta_id: string
+          expira_en: string
+          id: string
+          nombre: string | null
+          paginas: Json
+          renovacion_expira_en: string | null
+          scopes: string[]
+          titular: string
+        }
+        Insert: {
+          conectada_por: string
+          creada_en?: string
+          cuenta_id: string
+          expira_en: string
+          id?: string
+          nombre?: string | null
+          paginas: Json
+          renovacion_expira_en?: string | null
+          scopes: string[]
+          titular: string
+        }
+        Update: {
+          conectada_por?: string
+          creada_en?: string
+          cuenta_id?: string
+          expira_en?: string
+          id?: string
+          nombre?: string | null
+          paginas?: Json
+          renovacion_expira_en?: string | null
+          scopes?: string[]
+          titular?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elecciones_de_pagina_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
             referencedColumns: ["id"]
           },
         ]
@@ -1433,7 +1486,12 @@ export type Database = {
         Returns: string[]
       }
       aprobar_informe: { Args: { p_investigacion: string }; Returns: undefined }
+      barrer_elecciones: { Args: { p_ahora?: string }; Returns: number }
       barrer_gastos: { Args: { p_ahora?: string }; Returns: number }
+      cambiar_ruta: {
+        Args: { p_cuenta: string; p_ruta: string }
+        Returns: undefined
+      }
       cerrar_a_mano: {
         Args: { p_enlace: string; p_pieza: string }
         Returns: undefined
@@ -1453,9 +1511,13 @@ export type Database = {
       }
       conectar_linkedin: {
         Args: {
+          p_app?: string
           p_cuenta: string
           p_expira_en: string
           p_nombre: string
+          p_organizacion?: string
+          p_renovacion?: string
+          p_renovacion_expira_en?: string
           p_scopes: string[]
           p_titular: string
           p_token: string
@@ -1515,6 +1577,7 @@ export type Database = {
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {
+          autor: string
           expira_en: string
           titular: string
           token: string
@@ -1545,6 +1608,10 @@ export type Database = {
         Args: { p_esqueleto: Json; p_gancho: string; p_idea: string }
         Returns: undefined
       }
+      elegir_pagina: {
+        Args: { p_eleccion: string; p_organizacion: string }
+        Returns: string
+      }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
       es_dueno_de_alguna: { Args: never; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
@@ -1572,6 +1639,20 @@ export type Database = {
           p_planeada_para?: string
         }
         Returns: Json
+      }
+      guardar_eleccion: {
+        Args: {
+          p_cuenta: string
+          p_expira_en: string
+          p_nombre: string
+          p_paginas: Json
+          p_renovacion?: string
+          p_renovacion_expira_en?: string
+          p_scopes: string[]
+          p_titular: string
+          p_token: string
+        }
+        Returns: string
       }
       guardar_hallazgo: {
         Args: {
@@ -1608,8 +1689,22 @@ export type Database = {
         }
         Returns: number
       }
+      guardar_renovacion: {
+        Args: {
+          p_conexion: string
+          p_expira_en: string
+          p_renovacion: string
+          p_renovacion_expira_en: string
+          p_token: string
+        }
+        Returns: undefined
+      }
       guardar_revision_ia: {
         Args: { p_pedido?: string; p_veredicto: Json; p_version: string }
+        Returns: undefined
+      }
+      guardar_secreto: {
+        Args: { p_nombre: string; p_valor: string }
         Returns: undefined
       }
       guardar_serie: {
@@ -1763,6 +1858,15 @@ export type Database = {
       registrar_falla_de_espacio: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: boolean
+      }
+      renovaciones_pendientes: {
+        Args: { p_hasta: string }
+        Returns: {
+          conexion: string
+          expira_en: string
+          renovacion: string
+          renovacion_expira_en: string
+        }[]
       }
       reservar_envio: {
         Args: { p_firma: string; p_pieza: string; p_version: string }

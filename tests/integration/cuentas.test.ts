@@ -38,13 +38,13 @@ describe("accounts and connections", () => {
     expect(data).toEqual([])
   })
 
-  test("a company page cannot publish by API in phase 1 (Community Management is not approved)", async () => {
+  test("a company page can publish by API since Community Management was approved", async () => {
     const dueno = await personaConSesion("pagina")
     const marca = await marcaConDueno(dueno.userId, "nosotros")
     const { error } = await dueno.db
       .from("cuentas")
       .insert({ marca_id: marca, red: "linkedin", tipo: "empresa", ruta: "api", nombre: "Página de WAV" })
-    expect(error?.code).toBe("23514")
+    expect(error).toBeNull()
   })
 
   test("connecting stores the token in Vault, readable by the service role and never by the person", async () => {

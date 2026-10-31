@@ -22,7 +22,7 @@ describe("brand and account actions", () => {
     })
   })
 
-  test("adds a LinkedIn account, and explains why a page cannot publish by API yet", async () => {
+  test("adds a LinkedIn profile and a page, both by API", async () => {
     const { db, userId } = await personaConSesion("cuenta")
     const marcaId = await marcaConDueno(userId)
     expect(
@@ -36,9 +36,6 @@ describe("brand and account actions", () => {
     ).toEqual({ ok: true })
     expect(
       await agregarCuenta(db, { marcaId, tipo: "empresa", ruta: "api", nombre: "Página", ritmoSemanal: "3" }),
-    ).toEqual({
-      ok: false,
-      error: "Por API solo publica el perfil personal hasta que LinkedIn apruebe Community Management. Elige «a mano».",
-    })
+    ).toEqual({ ok: true })
   })
 })

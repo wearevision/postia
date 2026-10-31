@@ -19,7 +19,7 @@ describe("asking for a carousel", () => {
   beforeAll(async () => {
     await admin().from("pedidos_de_diseno").update({ estado: "obsoleto" }).in("estado", ["pendiente", "trabajando"])
     dueno = await personaConSesion("e2e-acciones-disenos")
-    // A company account cannot publish by API (constraint api_solo_perfil).
+    // «a mano»: designing a carousel does not depend on the account's route.
     cuenta = await cuentaDe(await marcaConDueno(dueno.userId, "nosotros"), "empresa", "a_mano")
   })
 
