@@ -31,6 +31,7 @@ import {
 } from "./acciones"
 import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
+import { LecturaDePieza } from "./lectura"
 import { PilarDePieza } from "./pilar"
 import { PlanDePieza } from "./plan"
 import { CorregirTexto, PedirOtraVersion } from "./redaccion"
@@ -147,7 +148,7 @@ export default async function Pieza({
   }
 
   return (
-    <section className="mx-auto max-w-md space-y-5">
+    <LecturaDePieza key={version.huella} laminas={version.vistas.length} className="mx-auto max-w-md space-y-5">
       <header className="space-y-2">
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
         <h1 className="text-2xl font-semibold">{version.titulo ?? "Post de texto"}</h1>
@@ -284,6 +285,6 @@ export default async function Pieza({
         </a>
       )}
       {SE_PUEDE_DESCARTAR.includes(estado) && <Descartar piezaId={pieza.id} descartar={descartarAccion} />}
-    </section>
+    </LecturaDePieza>
   )
 }

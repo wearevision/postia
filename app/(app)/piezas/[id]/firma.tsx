@@ -1,9 +1,11 @@
 "use client"
 
+import { Lock } from "lucide-react"
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
+import { FinDelTexto, useLectura } from "./lectura"
 
 interface Props {
   piezaId: string
@@ -40,6 +42,8 @@ export function FirmaDePieza({
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
+  const lectura = useLectura()
+  const bloqueada = pendiente || !lectura.puedeFirmar
   const instante = instanteDesdeValorLocal(fecha)
 
   function enviar(evento: React.FormEvent) {
@@ -63,6 +67,7 @@ export function FirmaDePieza({
   return (
     <form onSubmit={enviar} className="space-y-4">
       <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{texto}</p>
+      <FinDelTexto />
       <label className="block space-y-1">
         <span className="text-sm">Fecha y hora de publicación</span>
         <input
@@ -81,19 +86,26 @@ export function FirmaDePieza({
       {reescribiendo && (
         <p className="text-sm">Claude está reescribiendo. Si firmas ahora, esa versión no se aplica.</p>
       )}
+      {lectura.motivo && (
+        <p id="motivo-de-lectura" className="flex items-start gap-2 text-sm">
+          <Lock aria-hidden="true" strokeWidth={1.75} className="mt-0.5 size-4 flex-none" />
+          {lectura.motivo}
+        </p>
+      )}
       <button
         type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
+        disabled={bloqueada}
+        aria-describedby={lectura.motivo ? "motivo-de-lectura" : undefined}
+        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-control disabled:bg-borde disabled:text-foreground disabled:shadow-hundido"
       >
         {ruta === "a_mano" ? "Firmar: te aviso a la hora para publicarla a mano" : "Firmar y programar"}
       </button>
       <button
         type="button"
-        disabled={pendiente}
+        disabled={bloqueada}
         onClick={paraLaReserva}
-        aria-describedby="explicacion-de-reserva"
-        className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+        aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
+        className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:cursor-not-allowed disabled:border-dashed disabled:border-control disabled:bg-borde disabled:shadow-hundido"
       >
         Firmar para la reserva
       </button>
