@@ -58,7 +58,7 @@ export async function publicarPrueba(
   pedido: PedidoDePrueba,
 ): Promise<ResultadoDePrueba> {
   if (Date.parse(credencial.expiraEn) <= deps.ahora()) {
-    throw new Falla("La conexión de LinkedIn venció. Renuévala en Marcas.")
+    throw new Falla("La conexión de LinkedIn venció. Renuévala en Ajustes.")
   }
   const texto = pedido.texto.trim()
   if (!texto || texto.length > LARGO_MAXIMO_DEL_TEXTO) {

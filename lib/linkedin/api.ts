@@ -12,7 +12,7 @@ const BASE_API = "https://api.linkedin.com"
 const ESPERA_MS = 30_000
 const ESPERA_SUBIDA_MS = 120_000
 
-/** 401: expired or revoked. The owner renews it in Marcas. */
+/** 401: expired or revoked. The owner renews it in Ajustes. */
 export class TokenDeLinkedinVencido extends FallaDeConfiguracion {
   constructor(mensaje: string) {
     super(mensaje)
