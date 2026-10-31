@@ -30,7 +30,8 @@ const ESCRITURA = { esfuerzo: "high", maxTokens: 16_000 } as const
 const REVISION = { esfuerzo: "medium", maxTokens: 8_000 } as const
 const ILEGIBLE = "Claude devolvió algo que no pude leer. Pídelo de nuevo."
 
-function leer<T>(respuesta: RespuestaDeClaude, esquema: z.ZodType<T>): T {
+/** 4c's reading of a structured answer: refusals, cut answers and bad JSON become Fallas (shared with 4f). */
+export function leer<T>(respuesta: RespuestaDeClaude, esquema: z.ZodType<T>): T {
   if (respuesta.detenido === "refusal")
     throw new Falla("Claude no quiso escribir esto. Cambia el encargo o escríbelo a mano.")
   if (respuesta.detenido === "max_tokens") throw new Falla("La respuesta de Claude quedó cortada. Pídelo de nuevo.")
@@ -46,7 +47,8 @@ function leer<T>(respuesta: RespuestaDeClaude, esquema: z.ZodType<T>): T {
   return leido.data
 }
 
-function textoValido(escrito: Escrito): Escrito {
+/** 4c's text rules, shared with the carousel writer's post copy. */
+export function textoValido(escrito: Escrito): Escrito {
   const texto = normalizarTexto(escrito.texto)
   if (!texto.trim()) throw new Falla("Claude devolvió un texto vacío. Pídelo de nuevo.")
   if ([...texto].length > LARGO_MAXIMO) {

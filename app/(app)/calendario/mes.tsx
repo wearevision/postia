@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { cuadriculaDelMes, diaEnSantiago, type Mes, mesVecino } from "@/lib/piezas/calendario"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
-import type { PiezaDelCalendario } from "@/lib/piezas/lectura"
+import type { AsignacionDelCalendario, PiezaDelCalendario } from "@/lib/piezas/lectura"
 import { rutaDeCalendario } from "@/lib/sesion/rutas"
 
 const FORMATO_DEL_MES = new Intl.DateTimeFormat("es-CL", { month: "long", year: "numeric", timeZone: "UTC" })
@@ -15,17 +15,21 @@ function fechaUtc(dia: string): Date {
   return new Date(Date.UTC(anio, mes - 1, d))
 }
 
-function colorDelPunto(p: PiezaDelCalendario): string {
+type Entrada = PiezaDelCalendario | AsignacionDelCalendario
+
+function colorDelPunto(p: Entrada): string {
+  if ("tipo" in p) return "border border-dashed border-apagado"
   if (!p.firmada) return "border border-primario"
   if (p.estado === "publicada") return "bg-apagado"
   return PELIGRO.includes(p.estado) ? "bg-peligro" : "bg-primario"
 }
 
-function palabra(p: PiezaDelCalendario): string {
+function palabra(p: Entrada): string {
+  if ("tipo" in p) return "por escribir"
   return p.firmada ? NOMBRE_DEL_ESTADO[p.estado].toLowerCase() : "sin firma"
 }
 
-function nombreDelDia(dia: string, deEseDia: readonly PiezaDelCalendario[]): string {
+function nombreDelDia(dia: string, deEseDia: readonly Entrada[]): string {
   const base = FORMATO_DEL_DIA.format(fechaUtc(dia))
   if (deEseDia.length === 0) return base
   const cuentas = new Map<string, number>()
@@ -33,9 +37,17 @@ function nombreDelDia(dia: string, deEseDia: readonly PiezaDelCalendario[]): str
   return `${base}: ${[...cuentas].map(([nombre, n]) => `${n} ${nombre}`).join(", ")}`
 }
 
-export function VistaDelMes({ mes, piezas }: { mes: Mes; piezas: readonly PiezaDelCalendario[] }) {
-  const porDia = new Map<string, PiezaDelCalendario[]>()
-  for (const p of [...piezas].sort((a, b) => a.instante.localeCompare(b.instante))) {
+export function VistaDelMes({
+  mes,
+  piezas,
+  asignaciones = [],
+}: {
+  mes: Mes
+  piezas: readonly PiezaDelCalendario[]
+  asignaciones?: readonly AsignacionDelCalendario[]
+}) {
+  const porDia = new Map<string, Entrada[]>()
+  for (const p of [...piezas, ...asignaciones].sort((a, b) => Date.parse(a.instante) - Date.parse(b.instante))) {
     const dia = diaEnSantiago(Date.parse(p.instante))
     porDia.set(dia, [...(porDia.get(dia) ?? []), p])
   }

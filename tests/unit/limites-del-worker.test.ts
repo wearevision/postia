@@ -129,6 +129,37 @@ describe("Worker boundary", () => {
     )
   })
 
+  test("nothing reachable from a route, a component or the proxy imports the series writers or their repository", () => {
+    const entradas = [
+      ...archivos("app"),
+      ...archivos("components"),
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    const soloTrigger = [
+      "lib/series/armar.ts",
+      "lib/series/carrusel.ts",
+      "lib/series/escribir.ts",
+      "lib/series/repositorio.ts",
+    ]
+    expect([...grafo.archivos].filter((a) => soloTrigger.includes(a))).toEqual([])
+  })
+
+  test("the series writers stay Trigger-only because they reach the Claude client", () => {
+    const grafo = recorrerImports(["trigger/series.ts", "trigger/investigaciones.ts"], disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos]).toEqual(
+      expect.arrayContaining([
+        "lib/series/armar.ts",
+        "lib/series/carrusel.ts",
+        "lib/series/escribir.ts",
+        "lib/series/repositorio.ts",
+        "lib/ia/claude.ts",
+      ]),
+    )
+  })
+
   test("the cheap carousel poller does not reach Playwright or the renderer's task", () => {
     const grafo = recorrerImports(["trigger/vigilar-carruseles.ts"], disco)
     expect(grafo.sinResolver).toEqual([])

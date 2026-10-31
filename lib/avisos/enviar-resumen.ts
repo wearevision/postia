@@ -1,6 +1,7 @@
 import { huecosDeLaSemana, semanaDe, semanaDelLunes, sumarDias } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { calendario } from "@/lib/piezas/lectura"
+import { ideasPorRevisar } from "@/lib/series/lectura"
 import type { Db } from "@/lib/supabase/database"
 import { balancePorCuenta } from "@/lib/voz/lectura"
 import { avisarPersona } from "./a-miembros"
@@ -8,7 +9,7 @@ import type { ServicioPush } from "./push"
 import { avisosSinEnviar, type LineaPendiente, marcarEnviados } from "./repositorio-de-avisos"
 import { armarResumen, type EstadoDelResumen } from "./resumen"
 
-type PorMarca = Omit<EstadoDelResumen, "lineas" | "informes">
+type PorMarca = Omit<EstadoDelResumen, "lineas" | "informes" | "ideas">
 
 function vacio(): PorMarca {
   return { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [], pilares: [] }
@@ -45,7 +46,7 @@ async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMar
 
   const esta = semanaDe(ahora)
   const proxima = semanaDelLunes(sumarDias(esta.lunes, 7))
-  const { cuentas, piezas } = await calendario(db, esta.desde, proxima.hasta)
+  const { cuentas, piezas, asignaciones } = await calendario(db, esta.desde, proxima.hasta)
   for (const c of cuentas.filter((c) => c.ritmoSemanal > 0)) {
     const e = de(c.marcaId)
     if (c.enReserva < c.ritmoSemanal) e.reservas.push({ cuenta: c.nombre, tiene: c.enReserva, meta: c.ritmoSemanal })
@@ -56,11 +57,12 @@ async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMar
     ]
     for (const [nombre, semana] of semanas) {
       // Instants are compared as numbers: PostgREST returns «+00:00», not the «.000Z» of toISOString.
-      const enLaSemana = piezas.filter((p) => {
-        const instante = Date.parse(p.instante)
-        return p.cuentaId === c.id && instante >= Date.parse(semana.desde) && instante < Date.parse(semana.hasta)
-      })
-      const faltan = huecosDeLaSemana([c], enLaSemana)[c.id] ?? 0
+      const enLaSemana = <T extends { cuentaId: string; instante: string }>(entradas: readonly T[]) =>
+        entradas.filter((p) => {
+          const instante = Date.parse(p.instante)
+          return p.cuentaId === c.id && instante >= Date.parse(semana.desde) && instante < Date.parse(semana.hasta)
+        })
+      const faltan = huecosDeLaSemana([c], enLaSemana(piezas), enLaSemana(asignaciones))[c.id] ?? 0
       if (faltan > 0) e.huecos.push({ cuenta: c.nombre, faltan, semana: nombre })
     }
   }
@@ -93,6 +95,7 @@ export async function enviarResumenes(
   const porMarca = await estadoPorMarca(db, ahora)
   const lineas = await avisosSinEnviar(db, ahora)
   const informes = await informesPorAprobar(db)
+  const ideas = await ideasPorRevisar(db)
   const marcasDe = new Map<string, string[]>()
   const duenos = new Set<string>()
   for (const m of miembros) {
@@ -104,8 +107,14 @@ export async function enviarResumenes(
   // Only lines that reached at least one device are marked: a failed or absent device keeps them for the next window.
   const recibidas = new Set<string>()
   for (const [userId, marcas] of marcasDe) {
-    // Only an owner can approve a report (aprobar_informe checks es_dueno_de_alguna).
-    const estado: EstadoDelResumen = { ...vacio(), informes: duenos.has(userId) ? informes : 0, lineas: [] }
+    // Only an owner can approve a report or an idea (both RPCs check es_dueno_de_alguna).
+    const esDueno = duenos.has(userId)
+    const estado: EstadoDelResumen = {
+      ...vacio(),
+      informes: esDueno ? informes : 0,
+      ideas: esDueno ? ideas : 0,
+      lineas: [],
+    }
     const suyas: LineaPendiente[] = []
     for (const marcaId of marcas) {
       const e = porMarca.get(marcaId)

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { type Carrusel, revisarCarrusel } from "@/lib/plantillas/laminas"
+import { type Carrusel, LIMITES, revisarCarrusel } from "@/lib/plantillas/laminas"
 
 const portada = {
   tipo: "portada",
@@ -99,5 +99,23 @@ describe("revisarCarrusel", () => {
       ok: false,
       error: "Lámina 3: El enlace va sin espacios, como «wearevision.cl».",
     })
+  })
+})
+
+describe("LIMITES", () => {
+  test("holds every slide field's limits as data", () => {
+    expect(LIMITES.punto.titulo).toEqual({ palabras: 12, caracteres: 90 })
+    expect(LIMITES.lista.items).toEqual({ minimo: 2, maximo: 4, palabras: 10, caracteres: 80 })
+    expect(LIMITES.carrusel).toEqual({ minimo: 3, maximo: 10 })
+  })
+
+  test("drives the schema: a title one word over the table's limit is refused", () => {
+    const palabras = Array.from({ length: LIMITES.punto.titulo.palabras + 1 }, () => "uno").join(" ")
+    expect(revisarCarrusel(base([portada, { ...punto, titulo: palabras }, cierre]))).toEqual({
+      ok: false,
+      error: `Lámina 2: El título pasa las ${LIMITES.punto.titulo.palabras} palabras.`,
+    })
+    const justo = Array.from({ length: LIMITES.punto.titulo.palabras }, () => "uno").join(" ")
+    expect(revisarCarrusel(base([portada, { ...punto, titulo: justo }, cierre])).ok).toBe(true)
   })
 })
