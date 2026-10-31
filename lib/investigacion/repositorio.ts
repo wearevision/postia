@@ -73,10 +73,12 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
 
     guardarHallazgo: (h) => mapa.guardarHallazgo(h, UMBRALES),
 
-    async cerrar(investigacionId, angulos) {
+    async cerrar(investigacionId, angulos, cuentas) {
       const { error } = await db.rpc("cerrar_investigacion", {
         p_investigacion: investigacionId,
         p_angulos: angulos.map((a) => ({ nombre: a.nombre, por_que: a.por_que })),
+        p_repetidos: cuentas.repetidos,
+        p_descartados: cuentas.descartados,
       })
       if (error) fallo("No pude cerrar la investigación", error)
     },

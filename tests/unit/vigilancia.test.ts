@@ -117,10 +117,14 @@ describe("vigilar", () => {
     expect(JSON.stringify(vi.mocked(p.pedir).mock.calls[0][1].mensajes)).toContain("2026-10-17")
     expect(p.guardarHallazgo).toHaveBeenCalledWith(expect.objectContaining({ investigacionId: "v1" }))
     expect(p.cerrar).toHaveBeenCalledTimes(1)
-    expect(p.cerrar).toHaveBeenCalledWith("v1", [
-      { nombre: `Angulo ${h("Eventos")}`, por_que: "x" },
-      { nombre: `Angulo ${h("Retail")}`, por_que: "x" },
-    ])
+    expect(p.cerrar).toHaveBeenCalledWith(
+      "v1",
+      [
+        { nombre: `Angulo ${h("Eventos")}`, por_que: "x" },
+        { nombre: `Angulo ${h("Retail")}`, por_que: "x" },
+      ],
+      { repetidos: 0, descartados: 0 },
+    )
     expect(r).toMatchObject({ temas: 2, guardados: 2, fallidos: 0 })
   })
 
@@ -143,8 +147,43 @@ describe("vigilar", () => {
     })
     const p = puertosDeVigilancia({ pedir })
     const r = await vigilar(p, AHORA)
-    expect(p.cerrar).toHaveBeenCalledWith("v1", [])
+    expect(p.cerrar).toHaveBeenCalledWith("v1", [], { repetidos: 0, descartados: 0 })
     expect(r).toMatchObject({ temas: 2, guardados: 0, fallidos: 2 })
+  })
+
+  test("closes with the repeats and discarded sources of every topic added up", async () => {
+    const pedir = vi.fn<Pedir>(async (paso) => {
+      if (paso.paso === "sugerir")
+        return { texto: JSON.stringify({ sugerencias: [] }), detenido: "end_turn", bloques: [] }
+      const n = paso.clave.split(":")[2]
+      if (paso.paso === "buscar") return busqueda([`https://n.cl/${n}`, `https://m.cl/${n}`])
+      return {
+        texto: JSON.stringify({
+          angulos: [
+            {
+              nombre: `Angulo ${n}`,
+              por_que: "x",
+              hallazgos: [`https://n.cl/${n}`, `https://m.cl/${n}`, "https://inventado.cl"].map((enlace) => ({
+                resumen: "r",
+                cita: null,
+                enlace,
+                medio: "m",
+                publicado_en: null,
+              })),
+            },
+          ],
+        }),
+        detenido: "end_turn",
+        bloques: [],
+      }
+    })
+    const guardarHallazgo = vi
+      .fn<PuertosDeVigilancia["guardarHallazgo"]>()
+      .mockResolvedValueOnce({ estado: "repetido", de: "h0" })
+      .mockResolvedValue({ estado: "guardado", id: "h", tema: null })
+    const p = puertosDeVigilancia({ pedir, guardarHallazgo })
+    await vigilar(p, AHORA)
+    expect(p.cerrar).toHaveBeenCalledWith("v1", expect.any(Array), { repetidos: 1, descartados: 2 })
   })
 
   test("closes with each angle name once when two topics share it", async () => {
@@ -156,7 +195,7 @@ describe("vigilar", () => {
     })
     const p = puertosDeVigilancia({ pedir })
     await vigilar(p, AHORA)
-    expect(p.cerrar).toHaveBeenCalledWith("v1", [{ nombre: "Semana", por_que: "x" }])
+    expect(p.cerrar).toHaveBeenCalledWith("v1", [{ nombre: "Semana", por_que: "x" }], expect.anything())
   })
 
   test("a topic that fails expectedly is skipped; an unexpected error is rethrown after the rest ran and the watch closed", async () => {
@@ -171,7 +210,7 @@ describe("vigilar", () => {
     const p = puertosDeVigilancia({ pedir, temasDeLasLineas: vi.fn(async () => ["Uno\nDos\nTres\nCuatro"]) })
     await expect(vigilar(p, AHORA)).rejects.toBeInstanceOf(AggregateError)
     expect(p.guardarHallazgo).toHaveBeenCalledTimes(1)
-    expect(p.cerrar).toHaveBeenCalledWith("v1", [{ nombre: `Angulo ${h("Cuatro")}`, por_que: "x" }])
+    expect(p.cerrar).toHaveBeenCalledWith("v1", [{ nombre: `Angulo ${h("Cuatro")}`, por_que: "x" }], expect.anything())
     expect(p.guardarSugerencias).toHaveBeenCalled()
   })
 
@@ -243,7 +282,10 @@ describe("atenderInvestigaciones", () => {
   test("takes one job, runs it and closes the job as done", async () => {
     const p = puertosDeAtencion()
     expect(await atenderInvestigaciones(p)).toMatchObject({ guardados: 1 })
-    expect(p.cerrar).toHaveBeenCalledWith("i1", [{ nombre: "Presupuesto", por_que: "x" }])
+    expect(p.cerrar).toHaveBeenCalledWith("i1", [{ nombre: "Presupuesto", por_que: "x" }], {
+      repetidos: 0,
+      descartados: 0,
+    })
     expect(p.terminar).toHaveBeenCalledWith("j1", "hecho")
   })
 

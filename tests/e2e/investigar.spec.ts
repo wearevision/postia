@@ -66,6 +66,8 @@ test("an owner asks for research, and approves its report after discarding a fin
   const cierre = await db.rpc("cerrar_investigacion", {
     p_investigacion: investigacion.id,
     p_angulos: [{ nombre: "Presupuesto", por_que: "Lo que cuesta un focus group." }],
+    p_repetidos: 3,
+    p_descartados: 2,
   })
   if (cierre.error) throw new Error(`No pude cerrar la investigación: ${cierre.error.message}`)
   const fin = await db.rpc("terminar_trabajo_de_investigacion", { p_trabajo: tomado.data[0].id, p_estado: "hecho" })
@@ -84,6 +86,8 @@ test("an owner asks for research, and approves its report after discarding a fin
   await expect(enlace).toHaveAttribute("target", "_blank")
   await expect(enlace).toHaveAttribute("rel", "noopener noreferrer")
   await expect(angulo.getByRole("listitem", { name: "Hallazgo" })).toHaveCount(2)
+  await expect(page.getByText("3 ya estaban en el mapa")).toBeVisible()
+  await expect(page.getByText("2 fuentes descartadas (inventadas o de LinkedIn)")).toBeVisible()
 
   await angulo
     .getByRole("listitem", { name: "Hallazgo" })

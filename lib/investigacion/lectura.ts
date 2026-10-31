@@ -79,6 +79,10 @@ export interface InformeDeInvestigacion {
   motivo: string | null
   creadaEn: string
   angulos: AnguloDeInforme[]
+  /** Findings refused as already in the map. */
+  repetidos: number
+  /** Sources dropped as invented or from LinkedIn. */
+  descartados: number
 }
 
 const Angulos = z.array(z.object({ nombre: z.string(), por_que: z.string().catch("") }))
@@ -88,7 +92,7 @@ export async function informe(db: Db, id: string): Promise<InformeDeInvestigacio
   if (!z.uuid().safeParse(id).success) return null
   const { data: i, error } = await db
     .from("investigaciones")
-    .select("id, tema, origen, estado, motivo, creada_en, angulos")
+    .select("id, tema, origen, estado, motivo, creada_en, angulos, repetidos, descartados")
     .eq("id", id)
     .maybeSingle()
   if (error) fallo("No pude leer el informe", error)
@@ -134,6 +138,8 @@ export async function informe(db: Db, id: string): Promise<InformeDeInvestigacio
     motivo: i.motivo,
     creadaEn: i.creada_en,
     angulos,
+    repetidos: i.repetidos,
+    descartados: i.descartados,
   }
 }
 

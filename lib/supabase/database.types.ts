@@ -486,6 +486,7 @@ export type Database = {
           cantidad: number | null
           cerrada_en: string | null
           creada_en: string
+          descartados: number
           dia: string | null
           enfoque: string | null
           estado: string
@@ -494,6 +495,7 @@ export type Database = {
           motivo: string | null
           origen: string
           pedida_por: string | null
+          repetidos: number
           tema: string
         }
         Insert: {
@@ -501,6 +503,7 @@ export type Database = {
           cantidad?: number | null
           cerrada_en?: string | null
           creada_en?: string
+          descartados?: number
           dia?: string | null
           enfoque?: string | null
           estado?: string
@@ -509,6 +512,7 @@ export type Database = {
           motivo?: string | null
           origen: string
           pedida_por?: string | null
+          repetidos?: number
           tema: string
         }
         Update: {
@@ -516,6 +520,7 @@ export type Database = {
           cantidad?: number | null
           cerrada_en?: string | null
           creada_en?: string
+          descartados?: number
           dia?: string | null
           enfoque?: string | null
           estado?: string
@@ -524,6 +529,7 @@ export type Database = {
           motivo?: string | null
           origen?: string
           pedida_por?: string | null
+          repetidos?: number
           tema?: string
         }
         Relationships: []
@@ -1244,7 +1250,12 @@ export type Database = {
         Returns: undefined
       }
       cerrar_investigacion: {
-        Args: { p_angulos: Json; p_investigacion: string }
+        Args: {
+          p_angulos: Json
+          p_descartados?: number
+          p_investigacion: string
+          p_repetidos?: number
+        }
         Returns: undefined
       }
       conectar_linkedin: {

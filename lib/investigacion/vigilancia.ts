@@ -125,6 +125,7 @@ export async function vigilar(
   const angulos = new Map<string, Angulo>()
   let guardados = 0
   let repetidos = 0
+  let descartados = 0
   let fallidos = 0
 
   for (const tema of temas) {
@@ -149,6 +150,7 @@ export async function vigilar(
       })
       guardados += r.guardados
       repetidos += r.repetidos
+      descartados += r.inventados + r.linkedin
       for (const a of r.angulos) if (!angulos.has(a.nombre)) angulos.set(a.nombre, a)
     } catch (error) {
       fallidos++
@@ -158,7 +160,7 @@ export async function vigilar(
   }
 
   try {
-    await p.cerrar(vigilanciaId, [...angulos.values()])
+    await p.cerrar(vigilanciaId, [...angulos.values()], { repetidos, descartados })
   } catch (error) {
     inesperados.push(error)
   }

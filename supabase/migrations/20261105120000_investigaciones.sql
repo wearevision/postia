@@ -13,6 +13,9 @@ create table public.investigaciones (
   formato text check (formato in ('texto', 'carrusel_pdf')),
   enfoque text check (enfoque in ('tendencias', 'desafios', 'mitos', 'guia')),
   angulos jsonb not null default '[]' check (jsonb_typeof(angulos) = 'array'),
+  -- Shown on the report: findings refused as already in the map, and sources dropped as invented or from LinkedIn.
+  repetidos integer not null default 0 check (repetidos >= 0),
+  descartados integer not null default 0 check (descartados >= 0),
   estado text not null default 'en_cola'
     check (estado in ('en_cola', 'investigando', 'informe_por_aprobar', 'aprobada', 'descartada', 'fallo')),
   motivo text check (length(motivo) <= 500),
@@ -232,13 +235,21 @@ begin
   end if;
 end $$;
 
-create function public.cerrar_investigacion(p_investigacion uuid, p_angulos jsonb) returns void
+create function public.cerrar_investigacion(
+  p_investigacion uuid,
+  p_angulos jsonb,
+  p_repetidos integer default 0,
+  p_descartados integer default 0
+) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
   v_investigacion public.investigaciones;
 begin
   if p_angulos is null or jsonb_typeof(p_angulos) <> 'array' then
     raise exception using errcode = '22023', message = 'angulos_invalidos';
+  end if;
+  if coalesce(p_repetidos, -1) < 0 or coalesce(p_descartados, -1) < 0 then
+    raise exception using errcode = '22023', message = 'cuentas_invalidas';
   end if;
   select * into v_investigacion from public.investigaciones where id = p_investigacion for update;
   if not found or v_investigacion.estado <> 'investigando' then
@@ -251,6 +262,9 @@ begin
              from jsonb_array_elements(p_angulos) with ordinality as n(a, orden)
             where not exists (select 1 from jsonb_array_elements(v_investigacion.angulos) e
                                where e ->> 'nombre' = n.a ->> 'nombre')), '[]'::jsonb),
+         -- An extension or a same-day watch re-run adds its counts to the ones already there.
+         repetidos = v_investigacion.repetidos + p_repetidos,
+         descartados = v_investigacion.descartados + p_descartados,
          -- The plano sends watched findings straight to the Sunday engine, without a report.
          estado = case when v_investigacion.origen = 'encargo' then 'informe_por_aprobar' else 'aprobada' end,
          cerrada_en = now()
@@ -356,7 +370,7 @@ to authenticated;
 revoke execute on function
   public.tomar_trabajo_de_investigacion(),
   public.terminar_trabajo_de_investigacion(uuid, text, text),
-  public.cerrar_investigacion(uuid, jsonb),
+  public.cerrar_investigacion(uuid, jsonb, integer, integer),
   public.crear_vigilancia(date, text[]),
   public.guardar_sugerencias(jsonb),
   public.guardar_hallazgo(text, text, text, text, text, real, real, text, date, uuid, text)
@@ -364,7 +378,7 @@ from public, anon, authenticated;
 grant execute on function
   public.tomar_trabajo_de_investigacion(),
   public.terminar_trabajo_de_investigacion(uuid, text, text),
-  public.cerrar_investigacion(uuid, jsonb),
+  public.cerrar_investigacion(uuid, jsonb, integer, integer),
   public.crear_vigilancia(date, text[]),
   public.guardar_sugerencias(jsonb),
   public.guardar_hallazgo(text, text, text, text, text, real, real, text, date, uuid, text)

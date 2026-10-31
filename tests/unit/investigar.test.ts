@@ -95,7 +95,10 @@ describe("investigarUno", () => {
     expect(p.guardarHallazgo).toHaveBeenCalledWith(
       expect.objectContaining({ enlace: "https://a.cl/1", investigacionId: "i1", angulo: "Presupuesto" }),
     )
-    expect(p.cerrar).toHaveBeenCalledWith("i1", [{ nombre: "Presupuesto", por_que: "x" }])
+    expect(p.cerrar).toHaveBeenCalledWith("i1", [{ nombre: "Presupuesto", por_que: "x" }], {
+      repetidos: 0,
+      descartados: 1,
+    })
     expect(r).toEqual({
       guardados: 1,
       repetidos: 0,
@@ -192,9 +195,49 @@ describe("investigarUno", () => {
     await expect(investigarUno(p, trabajo)).rejects.toBeInstanceOf(Falla)
   })
 
-  test("a repeat is counted, not saved twice and not an error", async () => {
+  test("a repeat is counted, not saved twice, and the count reaches the close", async () => {
+    const p = puertos({
+      pedir: vi.fn<Pedir>(async (paso) =>
+        paso.paso === "buscar"
+          ? busqueda(["https://a.cl/1", "https://b.cl/2"])
+          : orden(["https://a.cl/1", "https://b.cl/2", "https://www.linkedin.com/posts/x", "https://inventado.cl"]),
+      ),
+      guardarHallazgo: vi
+        .fn<PuertosDeInvestigacion["guardarHallazgo"]>()
+        .mockResolvedValueOnce({ estado: "repetido", de: "h0" })
+        .mockResolvedValue({ estado: "guardado", id: "h", tema: null }),
+    })
+    const r = await investigarUno(p, trabajo)
+    expect(r).toMatchObject({ guardados: 1, repetidos: 1, inventados: 1, linkedin: 1 })
+    expect(p.cerrar).toHaveBeenCalledWith("i1", expect.any(Array), { repetidos: 1, descartados: 2 })
+  })
+
+  test("a request whose every finding was already in the map fails instead of leaving an empty report", async () => {
     const p = puertos({ guardarHallazgo: vi.fn(async () => ({ estado: "repetido" as const, de: "h0" })) })
-    expect((await investigarUno(p, trabajo)).repetidos).toBe(1)
+    await expect(investigarUno(p, trabajo)).rejects.toThrow(
+      new Falla("Todo lo que encontró ya estaba en el mapa. Prueba con otro enfoque."),
+    )
+    expect(p.cerrar).not.toHaveBeenCalled()
+  })
+
+  test("an extension whose every finding was already in the map fails the same way", async () => {
+    const p = puertos({ guardarHallazgo: vi.fn(async () => ({ estado: "repetido" as const, de: "h0" })) })
+    await expect(investigarUno(p, { ...trabajo, tipo: "ampliar", angulo: "Presupuesto", ya: [] })).rejects.toThrow(
+      "Todo lo que encontró ya estaba en el mapa. Prueba con otro enfoque.",
+    )
+    expect(p.cerrar).not.toHaveBeenCalled()
+  })
+
+  test("a watched topic whose every finding was a repeat is not an error", async () => {
+    const p = puertos({ guardarHallazgo: vi.fn(async () => ({ estado: "repetido" as const, de: "h0" })) })
+    const r = await investigarUno(
+      p,
+      { ...trabajo, origen: "vigilancia", cantidad: null, formato: null },
+      {
+        cerrar: false,
+      },
+    )
+    expect(r).toMatchObject({ guardados: 0, repetidos: 1, angulos: [] })
   })
 
   test("an extension searches only its angle, with 4 searches, and saves under that angle", async () => {
@@ -208,7 +251,7 @@ describe("investigarUno", () => {
     expect(pedido.herramientas?.[0]).toMatchObject({ max_uses: 4 })
     expect(JSON.stringify(pedido.mensajes)).toContain("https://a.cl/0")
     expect(p.guardarHallazgo).toHaveBeenCalledWith(expect.objectContaining({ angulo: "Presupuesto" }))
-    expect(p.cerrar).toHaveBeenCalledWith("i1", [])
+    expect(p.cerrar).toHaveBeenCalledWith("i1", [], { repetidos: 0, descartados: 0 })
   })
 
   test("a watched topic uses Sonnet, 3 searches, its own key, drops old findings and does not close", async () => {

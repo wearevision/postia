@@ -269,6 +269,37 @@ describe("closing a research", () => {
     expect((await investigacion(id)).angulos).toEqual([...ANGULOS, nuevos[1]])
   })
 
+  test("cerrar_investigacion adds the repeats and discarded sources, and an extension adds more", async () => {
+    const id = await pedir()
+    await tomar()
+    const cierre = await admin().rpc("cerrar_investigacion", {
+      p_investigacion: id,
+      p_angulos: ANGULOS,
+      p_repetidos: 3,
+      p_descartados: 2,
+    })
+    expect(cierre.error).toBeNull()
+    expect(await investigacion(id)).toMatchObject({ repetidos: 3, descartados: 2 })
+    await admin().from("trabajos_de_investigacion").update({ estado: "hecho" }).eq("investigacion_id", id)
+    expect((await dueno.db.rpc("pedir_ampliacion", { p_investigacion: id, p_angulo: "Mitos" })).error).toBeNull()
+    await tomar()
+    const otra = await admin().rpc("cerrar_investigacion", {
+      p_investigacion: id,
+      p_angulos: [],
+      p_repetidos: 1,
+      p_descartados: 4,
+    })
+    expect(otra.error).toBeNull()
+    expect(await investigacion(id)).toMatchObject({ repetidos: 4, descartados: 6 })
+  })
+
+  test("cerrar_investigacion without counts adds nothing", async () => {
+    const id = await pedir()
+    await tomar()
+    expect((await admin().rpc("cerrar_investigacion", { p_investigacion: id, p_angulos: ANGULOS })).error).toBeNull()
+    expect(await investigacion(id)).toMatchObject({ repetidos: 0, descartados: 0 })
+  })
+
   test("a watch closes approved, without a report", async () => {
     const { data: id, error } = await admin().rpc("crear_vigilancia", {
       p_dia: "2030-01-02",

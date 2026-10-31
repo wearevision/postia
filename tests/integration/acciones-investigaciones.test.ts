@@ -184,6 +184,13 @@ describe("the report", () => {
     expect(recientes.find((r) => r.id === id)?.hallazgos).toBe(3)
   })
 
+  test("carries how many findings were repeats and how many sources were discarded", async () => {
+    const { id } = await informePorAprobar([["Presupuesto", "Uno"]])
+    expect(await informe(dueno.db, id)).toMatchObject({ repetidos: 0, descartados: 0 })
+    await admin().from("investigaciones").update({ repetidos: 3, descartados: 2 }).eq("id", id)
+    expect(await informe(dueno.db, id)).toMatchObject({ repetidos: 3, descartados: 2 })
+  })
+
   test("newest first within an angle", async () => {
     const { id } = await informePorAprobar([
       ["Mitos", "Viejo"],

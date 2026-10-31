@@ -45,7 +45,15 @@ export interface PuertosDeInvestigacion {
   /** One paid Voyage call for the whole batch, vectors in input order. */
   embeber(clave: string, textos: string[]): Promise<number[][]>
   guardarHallazgo(h: HallazgoNuevo & { investigacionId: string; angulo: string }): Promise<ResultadoDeGuardar>
-  cerrar(investigacionId: string, angulos: Angulo[]): Promise<void>
+  /** Adds the angles not already listed by name, and adds the counts to the ones already there. */
+  cerrar(investigacionId: string, angulos: Angulo[], cuentas: CuentasDeCierre): Promise<void>
+}
+
+export interface CuentasDeCierre {
+  /** Findings guardar_hallazgo refused as already in the map. */
+  repetidos: number
+  /** Sources dropped as invented or from LinkedIn. */
+  descartados: number
 }
 
 export interface ResultadoDeInvestigacion {
@@ -61,6 +69,7 @@ const CONTINUACIONES = 2
 const MAX_TOKENS = 8000
 const SIN_FUENTES = "La búsqueda no encontró fuentes que pueda citar. Prueba con otro enfoque."
 const ILEGIBLE = "Claude devolvió un informe que no pude leer. Pide la investigación de nuevo."
+const TODO_REPETIDO = "Todo lo que encontró ya estaba en el mapa. Prueba con otro enfoque."
 
 function busquedasPermitidas(t: Trabajo): number {
   if (t.origen === "vigilancia") return 3
@@ -198,6 +207,9 @@ export async function investigarUno(
     } else repetidos++
   }
 
+  // A request or extension with nothing new would leave an empty report; a watched topic just adds nothing.
+  if (guardados === 0 && t.origen === "encargo") throw new Falla(TODO_REPETIDO)
+
   // An extension adds to an angle the report already lists; cerrar_investigacion keeps existing names anyway.
   const angulos =
     t.tipo === "ampliar"
@@ -205,6 +217,7 @@ export async function investigarUno(
       : validado.angulos
           .filter((a) => conHallazgos.has(a.nombre))
           .map((a) => ({ nombre: a.nombre, por_que: a.por_que }))
-  if (opciones.cerrar !== false) await p.cerrar(t.investigacionId, angulos)
+  const descartados = validado.descartados.inventados + validado.descartados.linkedin
+  if (opciones.cerrar !== false) await p.cerrar(t.investigacionId, angulos, { repetidos, descartados })
   return { guardados, repetidos, ...validado.descartados, angulos }
 }

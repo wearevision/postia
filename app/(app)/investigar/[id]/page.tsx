@@ -80,6 +80,20 @@ export default async function Informe({ params }: { params: Promise<{ id: string
         </p>
         {leido.motivo && <p className="text-sm text-peligro">{leido.motivo}</p>}
       </header>
+      {(leido.repetidos > 0 || leido.descartados > 0) && (
+        <ul className="space-y-1 text-sm text-apagado">
+          {leido.repetidos > 0 && (
+            <li>{leido.repetidos === 1 ? "1 ya estaba en el mapa" : `${leido.repetidos} ya estaban en el mapa`}</li>
+          )}
+          {leido.descartados > 0 && (
+            <li>
+              {leido.descartados === 1
+                ? "1 fuente descartada (inventada o de LinkedIn)"
+                : `${leido.descartados} fuentes descartadas (inventadas o de LinkedIn)`}
+            </li>
+          )}
+        </ul>
+      )}
       {estaAbierta(leido.estado) && <Refrescar mensaje="Se está investigando. Esta página se actualiza sola." />}
       {total === 0 && !estaAbierta(leido.estado) && (
         <p className="text-apagado">Esta investigación no dejó hallazgos.</p>
