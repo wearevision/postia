@@ -13,7 +13,6 @@ function montar(firmar: () => Promise<Resultado>, firmarParaReserva: () => Promi
     <FirmaDePieza
       piezaId="11111111-1111-4111-8111-111111111111"
       huella={HUELLA}
-      texto="Texto de la pieza"
       fechaPropuesta="2026-11-03T18:00:00.000Z"
       abiertaEn="2026-11-02T20:00:00.000Z"
       ruta="api"
@@ -21,6 +20,7 @@ function montar(firmar: () => Promise<Resultado>, firmarParaReserva: () => Promi
       esperaEntreIntentos={0}
       firmar={alFirmar}
       firmarParaReserva={alFirmarReserva}
+      planear={vi.fn(async () => ({ ok: true as const }))}
     />,
   )
   return { alFirmar, alFirmarReserva }
@@ -109,15 +109,14 @@ describe("when the connection drops while signing", () => {
     expect(alFirmar).not.toHaveBeenCalled()
   })
 
-  test("goes back to the piece with the date still chosen and the buttons enabled", async () => {
+  test("goes back to the piece with the date field open on the shown date and the buttons enabled", async () => {
     montar(SIN_RED)
-    const campo = screen.getByLabelText("Fecha y hora de publicación") as HTMLInputElement
-    const valor = campo.value
     firmar()
     await alerta()
     fireEvent.click(screen.getByRole("button", { name: "Volver a la pieza" }))
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-    expect(campo.value).toBe(valor)
+    const campo = screen.getByLabelText("Fecha y hora de publicación")
+    expect(campo).toHaveValue("2026-11-03T15:00")
     expect(campo).toHaveFocus()
     expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled()
   })

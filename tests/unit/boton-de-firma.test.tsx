@@ -8,13 +8,13 @@ function montar(ruta: "api" | "a_mano" = "api") {
     <FirmaDePieza
       piezaId="11111111-1111-4111-8111-111111111111"
       huella={"a".repeat(64)}
-      texto="Texto"
       fechaPropuesta="2026-11-03T18:00:00.000Z"
       abiertaEn="2026-11-02T20:00:00.000Z"
       ruta={ruta}
       cuenta="WAV"
       firmar={vi.fn(async () => ({ ok: true as const }))}
       firmarParaReserva={vi.fn(async () => ({ ok: true as const }))}
+      planear={vi.fn(async () => ({ ok: true as const }))}
     />,
   )
 }
@@ -32,16 +32,11 @@ describe("the signing button", () => {
     expect(screen.getByRole("button", { name: "Firmar WAV · mar 3 nov, 15:00" })).toBeInTheDocument()
   })
 
-  test("follows the date the person picks", () => {
+  test("keeps the shown date while the date field is open and unsaved", () => {
     montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T09:30" } })
-    expect(screen.getByRole("button", { name: "Firmar WAV · mié 4 nov, 09:30" })).toBeInTheDocument()
-  })
-
-  test("names only the account while there is no valid date", () => {
-    montar()
-    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "" } })
-    expect(screen.getByRole("button", { name: "Firmar WAV" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Firmar WAV · mar 3 nov, 15:00" })).toBeInTheDocument()
   })
 
   test("keeps saying that a hand-published piece is published by hand", () => {

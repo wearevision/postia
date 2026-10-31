@@ -63,11 +63,17 @@ test("an owner writes the editorial line, marks a client not to be named, and ga
   })
   await page.goto(rutaDePieza(piezaId))
 
+  // The review is folded under a summary that counts what it found.
+  await page.locator("summary", { hasText: "Revisión · 1 comentario" }).click()
   const veredicto = page.getByRole("region", { name: "Revisa antes de firmar" })
   await expect(veredicto).toBeVisible()
   await expect(veredicto.getByText(`Nombra a ${cliente}, que no se nombra.`)).toBeVisible()
   await leerHastaElFinal(page)
   await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeEnabled()
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Cambiar$/ })
+    .click()
   await expect(page.getByLabel("Pilar").locator("option:checked")).toHaveText("Oficio")
 
   await page.goto("/calendario")
