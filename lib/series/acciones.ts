@@ -112,9 +112,14 @@ export async function aprobarSerie(
   let aprobadas = 0
   for (const idea of data) {
     const r = await aprobarIdea(db, { ideaId: idea.id, cuentas: [idea.cuenta_sugerida] }, ahora)
-    if (!r.ok)
-      return { ok: false, error: aprobadas > 0 ? `Aprobé ${aprobadas} de ${data.length}. ${r.error}` : r.error }
-    aprobadas++
+    if (r.ok) {
+      aprobadas++
+      continue
+    }
+    // Someone may have approved this idea on its own since the list was read: that is not a failure of the series.
+    const { data: actual } = await db.from("ideas").select("estado").eq("id", idea.id).maybeSingle()
+    if (actual && actual.estado !== "propuesta") continue
+    return { ok: false, error: aprobadas > 0 ? `Aprobé ${aprobadas} de ${data.length}. ${r.error}` : r.error }
   }
   return { ok: true, aprobadas }
 }
