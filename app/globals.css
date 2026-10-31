@@ -1,13 +1,24 @@
 @import "tailwindcss";
 
+/* Tokens del sistema de diseño de PostIA (grises neumórficos, magenta que pide acción, celeste que resuelve).
+   Contraste de texto 4.5:1 y de bordes de control 3:1 en los dos temas; lo vigila tests/unit/tokens-de-diseno.test.ts. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --apagado: #6b6b6b;
-  --borde: #e5e5e5;
-  --primario: #171717;
-  --primario-texto: #ffffff;
-  --peligro: #b42318;
+  color-scheme: light dark;
+  --background: #e4e5e8;
+  --foreground: #1c1c20;
+  --apagado: #5a5b63;
+  --borde: #cfd0d5;
+  --control: #767986;
+  --primario: #c2007a;
+  --primario-texto: #fbfbfd;
+  --exito: #006d94;
+  --peligro: #c2007a;
+  --logo-globo: #ff00aa;
+  --neu-sombra: rgb(120 124 135 / 0.45);
+  --neu-luz: rgb(255 255 255 / 0.92);
+  --relieve: 6px 6px 14px var(--neu-sombra), -6px -6px 14px var(--neu-luz);
+  --relieve-sm: 3px 3px 8px var(--neu-sombra), -3px -3px 8px var(--neu-luz);
+  --hundido: inset 3px 3px 7px var(--neu-sombra), inset -3px -3px 7px var(--neu-luz);
 }
 
 @theme inline {
@@ -15,27 +26,44 @@
   --color-foreground: var(--foreground);
   --color-apagado: var(--apagado);
   --color-borde: var(--borde);
+  --color-control: var(--control);
   --color-primario: var(--primario);
   --color-primario-texto: var(--primario-texto);
+  --color-exito: var(--exito);
   --color-peligro: var(--peligro);
+  --color-logo-globo: var(--logo-globo);
+  --shadow-relieve: var(--relieve);
+  --shadow-relieve-sm: var(--relieve-sm);
+  --shadow-hundido: var(--hundido);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --apagado: #a3a3a3;
-    --borde: #262626;
-    --primario: #ededed;
-    --primario-texto: #0a0a0a;
-    --peligro: #f97066;
+    --background: #17171a;
+    --foreground: #ededf0;
+    --apagado: #a3a4ad;
+    --borde: #2c2d33;
+    --control: #6b6d78;
+    --primario: #ff7ac8;
+    --primario-texto: #1a0a14;
+    --exito: #5cd0f2;
+    --peligro: #ff7ac8;
+    --logo-globo: #ff00aa;
+    --neu-sombra: rgb(0 0 0 / 0.9);
+    --neu-luz: rgb(255 255 255 / 0.14);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Un solo anillo de foco para todo lo interactivo. */
+:focus-visible {
+  outline: 2px solid var(--primario);
+  outline-offset: 3px;
 }
