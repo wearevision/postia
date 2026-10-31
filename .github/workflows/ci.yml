@@ -68,7 +68,9 @@ jobs:
           cache: 'pnpm'
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to the version the suite passes with locally: "latest" changed the local mail and auth stack under
+          # the e2e suite (first attempts lost their sign-in codes) and resolving it hit GitHub's API rate limit.
+          version: 2.117.0
       - run: pnpm install --frozen-lockfile
       - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - run: pnpm test:db
@@ -88,7 +90,9 @@ jobs:
           cache: 'pnpm'
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to the version the suite passes with locally: "latest" changed the local mail and auth stack under
+          # the e2e suite (first attempts lost their sign-in codes) and resolving it hit GitHub's API rate limit.
+          version: 2.117.0
       - run: pnpm install --frozen-lockfile
       - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - run: bash scripts/supabase-env.sh > .env.local
