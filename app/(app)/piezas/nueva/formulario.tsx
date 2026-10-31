@@ -29,7 +29,7 @@ interface Props {
   subir?: (marcaId: string, pdf: File) => Promise<string | null>
 }
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo w-full"
 const OPCION = "flex min-h-11 items-center gap-2"
 const MB = 1024 * 1024
 
@@ -206,11 +206,7 @@ export function FormularioDePieza({ cuentas, pilares = [], crear, subir = subirD
           {largo} / {CARACTERES_MAXIMOS_DEL_TEXTO}
         </output>
       </div>
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-      >
+      <button type="submit" disabled={pendiente} className="boton-primario w-full">
         {pendiente ? "Guardando…" : "Crear pieza"}
       </button>
       {error && (

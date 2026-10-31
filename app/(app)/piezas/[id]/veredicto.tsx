@@ -4,7 +4,7 @@ import { type Hallazgo, mensajeDe } from "@/lib/clientes/revision"
 export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] | null }) {
   if (hallazgos === null) {
     return (
-      <p role="alert" className="rounded-lg border border-borde p-3 text-sm">
+      <p role="alert" className="tarjeta p-3 text-sm">
         No pude revisar los clientes. Revísalo tú antes de firmar.
       </p>
     )
@@ -17,7 +17,7 @@ export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] | null }) {
     )
   }
   return (
-    <section aria-labelledby="veredicto" className="space-y-2 rounded-lg border border-borde p-3">
+    <section aria-labelledby="veredicto" className="space-y-2 tarjeta p-3">
       <h2 id="veredicto" className="font-medium">
         Revisa antes de firmar
       </h2>

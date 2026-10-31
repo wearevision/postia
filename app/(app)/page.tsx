@@ -19,7 +19,7 @@ function Seccion({ titulo, tarjetas }: { titulo: string; tarjetas: TarjetaDePiez
       <ul className="space-y-2">
         {tarjetas.map((t) => (
           <li key={t.id}>
-            <Link href={rutaDePieza(t.id)} className="block min-h-11 space-y-1 rounded-lg border border-borde p-3">
+            <Link href={rutaDePieza(t.id)} className="block min-h-11 space-y-1 tarjeta p-3">
               <span className="block text-sm text-apagado">
                 {t.cuenta}
                 {t.estado === "por_aprobar"
@@ -43,16 +43,16 @@ export default async function Inicio() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Inicio</h1>
-      <Link href={RUTA_DE_PEDIR_TEXTO} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
+      <Link href={RUTA_DE_PEDIR_TEXTO} className="boton w-full py-3">
         Pedir texto a Claude
       </Link>
-      <Link href={RUTA_DE_CARRUSEL} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
+      <Link href={RUTA_DE_CARRUSEL} className="boton w-full py-3">
         Nuevo carrusel
       </Link>
-      <Link href={RUTA_DE_INVESTIGAR} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
+      <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
         Investigar
       </Link>
-      <Link href={RUTA_DE_IDEAS} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
+      <Link href={RUTA_DE_IDEAS} className="boton w-full py-3">
         Ideas y series
       </Link>
       <Seccion titulo="Por firmar" tarjetas={porFirmar} />
@@ -64,10 +64,7 @@ export default async function Inicio() {
       {vacia && (
         <div className="space-y-3">
           <p className="text-apagado">No hay nada pendiente.</p>
-          <Link
-            href={RUTA_DE_NUEVA_PIEZA}
-            className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
-          >
+          <Link href={RUTA_DE_NUEVA_PIEZA} className="boton w-full py-3">
             Nueva pieza
           </Link>
         </div>

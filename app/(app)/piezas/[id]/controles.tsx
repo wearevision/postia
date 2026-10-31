@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 
-const BOTON = "min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+const BOTON = "boton w-full"
 
 function useAccion() {
   const [error, setError] = useState<string | null>(null)
@@ -44,8 +44,9 @@ export function Desprogramar({
         onClick={() => ejecutar(() => desprogramar(piezaId))}
         className={BOTON}
       >
-        Desprogramar
+        Deshacer firma
       </button>
+      <p className="text-sm text-apagado">Puedes deshacer la firma hasta que salga.</p>
       <Alerta error={error} />
     </div>
   )
@@ -63,48 +64,81 @@ export function SacarDeReserva({ piezaId, sacar }: { piezaId: string; sacar: (id
   )
 }
 
+/** Time to undo a discard before it is sent; leaving the page in that window keeps the piece. */
+const ESPERA_PARA_DESHACER = 6000
+
 export function Descartar({
   piezaId,
   descartar,
+  esperaParaDeshacer = ESPERA_PARA_DESHACER,
 }: {
   piezaId: string
   descartar: (id: string, motivo: string) => Promise<Resultado>
+  esperaParaDeshacer?: number
 }) {
-  const [confirmando, setConfirmando] = useState(false)
+  const [fase, setFase] = useState<"cerrado" | "preguntando" | "esperando">("cerrado")
   const [motivo, setMotivo] = useState("")
   const { error, pendiente, ejecutar } = useAccion()
-  if (!confirmando) {
+  const reloj = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(reloj.current), [])
+
+  function confirmar() {
+    setFase("esperando")
+    reloj.current = setTimeout(() => {
+      ejecutar(async () => {
+        const resultado = await descartar(piezaId, motivo)
+        if (!resultado.ok) setFase("preguntando")
+        return resultado
+      })
+    }, esperaParaDeshacer)
+  }
+
+  function deshacer() {
+    clearTimeout(reloj.current)
+    setFase("cerrado")
+  }
+
+  if (fase === "cerrado") {
     return (
-      <button type="button" onClick={() => setConfirmando(true)} className="min-h-11 w-full text-sm text-apagado">
+      <button type="button" onClick={() => setFase("preguntando")} className="min-h-11 w-full text-sm text-apagado">
         Descartar
       </button>
     )
   }
+  if (fase === "esperando") {
+    return (
+      <div className="flex items-center justify-between gap-3 tarjeta p-3">
+        <output className="text-sm">Pieza descartada.</output>
+        <button type="button" disabled={pendiente} onClick={deshacer} className="min-h-11 px-3 font-medium underline">
+          Deshacer
+        </button>
+      </div>
+    )
+  }
   return (
-    <div className="space-y-2 rounded-lg border border-borde p-3">
-      <p className="text-sm">¿Descartar esta pieza? No se puede deshacer.</p>
+    <div className="space-y-2 tarjeta p-3">
+      <p className="text-sm">¿Descartar esta pieza? Tendrás unos segundos para deshacerlo.</p>
       <label className="block space-y-1">
         <span className="text-sm">Motivo (opcional)</span>
         <input
-          // biome-ignore lint/a11y/noAutofocus: the person just tapped Descartar; the reason field is the next step.
-          autoFocus
           value={motivo}
           maxLength={500}
           onChange={(evento) => setMotivo(evento.target.value)}
-          className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+          className="campo w-full"
         />
       </label>
       <div className="flex gap-2">
-        <button type="button" onClick={() => setConfirmando(false)} className={BOTON}>
-          Cancelar
-        </button>
         <button
           type="button"
-          disabled={pendiente}
-          onClick={() => ejecutar(() => descartar(piezaId, motivo))}
-          className="min-h-11 w-full rounded-lg bg-peligro px-4 font-medium text-primario-texto disabled:opacity-60"
+          // biome-ignore lint/a11y/noAutofocus: the person just opened the question; the safe answer gets the focus.
+          autoFocus
+          onClick={() => setFase("cerrado")}
+          className="boton-primario w-full"
         >
-          Sí, descartar
+          Conservar pieza
+        </button>
+        <button type="button" disabled={pendiente} onClick={confirmar} className={BOTON}>
+          Descartar pieza
         </button>
       </div>
       <Alerta error={error} />
@@ -141,14 +175,10 @@ export function EnvioDudoso({
             value={enlace}
             onChange={(evento) => setEnlace(evento.target.value)}
             placeholder="https://www.linkedin.com/…"
-            className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+            className="campo w-full"
           />
         </label>
-        <button
-          type="submit"
-          disabled={pendiente}
-          className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-        >
+        <button type="submit" disabled={pendiente} className="boton-primario w-full">
           Sí salió
         </button>
       </form>

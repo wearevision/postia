@@ -1,12 +1,12 @@
 import Link from "next/link"
 import { huecosDeLaSemana, sumarDias } from "@/lib/piezas/calendario"
-import { NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import type { AsignacionDelCalendario, CuentaDelCalendario, PiezaDelCalendario } from "@/lib/piezas/lectura"
 import { rutaDeCalendario, rutaDeIdea, rutaDePieza } from "@/lib/sesion/rutas"
+import { MarcaDeEstado } from "../marca-de-estado"
 
 const FORMATO_DEL_LUNES = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long" })
-const ENLACE = "block min-h-11 rounded-lg border border-borde px-3 py-3 text-sm"
+const ENLACE = "boton w-full justify-start px-3 py-3 text-sm"
 
 function nombreDelLunes(lunes: string): string {
   const [anio, mes, dia] = lunes.split("-").map(Number)
@@ -28,7 +28,9 @@ function Pieza({ p }: { p: PiezaDelCalendario }) {
     <Link href={rutaDePieza(p.id)} className={`${ENLACE} space-y-1 ${p.firmada ? "" : "border-dashed text-apagado"}`}>
       <span className="block">{fechaLarga(p.instante)}</span>
       <span className="block">{p.extracto}</span>
-      <span className="block text-apagado">{p.firmada ? NOMBRE_DEL_ESTADO[p.estado] : "Planeada, sin firma"}</span>
+      <span className="block text-apagado">
+        {p.firmada ? <MarcaDeEstado estado={p.estado} /> : "Planeada, sin firma"}
+      </span>
     </Link>
   )
 }

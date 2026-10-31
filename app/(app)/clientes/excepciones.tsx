@@ -9,7 +9,7 @@ import type { Resultado } from "@/lib/marcas/acciones"
 type Marcar = (entrada: unknown) => Promise<Resultado<{ id: string }>>
 type Quitar = (id: string) => Promise<Resultado>
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo w-full"
 
 function esTipo(valor: string): valor is TipoDeExcepcion {
   return Object.hasOwn(TIPOS_DE_EXCEPCION, valor)
@@ -138,7 +138,7 @@ function FormularioDeExcepcion({ cliente, casos, hoy, marcar }: FormularioProps)
         )}
       </div>
       {esPalabraComun(nombre) && (
-        <p className="rounded-lg border border-borde p-3 text-sm">
+        <p className="tarjeta p-3 text-sm">
           Ojo: «{nombre}» también es una palabra común. Con «No se nombra» o «Confidencial», la revisión avisará cada
           vez que aparezca, aunque el texto no hable del cliente.
         </p>
@@ -147,11 +147,7 @@ function FormularioDeExcepcion({ cliente, casos, hoy, marcar }: FormularioProps)
         <span className="text-sm">Hasta (opcional)</span>
         <input type="date" value={hasta} min={hoy} onChange={(e) => setHasta(e.target.value)} className={CAMPO} />
       </label>
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
-      >
+      <button type="submit" disabled={pendiente} className="boton w-full">
         Marcar excepción
       </button>
       {error && (
@@ -189,7 +185,7 @@ export function ExcepcionesDeCliente({ cliente, hoy, marcar, quitar, abierto = f
   }
 
   return (
-    <details open={abierto} className="rounded-lg border border-borde px-4 py-1">
+    <details open={abierto} className="tarjeta px-4 py-1">
       <summary className="flex min-h-11 cursor-pointer items-center py-2 font-medium">
         {cliente.cliente}
         {cuantas > 0 && (
@@ -267,7 +263,7 @@ export function ExcepcionesDeCliente({ cliente, hoy, marcar, quitar, abierto = f
 
 export function ClienteFueraDeLaLista({ hoy, marcar }: { hoy: string; marcar: Marcar }) {
   return (
-    <details className="rounded-lg border border-borde px-4 py-1">
+    <details className="tarjeta px-4 py-1">
       <summary className="flex min-h-11 cursor-pointer items-center py-2 font-medium">
         Cliente que no está en la lista
       </summary>

@@ -19,10 +19,10 @@ export default async function Ajustes() {
       />
       <GastoDelMes resumen={resumen} guardar={guardarTopeAccion} />
       <nav aria-label="Más" className="space-y-2">
-        <Link href={RUTA_DE_VOZ} className="block min-h-11 rounded-lg border border-borde px-4 py-3">
+        <Link href={RUTA_DE_VOZ} className="boton w-full justify-start py-3">
           Voz y línea editorial
         </Link>
-        <Link href={RUTA_DE_CLIENTES} className="block min-h-11 rounded-lg border border-borde px-4 py-3">
+        <Link href={RUTA_DE_CLIENTES} className="boton w-full justify-start py-3">
           Clientes
         </Link>
       </nav>

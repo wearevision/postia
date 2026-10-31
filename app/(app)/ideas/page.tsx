@@ -147,7 +147,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
             key={f.nombre}
             href={rutaConFiltro(serie, f.estado)}
             aria-current={f.estado === estado ? "page" : undefined}
-            className={`flex min-h-11 items-center rounded-full border border-borde px-4 text-sm ${f.estado === estado ? "bg-primario text-primario-texto" : ""}`}
+            className={`boton rounded-full text-sm ${f.estado === estado ? "font-semibold shadow-hundido" : ""}`}
           >
             {f.nombre}
           </Link>
@@ -163,10 +163,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
       {lista.length === 0 ? (
         <div className="space-y-3">
           <p className="text-apagado">Todavía no hay series. Al aprobar un informe, PostIA arma la suya.</p>
-          <Link
-            href={RUTA_DE_INVESTIGAR}
-            className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
-          >
+          <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
             Ir a Investigar
           </Link>
         </div>

@@ -31,7 +31,7 @@ export function PlanDePieza({ piezaId, planeadaPara, planear, sinPlanAlCrear = f
   }
 
   return (
-    <section className="space-y-2 rounded-lg border border-borde p-3">
+    <section className="space-y-2 tarjeta p-3">
       <h2 className="font-medium">Fecha planeada</h2>
       <p>{planeadaPara ? fechaLarga(planeadaPara) : "Sin fecha planeada"}</p>
       <output className="block text-sm">
@@ -48,23 +48,15 @@ export function PlanDePieza({ piezaId, planeadaPara, planear, sinPlanAlCrear = f
               type="datetime-local"
               value={fecha}
               onChange={(evento) => setFecha(evento.target.value)}
-              className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+              className="campo block min-h-12 w-full min-w-0 max-w-full appearance-none"
             />
           </label>
-          <button
-            type="submit"
-            disabled={pendiente}
-            className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-          >
+          <button type="submit" disabled={pendiente} className="boton-primario w-full">
             Guardar fecha
           </button>
         </form>
       ) : (
-        <button
-          type="button"
-          onClick={() => setMoviendo(true)}
-          className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium"
-        >
+        <button type="button" onClick={() => setMoviendo(true)} className="boton w-full">
           Mover fecha
         </button>
       )}

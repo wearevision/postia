@@ -39,7 +39,7 @@ function Hallazgo({
   return (
     <li
       aria-label={descartado ? "Hallazgo descartado" : "Hallazgo"}
-      className={`space-y-2 rounded-lg border border-borde p-3 text-sm ${descartado ? "opacity-50" : ""}`}
+      className={`space-y-2 tarjeta p-3 text-sm ${descartado ? "opacity-50" : ""}`}
     >
       <p>{hallazgo.resumen}</p>
       {hallazgo.cita && <p className="text-apagado">«{hallazgo.cita}»</p>}
@@ -121,10 +121,7 @@ export default async function Informe({ params }: { params: Promise<{ id: string
       {serie && (
         <section className="space-y-3 border-t border-borde pt-4">
           {serie.ideas > 0 || serie.trabajando ? (
-            <Link
-              href={rutaDeSerie(leido.id)}
-              className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
-            >
+            <Link href={rutaDeSerie(leido.id)} className="boton w-full py-3">
               Ver la serie
             </Link>
           ) : (

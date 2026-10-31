@@ -27,9 +27,8 @@ const ENFOQUES: { valor: Enfoque; nombre: string }[] = [
   { valor: "guia", nombre: "Guía" },
 ]
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
-const OPCION =
-  "min-h-11 rounded-lg border border-borde px-4 text-sm font-medium aria-pressed:border-primario aria-pressed:bg-primario aria-pressed:text-primario-texto"
+const CAMPO = "campo w-full"
+const OPCION = "boton text-sm aria-pressed:bg-primario aria-pressed:text-primario-texto aria-pressed:shadow-hundido"
 
 export function FormularioDeInvestigacion({ sugerencias, pedir }: Props) {
   const [tema, setTema] = useState("")
@@ -85,7 +84,7 @@ export function FormularioDeInvestigacion({ sugerencias, pedir }: Props) {
         <fieldset className="space-y-2">
           <legend className="text-sm">Formato</legend>
           {FORMATOS.map((f) => (
-            <label key={f.valor} className="flex min-h-11 items-center gap-3 rounded-lg border border-borde px-3">
+            <label key={f.valor} className="tarjeta flex min-h-11 items-center gap-3 px-3">
               <input
                 type="radio"
                 name="formato"
@@ -114,11 +113,7 @@ export function FormularioDeInvestigacion({ sugerencias, pedir }: Props) {
           </div>
         </fieldset>
         <div className="space-y-1">
-          <button
-            type="submit"
-            disabled={pendiente}
-            className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-          >
+          <button type="submit" disabled={pendiente} className="boton-primario w-full">
             Investigar
           </button>
           <p className="text-sm text-apagado">Cada investigación busca en la web y cuesta cerca de US$1.</p>
@@ -139,7 +134,7 @@ export function FormularioDeInvestigacion({ sugerencias, pedir }: Props) {
                 <button
                   type="button"
                   onClick={() => setTema(s.tema)}
-                  className="block min-h-11 w-full space-y-1 rounded-lg border border-borde p-3 text-left"
+                  className="block min-h-11 w-full space-y-1 tarjeta p-3 text-left"
                 >
                   <span className="block font-medium">{s.tema}</span>
                   <span className="block text-sm text-apagado">{s.enriquece}</span>

@@ -32,10 +32,7 @@ export default async function Investigar() {
           <ul className="space-y-2">
             {recientes.map((i) => (
               <li key={i.id}>
-                <Link
-                  href={rutaDeInvestigacion(i.id)}
-                  className="block min-h-11 space-y-1 rounded-lg border border-borde p-3 text-sm"
-                >
+                <Link href={rutaDeInvestigacion(i.id)} className="block min-h-11 space-y-1 tarjeta p-3 text-sm">
                   <span className="block text-apagado">
                     {i.origen === "vigilancia" ? "Vigilancia · " : ""}
                     {fechaLarga(i.creadaEn)} · {NOMBRE_DEL_ESTADO_DE_INVESTIGACION[i.estado]}

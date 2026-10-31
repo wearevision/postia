@@ -18,10 +18,7 @@ export function ConectarLinkedin({ cuentaId, tipo, conectada }: Props) {
       ? "Renovar LinkedIn"
       : "Conectar LinkedIn"
   return (
-    <Link
-      href={`${ruta}?cuenta=${cuentaId}`}
-      className="inline-flex min-h-11 items-center rounded-lg border border-borde px-3 text-sm"
-    >
+    <Link href={`${ruta}?cuenta=${cuentaId}`} className="boton px-3 text-sm">
       {texto}
     </Link>
   )

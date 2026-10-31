@@ -55,9 +55,7 @@ export default async function LineaDeMarca({
           {SECCIONES.map((s) => (
             <div key={s} className="space-y-1">
               <h2 className="text-sm font-medium">{NOMBRE_DE_SECCION[s]}</h2>
-              <p className="whitespace-pre-wrap rounded-lg border border-borde p-3 text-sm">
-                {actual.secciones[s] || "Vacía."}
-              </p>
+              <p className="whitespace-pre-wrap tarjeta p-3 text-sm">{actual.secciones[s] || "Vacía."}</p>
             </div>
           ))}
           <h2 className="text-sm font-medium">Pilares</h2>

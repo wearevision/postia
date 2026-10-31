@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test"
 import { invitar } from "@/lib/equipo/invitar"
 import { admin, correoUnico } from "../integration/entorno"
 import { entrar } from "./ingreso"
+import { leerHastaElFinal } from "./lectura"
 
 test("an owner writes the editorial line, marks a client not to be named, and gate 1 warns on a piece naming it", async ({
   page,
@@ -54,7 +55,8 @@ test("an owner writes the editorial line, marks a client not to be named, and ga
   const veredicto = page.getByRole("region", { name: "Revisa antes de firmar" })
   await expect(veredicto).toBeVisible()
   await expect(veredicto.getByText(`Nombra a ${cliente}, que no se nombra.`)).toBeVisible()
-  await expect(page.getByRole("button", { name: "Firmar y programar" })).toBeEnabled()
+  await leerHastaElFinal(page)
+  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeEnabled()
   await expect(page.getByLabel("Pilar").locator("option:checked")).toHaveText("Oficio")
 
   await page.goto("/calendario")

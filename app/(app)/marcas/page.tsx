@@ -31,9 +31,9 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
   return (
     <section className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Marcas y cuentas</h1>
-      {mensaje && <output className="block rounded-lg border border-borde p-3 text-sm">{mensaje}</output>}
+      {mensaje && <output className="block tarjeta p-3 text-sm">{mensaje}</output>}
       {marcas.map((marca) => (
-        <article key={marca.id} className="space-y-3 rounded-lg border border-borde p-4">
+        <article key={marca.id} className="space-y-3 tarjeta p-4">
           <header>
             <h2 className="text-lg font-medium">{marca.nombre}</h2>
             <p className="text-sm text-apagado">Habla como «{marca.voz}»</p>

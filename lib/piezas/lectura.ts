@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { cambioEntreVersiones, describirCambio, versionAnterior } from "@/lib/piezas/cambio"
 import { type EstadoDePieza, esEstado } from "@/lib/piezas/estados"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { Carrusel } from "@/lib/plantillas/laminas"
@@ -301,6 +302,8 @@ export interface DetalleDePieza {
     vistas: string[]
   }
   fechaPropuesta: string
+  /** What changed since the previous version («Cambió el texto (1 línea nueva).»), or null when there is none or nothing differs. */
+  cambio: string | null
 }
 
 /** Previews and PDF links alike: gate 1 may stay open an hour while Federico reads the slides. */
@@ -351,6 +354,15 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   if (!p?.cuentas) return null
   const v = ultimaVersion(p.versiones)
   if (!v) return null
+  const anterior = versionAnterior(p.versiones)
+  const cambio = anterior
+    ? describirCambio(
+        cambioEntreVersiones(
+          { texto: anterior.texto, titulo: anterior.titulo, archivoRuta: anterior.archivo_ruta },
+          { texto: v.texto, titulo: v.titulo, archivoRuta: v.archivo_ruta },
+        ),
+      )
+    : null
   let archivoUrl: string | null = null
   let archivoDescarga: string | null = null
   if (v.archivo_ruta) {
@@ -404,5 +416,6 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
       planSigueVigente && p.planeada_para
         ? new Date(p.planeada_para).toISOString()
         : proponerFecha(tipo, horarios, ahora).toISOString(),
+    cambio,
   }
 }

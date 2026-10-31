@@ -49,7 +49,7 @@ export function RutaDeCuenta({ cuentaId, nombre, ruta, conectada, programadas, c
 
   return (
     <div className="space-y-1">
-      <fieldset aria-label={`Cómo sale ${nombre}`} className="inline-flex rounded-lg border border-borde p-0.5">
+      <fieldset aria-label={`Cómo sale ${nombre}`} className="tarjeta inline-flex p-0.5">
         {OPCIONES.map((opcion) => {
           const actual = opcion.ruta === ruta
           return (
@@ -67,11 +67,7 @@ export function RutaDeCuenta({ cuentaId, nombre, ruta, conectada, programadas, c
         })}
       </fieldset>
       {confirmando && (
-        <div
-          role="alertdialog"
-          aria-label="Antes de que salga sola"
-          className="space-y-2 rounded-lg border border-borde p-3"
-        >
+        <div role="alertdialog" aria-label="Antes de que salga sola" className="space-y-2 tarjeta p-3">
           <p className="text-sm">{avisoDeProgramadas(programadas)}</p>
           <div className="flex flex-wrap gap-2">
             <button

@@ -3,7 +3,7 @@
 import { useActionState } from "react"
 import { agregarCuentaAccion } from "./acciones"
 
-const CAMPO = "rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo"
 
 export function FormularioCuenta({ marcaId }: { marcaId: string }) {
   const [resultado, enviar, pendiente] = useActionState(agregarCuentaAccion, null)
@@ -35,14 +35,10 @@ export function FormularioCuenta({ marcaId }: { marcaId: string }) {
           max={21}
           defaultValue={3}
           aria-label="Publicaciones por semana"
-          className="w-16 rounded-lg border border-borde bg-background px-2 py-3"
+          className="campo w-16 px-2"
         />
       </div>
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium"
-      >
+      <button type="submit" disabled={pendiente} className="boton w-full">
         Agregar cuenta
       </button>
       {resultado && !resultado.ok && (

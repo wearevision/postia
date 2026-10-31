@@ -34,10 +34,7 @@ export default async function ElegirPagina({ searchParams }: { searchParams: Pro
                 <form action={elegirPaginaAccion}>
                   <input type="hidden" name="eleccion" value={eleccion.id} />
                   <input type="hidden" name="organizacion" value={pagina.urn} />
-                  <button
-                    type="submit"
-                    className="min-h-11 w-full rounded-lg border border-borde px-4 py-3 text-left font-medium"
-                  >
+                  <button type="submit" className="boton w-full justify-start py-3">
                     {pagina.nombre}
                   </button>
                 </form>
@@ -46,7 +43,7 @@ export default async function ElegirPagina({ searchParams }: { searchParams: Pro
           </ul>
         </>
       ) : (
-        <p className="rounded-lg border border-borde p-3 text-sm">
+        <p className="tarjeta p-3 text-sm">
           Esta elección venció o no es tuya. Vuelve a conectar la página desde Marcas.
         </p>
       )}

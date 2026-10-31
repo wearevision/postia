@@ -25,8 +25,8 @@ interface LaminaEnEdicion {
   borrador: Borrador
 }
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
-const BOTON = "min-h-11 flex-1 rounded-lg border border-borde px-3 disabled:opacity-40"
+const CAMPO = "campo w-full"
+const BOTON = "boton flex-1 px-3"
 // The WAV page posts as WAV more often than as WR3, so its default is WAV's first theme.
 const TEMA_INICIAL: Record<Voz, IdDeTema> = { nosotros: "wav-noche", yo: "personal-claro" }
 const MAXIMO_DE_LAMINAS = 10
@@ -167,7 +167,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
       <fieldset className="space-y-2">
         <legend className="text-sm">Diseño</legend>
         {temasDeLaVoz(vozDe(cuentaId)).map((t) => (
-          <label key={t} className="flex min-h-11 items-center gap-3 rounded-lg border border-borde px-3">
+          <label key={t} className="tarjeta flex min-h-11 items-center gap-3 px-3">
             <input type="radio" name="tema" value={t} checked={tema === t} onChange={() => elegirTema(t)} />
             {TEMAS[t].nombre}
           </label>
@@ -210,7 +210,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
       {laminas.map((l, i) => {
         const fija = l.tipo === "portada" || l.tipo === "cierre"
         return (
-          <fieldset key={l.id} className="space-y-3 rounded-lg border border-borde p-3">
+          <fieldset key={l.id} className="space-y-3 tarjeta p-3">
             <legend className="px-1 font-medium">
               Lámina {i + 1} · {NOMBRE_DEL_TIPO[l.tipo]}
             </legend>
@@ -291,17 +291,13 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
           type="button"
           onClick={agregar}
           disabled={laminas.length >= MAXIMO_DE_LAMINAS}
-          className="min-h-11 rounded-lg border border-borde px-3 py-3 disabled:opacity-40"
+          className="boton px-3 py-3"
         >
           Agregar lámina
         </button>
       </div>
 
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-      >
+      <button type="submit" disabled={pendiente} className="boton-primario w-full">
         Armar carrusel
       </button>
       {inicial && (

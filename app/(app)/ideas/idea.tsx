@@ -16,9 +16,9 @@ import type {
 } from "@/lib/series/lectura"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 
-const BOTON = "min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
-const PRIMARIO = "min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const BOTON = "boton w-full"
+const PRIMARIO = "boton-primario w-full"
+const CAMPO = "campo w-full"
 
 const FORMATO = { texto: "Post de texto", carrusel_pdf: "Carrusel PDF" } as const
 
@@ -53,7 +53,7 @@ function NaceDe({ fuentes }: { fuentes: readonly FuenteConResumen[] }) {
       <p className="font-medium">Nace de:</p>
       <ul aria-label="Nace de:" className="grid gap-2 @sm:grid-cols-2">
         {fuentes.map((f) => (
-          <li key={f.id} className="space-y-1 rounded-lg border border-borde p-3">
+          <li key={f.id} className="tarjeta space-y-1 p-3">
             <EnlaceDeFuente fuente={f} />
             <p className="text-apagado">{f.resumen}</p>
           </li>
@@ -111,7 +111,7 @@ function Asignacion({ a, mover }: { a: AsignacionDeIdea; mover: Acciones["mover"
   }
 
   return (
-    <li aria-label={a.cuenta} className="space-y-2 rounded-lg border border-borde p-3 text-sm">
+    <li aria-label={a.cuenta} className="space-y-2 tarjeta p-3 text-sm">
       <p className="font-medium">{a.cuenta}</p>
       <p>{fechaLarga(a.planeadaPara)}</p>
       <p className={a.estado === "fallo" ? "text-peligro" : "text-apagado"}>{NOMBRE_DE_ASIGNACION[a.estado]}</p>
@@ -262,7 +262,7 @@ export function TarjetaDeIdea({
     <article
       id={`idea-${idea.id}`}
       aria-label={idea.gancho}
-      className={`scroll-mt-4 space-y-3 rounded-lg border border-borde p-4 ${idea.estado === "descartada" ? "opacity-60" : ""}`}
+      className={`scroll-mt-4 space-y-3 tarjeta p-4 ${idea.estado === "descartada" ? "opacity-60" : ""}`}
     >
       <div className="space-y-1">
         <p className="text-sm text-apagado">

@@ -5,7 +5,7 @@ import type { ResumenDeGasto } from "@/lib/gasto/lectura"
 import { enDolares } from "@/lib/gasto/precios"
 import type { Resultado } from "@/lib/marcas/acciones"
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo w-full"
 
 export function GastoDelMes({
   resumen,
@@ -74,11 +74,7 @@ export function GastoDelMes({
             className={CAMPO}
           />
         </label>
-        <button
-          type="submit"
-          disabled={pendiente}
-          className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
-        >
+        <button type="submit" disabled={pendiente} className="boton w-full">
           Guardar tope
         </button>
         {error && (

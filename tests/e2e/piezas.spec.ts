@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test"
 import { invitar } from "@/lib/equipo/invitar"
 import { admin, correoUnico } from "../integration/entorno"
 import { entrar } from "./ingreso"
+import { leerHastaElFinal } from "./lectura"
 
 test("an owner creates a text piece, signs it with the proposed date and finds it under Próximas", async ({
   page,
@@ -28,8 +29,9 @@ test("an owner creates a text piece, signs it with the proposed date and finds i
   await expect(page.getByText("36 / 3000")).toBeVisible()
   await page.getByRole("button", { name: "Crear pieza" }).click()
 
-  await expect(page.getByRole("button", { name: "Firmar y programar" })).toBeVisible()
-  await page.getByRole("button", { name: "Firmar y programar" }).click()
+  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeVisible()
+  await leerHastaElFinal(page)
+  await page.getByRole("button", { name: /^Firmar (?!para).+ · / }).click()
   await expect(page.getByText("Programada", { exact: true })).toBeVisible()
 
   // The Next dev indicator floats over the first nav link on a phone viewport, so go by URL.
@@ -63,6 +65,7 @@ test("a new piece arrives planned, signed for the reserve it shows in Inicio and
 
   const plan = page.locator("section section", { has: page.getByRole("heading", { name: "Fecha planeada" }) })
   await expect(plan.getByText(/^\p{L}+ \d+ de \p{L}+, \d{2}:\d{2}$/u)).toBeVisible()
+  await leerHastaElFinal(page)
   await page.getByRole("button", { name: "Firmar para la reserva" }).click()
   await expect(page.getByText(/^En reserva: la app le pone fecha/)).toBeVisible()
 
@@ -100,7 +103,7 @@ test("an owner uploads a carousel PDF, and the piece keeps the file the server h
   await page.getByRole("textbox", { name: "Texto" }).fill("Un carrusel para probar la subida.")
   await page.getByRole("button", { name: "Crear pieza" }).click()
 
-  await expect(page.getByRole("button", { name: /^Firmar: te aviso/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeVisible()
   await expect(page.getByRole("link", { name: "Ver el PDF" })).toBeVisible()
   const { data: version } = await db
     .from("versiones")
