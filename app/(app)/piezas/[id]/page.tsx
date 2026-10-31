@@ -4,6 +4,7 @@ import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
+import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
@@ -29,6 +30,7 @@ import {
   ponerPilarAccion,
   sacarDeReservaAccion,
 } from "./acciones"
+import { FirmaCaida } from "./caida"
 import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
 import { FirmaConfirmada } from "./firmada"
@@ -130,6 +132,7 @@ export default async function Pieza({
     rearmable ? leerDiseno() : null,
   ])
   const armando = diseno?.abierto ?? false
+  const firmaCaida = estado === "por_aprobar" && pieza.motivo === MOTIVO_DE_FIRMA_CAIDA
 
   function estadoDelCarrusel() {
     if (!diseno) return <p className="text-sm">No pude leer si se está armando el carrusel. Recarga en un rato.</p>
@@ -154,11 +157,13 @@ export default async function Pieza({
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
         <h1 className="text-2xl font-semibold">{version.titulo ?? "Post de texto"}</h1>
         <p className="text-apagado">{NOMBRE_DEL_ESTADO[estado]}</p>
-        {pieza.motivo && <p className="text-sm">{pieza.motivo}</p>}
+        {pieza.motivo && !firmaCaida && <p className="text-sm">{pieza.motivo}</p>}
         {!SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && pieza.pilarNombre && (
           <p className="text-sm text-apagado">Pilar: {pieza.pilarNombre}</p>
         )}
       </header>
+
+      {firmaCaida && <FirmaCaida cambio={pieza.cambio} />}
 
       {SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && (pilares.length > 0 || pieza.pilarId) && (
         <PilarDePieza
