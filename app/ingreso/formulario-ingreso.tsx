@@ -9,8 +9,8 @@ interface Props {
   aviso?: string
 }
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-4 py-3 text-base"
-const BOTON = "w-full min-h-11 rounded-lg bg-primario px-4 py-3 font-medium text-primario-texto disabled:opacity-60"
+const CAMPO = "campo w-full px-4 text-base"
+const BOTON = "boton-primario w-full py-3"
 
 export function FormularioIngreso({ pedirCodigo, verificarCodigo, aviso }: Props) {
   const [paso, setPaso] = useState<"correo" | "codigo">("correo")
@@ -40,7 +40,7 @@ export function FormularioIngreso({ pedirCodigo, verificarCodigo, aviso }: Props
 
   return (
     <div className="space-y-4">
-      {aviso && <p className="rounded-lg border border-borde p-3 text-sm">{aviso}</p>}
+      {aviso && <p className="tarjeta p-3 text-sm">{aviso}</p>}
       {paso === "correo" ? (
         <form onSubmit={mandarCorreo} className="space-y-3">
           <label className="block space-y-1">

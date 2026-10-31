@@ -141,10 +141,7 @@ export default async function Pieza({
     return (
       <>
         {diseno.ultimoFallo && <p className="text-sm">{diseno.ultimoFallo}</p>}
-        <Link
-          href={rutaDeEditarCarrusel(piezaId)}
-          className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
-        >
+        <Link href={rutaDeEditarCarrusel(piezaId)} className="boton w-full py-3">
           Editar el carrusel
         </Link>
       </>
@@ -177,9 +174,7 @@ export default async function Pieza({
       )}
 
       {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
-      {(estado !== "por_aprobar" || armando) && (
-        <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{version.texto}</p>
-      )}
+      {(estado !== "por_aprobar" || armando) && <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>}
       {version.vistas.length > 0
         ? version.archivoDescarga &&
           estado !== "a_mano" && (
@@ -189,10 +184,7 @@ export default async function Pieza({
           )
         : version.archivoUrl &&
           estado !== "a_mano" && (
-            <a
-              href={version.archivoUrl}
-              className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
-            >
+            <a href={version.archivoUrl} className="boton w-full py-3">
               Ver el PDF
             </a>
           )}
@@ -287,7 +279,7 @@ export default async function Pieza({
         <EnvioDudoso piezaId={pieza.id} cerrar={cerrarAManoAccion} noSalio={dudosoAManoAccion} />
       )}
       {estado === "publicada" && pieza.enlace && (
-        <a href={pieza.enlace} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
+        <a href={pieza.enlace} className="boton w-full py-3">
           Ver la publicación
         </a>
       )}

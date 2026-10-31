@@ -10,7 +10,7 @@ interface Props {
   cerrar: (entrada: { piezaId: string; enlace: string }) => Promise<Resultado>
 }
 
-const BOTON = "min-h-11 w-full rounded-lg border border-borde px-4 text-center font-medium leading-[2.75rem]"
+const BOTON = "boton w-full"
 
 export function PublicarAMano({ piezaId, texto, archivoUrl, cerrar }: Props) {
   const [aviso, setAviso] = useState<string | null>(null)
@@ -56,14 +56,10 @@ export function PublicarAMano({ piezaId, texto, archivoUrl, cerrar }: Props) {
             value={enlace}
             onChange={(evento) => setEnlace(evento.target.value)}
             placeholder="https://www.linkedin.com/…"
-            className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+            className="campo w-full"
           />
         </label>
-        <button
-          type="submit"
-          disabled={pendiente}
-          className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-        >
+        <button type="submit" disabled={pendiente} className="boton-primario w-full">
           Ya lo publiqué
         </button>
         {error && (

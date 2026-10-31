@@ -11,7 +11,7 @@ export function PilaresDelCalendario({ balances }: { balances: BalanceDeCuenta[]
         Pilares · últimas {SEMANAS_DE_PROPORCION} semanas
       </h2>
       {conPilares.map(({ cuentaId, cuenta, balance }) => (
-        <div key={cuentaId} className="space-y-1 rounded-lg border border-borde p-3 text-sm">
+        <div key={cuentaId} className="space-y-1 tarjeta p-3 text-sm">
           <p className="font-medium">{cuenta}</p>
           <ul className="space-y-1">
             {balance.filas.map((f) => (

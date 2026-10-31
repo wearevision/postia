@@ -21,7 +21,7 @@ describe("discarding a piece", () => {
     abrir()
     const conservar = screen.getByRole("button", { name: "Conservar pieza" })
     expect(conservar).toHaveFocus()
-    expect(conservar.className).toContain("bg-primario")
+    expect(conservar.className).toContain("boton-primario")
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 

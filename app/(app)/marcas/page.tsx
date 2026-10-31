@@ -31,11 +31,9 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
   return (
     <section className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Marcas y cuentas</h1>
-      {linkedin && MENSAJES[linkedin] && (
-        <output className="block rounded-lg border border-borde p-3 text-sm">{MENSAJES[linkedin]}</output>
-      )}
+      {linkedin && MENSAJES[linkedin] && <output className="block tarjeta p-3 text-sm">{MENSAJES[linkedin]}</output>}
       {marcas.map((marca) => (
-        <article key={marca.id} className="space-y-3 rounded-lg border border-borde p-4">
+        <article key={marca.id} className="space-y-3 tarjeta p-4">
           <header>
             <h2 className="text-lg font-medium">{marca.nombre}</h2>
             <p className="text-sm text-apagado">Habla como «{marca.voz}»</p>
@@ -51,10 +49,7 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
                 {cuenta.ruta === "api" && (
                   <div className="flex flex-wrap items-center gap-2">
                     <EstadoDeConexionChip estado={estadoDeConexion(cuenta.conexiones?.expira_en ?? null, ahora)} />
-                    <Link
-                      href={`/api/linkedin/conectar?cuenta=${cuenta.id}`}
-                      className="min-h-11 rounded-lg border border-borde px-3 py-2 text-sm"
-                    >
+                    <Link href={`/api/linkedin/conectar?cuenta=${cuenta.id}`} className="boton px-3 py-2 text-sm">
                       {cuenta.conexiones ? "Renovar LinkedIn" : "Conectar LinkedIn"}
                     </Link>
                     {cuenta.conexiones && (

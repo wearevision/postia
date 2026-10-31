@@ -12,7 +12,7 @@ interface Props {
   puerto?: PuertoDeAvisos
 }
 
-const BOTON = "min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
+const BOTON = "boton-primario w-full"
 
 export function AvisosDelCelular({ claveVapid, guardar, probar, puerto }: Props) {
   const [aparato] = useState(() => puerto ?? puertoDelNavegador())
@@ -37,7 +37,7 @@ export function AvisosDelCelular({ claveVapid, guardar, probar, puerto }: Props)
 
   if (estado === null) return null
   return (
-    <section className="space-y-3 rounded-lg border border-borde p-4">
+    <section className="space-y-3 tarjeta p-4">
       <h2 className="font-medium">Avisos en tu celular</h2>
       {estado === "instalar" && (
         <p className="text-sm">

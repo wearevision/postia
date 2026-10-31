@@ -105,7 +105,7 @@ export function FirmaDePieza({
 
   return (
     <form onSubmit={enviar} className="space-y-4">
-      <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{texto}</p>
+      <p className="whitespace-pre-wrap tarjeta p-3">{texto}</p>
       <FinDelTexto />
       <label className="block space-y-1">
         <span className="text-sm">Fecha y hora de publicación</span>
@@ -114,7 +114,7 @@ export function FirmaDePieza({
           type="datetime-local"
           value={fecha}
           onChange={(evento) => setFecha(evento.target.value)}
-          className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+          className="campo w-full"
         />
       </label>
       {instante && (
@@ -137,7 +137,7 @@ export function FirmaDePieza({
         disabled={bloqueada}
         aria-busy={pendiente && cual === "fecha"}
         aria-describedby={lectura.motivo ? "motivo-de-lectura" : undefined}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-control disabled:bg-borde disabled:text-foreground disabled:shadow-hundido"
+        className="boton-primario w-full gap-2"
       >
         {pendiente && cual === "fecha" ? (
           <Ocupado />
@@ -152,7 +152,7 @@ export function FirmaDePieza({
         onClick={() => lanzar("reserva")}
         aria-busy={pendiente && cual === "reserva"}
         aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-borde px-4 font-medium disabled:cursor-not-allowed disabled:border-dashed disabled:border-control disabled:bg-borde disabled:shadow-hundido"
+        className="boton w-full gap-2"
       >
         {pendiente && cual === "reserva" ? <Ocupado /> : "Firmar para la reserva"}
       </button>
@@ -177,18 +177,10 @@ export function FirmaDePieza({
               ` Si la conexión no vuelve antes del ${fechaLarga(instante)}, la pieza no sale y vuelve a pedirte la firma.`}
           </p>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => lanzar(cual)}
-              className="min-h-11 flex-1 rounded-lg bg-primario px-4 font-medium text-primario-texto"
-            >
+            <button type="button" onClick={() => lanzar(cual)} className="boton-primario flex-1">
               Reintentar ahora
             </button>
-            <button
-              type="button"
-              onClick={volverALaPieza}
-              className="min-h-11 flex-1 rounded-lg border border-borde px-4 font-medium"
-            >
+            <button type="button" onClick={volverALaPieza} className="boton flex-1">
               Volver a la pieza
             </button>
           </div>

@@ -14,7 +14,7 @@ function primero(valor: string | string[] | undefined): string | undefined {
   return Array.isArray(valor) ? valor[0] : valor
 }
 
-const PESTANA = "flex min-h-11 flex-1 items-center justify-center rounded-lg border border-borde px-4 font-medium"
+const PESTANA = "boton flex-1"
 
 export default async function Calendario({ searchParams }: { searchParams: Promise<Parametros> }) {
   const params = await searchParams

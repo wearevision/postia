@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 
-const BOTON = "min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+const BOTON = "boton w-full"
 
 function useAccion() {
   const [error, setError] = useState<string | null>(null)
@@ -93,7 +93,7 @@ export function AprobarInforme({
         type="button"
         disabled={pendiente}
         onClick={() => ejecutar(() => aprobar(investigacionId))}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
+        className="boton-primario w-full"
       >
         Aprobar informe
       </button>
@@ -122,7 +122,7 @@ export function DescartarInforme({
     )
   }
   return (
-    <div className="space-y-2 rounded-lg border border-borde p-3">
+    <div className="space-y-2 tarjeta p-3">
       <p className="text-sm">¿Descartar el informe? Sus hallazgos no se vuelven a usar. No se puede deshacer.</p>
       <div className="flex gap-2">
         <button type="button" onClick={() => setConfirmando(false)} className={BOTON}>

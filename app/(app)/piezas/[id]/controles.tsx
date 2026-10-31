@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 
-const BOTON = "min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+const BOTON = "boton w-full"
 
 function useAccion() {
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +107,7 @@ export function Descartar({
   }
   if (fase === "esperando") {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-borde p-3 shadow-relieve-sm">
+      <div className="flex items-center justify-between gap-3 tarjeta p-3">
         <output className="text-sm">Pieza descartada.</output>
         <button type="button" disabled={pendiente} onClick={deshacer} className="min-h-11 px-3 font-medium underline">
           Deshacer
@@ -116,7 +116,7 @@ export function Descartar({
     )
   }
   return (
-    <div className="space-y-2 rounded-lg border border-borde p-3">
+    <div className="space-y-2 tarjeta p-3">
       <p className="text-sm">¿Descartar esta pieza? Tendrás unos segundos para deshacerlo.</p>
       <label className="block space-y-1">
         <span className="text-sm">Motivo (opcional)</span>
@@ -124,7 +124,7 @@ export function Descartar({
           value={motivo}
           maxLength={500}
           onChange={(evento) => setMotivo(evento.target.value)}
-          className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+          className="campo w-full"
         />
       </label>
       <div className="flex gap-2">
@@ -133,7 +133,7 @@ export function Descartar({
           // biome-ignore lint/a11y/noAutofocus: the person just opened the question; the safe answer gets the focus.
           autoFocus
           onClick={() => setFase("cerrado")}
-          className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto"
+          className="boton-primario w-full"
         >
           Conservar pieza
         </button>
@@ -175,14 +175,10 @@ export function EnvioDudoso({
             value={enlace}
             onChange={(evento) => setEnlace(evento.target.value)}
             placeholder="https://www.linkedin.com/…"
-            className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+            className="campo w-full"
           />
         </label>
-        <button
-          type="submit"
-          disabled={pendiente}
-          className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-        >
+        <button type="submit" disabled={pendiente} className="boton-primario w-full">
           Sí salió
         </button>
       </form>

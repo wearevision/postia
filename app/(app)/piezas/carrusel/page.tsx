@@ -58,7 +58,7 @@ export default async function Carrusel({ searchParams }: { searchParams: Promise
           {abiertos && <Refrescar mensaje="Se está armando el carrusel. Esta página se actualiza sola." />}
           <ul className="space-y-2">
             {pedidos.map((p) => (
-              <li key={p.id} className="space-y-1 rounded-lg border border-borde p-3 text-sm">
+              <li key={p.id} className="space-y-1 tarjeta p-3 text-sm">
                 <p className="text-apagado">
                   {p.cuenta} · {fechaLarga(p.creadoEn)} · {NOMBRE[p.estado]}
                 </p>

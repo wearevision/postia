@@ -17,7 +17,7 @@ export default async function Voz() {
         <ul className="space-y-2">
           {marcas.map((m) => (
             <li key={m.id}>
-              <Link href={rutaDeVoz(m.id)} className="block min-h-11 rounded-lg border border-borde px-4 py-3">
+              <Link href={rutaDeVoz(m.id)} className="boton w-full justify-start py-3">
                 <span className="font-medium">{m.nombre}</span>
                 <span className="text-apagado"> · {m.version ? `versión ${m.version}` : "sin línea todavía"}</span>
               </Link>

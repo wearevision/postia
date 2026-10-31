@@ -67,3 +67,21 @@ body {
   outline: 2px solid var(--primario);
   outline-offset: 3px;
 }
+
+/* Piezas reutilizables del estilo neumórfico: relieve = se puede pulsar, hundido = se escribe o está inactivo. */
+@layer components {
+  .campo {
+    @apply rounded-lg border border-control bg-background px-3 py-3 shadow-hundido;
+  }
+  .boton {
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-background px-4 font-medium shadow-relieve-sm active:shadow-hundido;
+    @apply disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-control disabled:bg-borde disabled:shadow-hundido;
+  }
+  .boton-primario {
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-primario px-4 font-medium text-primario-texto shadow-relieve active:shadow-hundido;
+    @apply disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-control disabled:bg-borde disabled:text-foreground disabled:shadow-hundido;
+  }
+  .tarjeta {
+    @apply rounded-lg bg-background shadow-relieve-sm;
+  }
+}

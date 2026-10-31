@@ -14,7 +14,7 @@ interface Props {
   }) => Promise<Resultado<{ pedidoId: string }>>
 }
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo w-full"
 
 export function FormularioDePedido({ cuentas, pilares, pedir }: Props) {
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? "")
@@ -100,11 +100,7 @@ export function FormularioDePedido({ cuentas, pilares, pedir }: Props) {
           className={CAMPO}
         />
       </div>
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-      >
+      <button type="submit" disabled={pendiente} className="boton-primario w-full">
         Pedir a Claude
       </button>
       {error && (

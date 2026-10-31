@@ -6,7 +6,7 @@ import type { CuentaDelCalendario, PiezaDelCalendario } from "@/lib/piezas/lectu
 import { rutaDeCalendario, rutaDePieza } from "@/lib/sesion/rutas"
 
 const FORMATO_DEL_LUNES = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long" })
-const ENLACE = "block min-h-11 rounded-lg border border-borde px-3 py-3 text-sm"
+const ENLACE = "boton w-full justify-start px-3 py-3 text-sm"
 
 function nombreDelLunes(lunes: string): string {
   const [anio, mes, dia] = lunes.split("-").map(Number)

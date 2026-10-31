@@ -14,7 +14,7 @@ interface Props {
   sinPilarAlCrear?: boolean
 }
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo w-full"
 
 export function PilarDePieza({ piezaId, pilarId, pilarNombre, pilares, poner, sinPilarAlCrear = false }: Props) {
   const [guardado, setGuardado] = useState(pilarId ?? "")

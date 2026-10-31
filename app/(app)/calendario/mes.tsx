@@ -7,7 +7,7 @@ import { rutaDeCalendario } from "@/lib/sesion/rutas"
 const FORMATO_DEL_MES = new Intl.DateTimeFormat("es-CL", { month: "long", year: "numeric", timeZone: "UTC" })
 const FORMATO_DEL_DIA = new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "long", timeZone: "UTC" })
 const INICIALES = ["L", "M", "M", "J", "V", "S", "D"]
-const ENLACE = "block min-h-11 rounded-lg border border-borde px-3 py-3 text-center text-sm"
+const ENLACE = "boton w-full px-3 py-3 text-sm"
 const PELIGRO: readonly EstadoDePieza[] = ["a_mano", "envio_dudoso", "error"]
 
 function fechaUtc(dia: string): Date {
@@ -67,7 +67,7 @@ export function VistaDelMes({ mes, piezas }: { mes: Mes; piezas: readonly PiezaD
                 key={dia}
                 href={rutaDeCalendario({ semana: dia })}
                 aria-label={nombreDelDia(dia, deEseDia)}
-                className="flex min-h-11 flex-col items-center gap-1 rounded-lg border border-borde py-1 text-sm"
+                className="boton flex-col gap-1 px-0 py-1 text-sm"
               >
                 <span aria-hidden="true">{Number(dia.slice(8))}</span>
                 <span aria-hidden="true" className="flex flex-wrap justify-center gap-0.5">

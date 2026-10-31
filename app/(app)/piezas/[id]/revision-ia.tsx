@@ -34,7 +34,7 @@ export function RevisionDeClaude({
                 setError(r.ok ? null : r.error)
               })
             }
-            className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+            className="boton w-full"
           >
             Revisar con Claude
           </button>
@@ -48,7 +48,7 @@ export function RevisionDeClaude({
     )
   }
   return (
-    <section aria-labelledby="revision-ia" className="space-y-2 rounded-lg border border-borde p-3">
+    <section aria-labelledby="revision-ia" className="space-y-2 tarjeta p-3">
       <h2 id="revision-ia" className="font-medium">
         Revisión de Claude
       </h2>

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 
-const BOTON = "min-h-11 rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
+const BOTON = "boton"
 const RAPIDAS = ["Más corto", "Otro gancho", "Más directo"] as const
 
 function Alerta({ error }: { error: string | null }) {
@@ -56,7 +56,7 @@ export function CorregirTexto({
           value={valor}
           onChange={(evento) => setValor(evento.target.value)}
           rows={12}
-          className="w-full rounded-lg border border-borde bg-background px-3 py-3"
+          className="campo w-full"
         />
       </label>
       <p className="text-sm text-apagado">{[...valor].length} de 3000 caracteres</p>
@@ -125,7 +125,7 @@ export function PedirOtraVersion({
           maxLength={500}
           placeholder="Otra instrucción"
           aria-label="Otra instrucción"
-          className="min-h-11 flex-1 rounded-lg border border-borde bg-background px-3"
+          className="campo min-h-11 flex-1 py-0"
         />
         <button type="submit" disabled={pendiente} className={BOTON}>
           Pedir

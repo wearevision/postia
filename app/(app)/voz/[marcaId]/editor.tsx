@@ -20,7 +20,7 @@ interface Props {
   guardar: (entrada: unknown) => Promise<Resultado<{ version: number }>>
 }
 
-const CAMPO = "w-full rounded-lg border border-borde bg-background px-3 py-3"
+const CAMPO = "campo w-full"
 const POR_SEMANA = [0.5, 1, 2, 3]
 
 /** `clave` keeps a pillar's fields attached to it while others are removed; it never leaves the browser. */
@@ -89,7 +89,7 @@ export function EditorDeLinea({ marcaId, base, secciones: iniciales, pilares: pi
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">Pilares</legend>
         {pilares.map((p, i) => (
-          <div key={p.clave} className="space-y-2 rounded-lg border border-borde p-3">
+          <div key={p.clave} className="space-y-2 tarjeta p-3">
             <label className="block space-y-1">
               <span className="text-sm">Nombre del pilar</span>
               <input
@@ -146,21 +146,13 @@ export function EditorDeLinea({ marcaId, base, secciones: iniciales, pilares: pi
           </div>
         ))}
         {pilares.length < MAXIMO_DE_PILARES && (
-          <button
-            type="button"
-            onClick={() => setPilares((ps) => [...ps, pilarNuevo()])}
-            className="min-h-11 w-full rounded-lg border border-borde px-4"
-          >
+          <button type="button" onClick={() => setPilares((ps) => [...ps, pilarNuevo()])} className="boton w-full">
             Agregar pilar
           </button>
         )}
       </fieldset>
 
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
-      >
+      <button type="submit" disabled={pendiente} className="boton-primario w-full">
         {pendiente ? "Guardando…" : "Guardar versión nueva"}
       </button>
       {error && (
