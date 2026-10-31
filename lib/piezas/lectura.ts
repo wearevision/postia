@@ -1,6 +1,8 @@
 import { z } from "zod"
 import { type EstadoDePieza, esEstado } from "@/lib/piezas/estados"
 import { proponerFecha } from "@/lib/piezas/horarios"
+import { Carrusel } from "@/lib/plantillas/laminas"
+import { esTema, type IdDeTema } from "@/lib/plantillas/temas"
 import type { Db } from "@/lib/supabase/database"
 
 export interface TarjetaDePieza {
@@ -231,8 +233,50 @@ export interface DetalleDePieza {
     huella: string
     archivoUrl: string | null
     archivoDescarga: string | null
+    /** Set only for a carousel built from the templates; a hand-made PDF or a text post has neither. */
+    tema: IdDeTema | null
+    diseno: Carrusel | null
+    /** The stored design as is, even when it no longer parses: gate 1 reviews every string in it. */
+    disenoCrudo: unknown
+    /** Signed URLs of the slide previews, in order: the very images inside the PDF. */
+    vistas: string[]
   }
   fechaPropuesta: string
+}
+
+/** Previews and PDF links alike: gate 1 may stay open an hour while Federico reads the slides. */
+const VIDA_DE_LOS_ENLACES_S = 3600
+
+/** A stored design that no longer parses still opens gate 1: it falls back to the PDF link. */
+function disenoGuardado(piezaId: string, valor: unknown): Carrusel | null {
+  if (valor === null) return null
+  const leido = Carrusel.safeParse(valor)
+  if (leido.success) return leido.data
+  console.error("Un carrusel guardado no calza con las plantillas", piezaId, leido.error.issues[0]?.message)
+  return null
+}
+
+/**
+ * Previews live next to the PDF: <marca>/<archivo>/01.jpg … (lib/carrusel/armar.ts). A missing one must not take
+ * gate 1 down: it logs and returns none, and the page falls back to the PDF link.
+ */
+async function vistasDelCarrusel(db: Db, archivoRuta: string, laminas: number): Promise<string[]> {
+  const base = archivoRuta.replace(/\.pdf$/, "")
+  const rutas = Array.from({ length: laminas }, (_, i) => `${base}/${String(i + 1).padStart(2, "0")}.jpg`)
+  const { data, error } = await db.storage.from("piezas").createSignedUrls(rutas, VIDA_DE_LOS_ENLACES_S)
+  if (error) {
+    console.error("No pude preparar las láminas", archivoRuta, error.message)
+    return []
+  }
+  const urls: string[] = []
+  for (const f of data) {
+    if (f.error || !f.signedUrl) {
+      console.error("No pude preparar una lámina", f.path, f.error ?? "sin enlace")
+      return []
+    }
+    urls.push(f.signedUrl)
+  }
+  return urls
 }
 
 export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<DetalleDePieza | null> {
@@ -240,7 +284,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   const { data: p, error } = await db
     .from("piezas")
     .select(
-      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(id, origen, numero, texto, titulo, huella, archivo_ruta)",
+      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(id, origen, numero, texto, titulo, huella, archivo_ruta, tema, diseno)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -253,14 +297,16 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   if (v.archivo_ruta) {
     const bucket = db.storage.from("piezas")
     const [vista, descarga] = await Promise.all([
-      bucket.createSignedUrl(v.archivo_ruta, 600),
-      bucket.createSignedUrl(v.archivo_ruta, 600, { download: true }),
+      bucket.createSignedUrl(v.archivo_ruta, VIDA_DE_LOS_ENLACES_S),
+      bucket.createSignedUrl(v.archivo_ruta, VIDA_DE_LOS_ENLACES_S, { download: true }),
     ])
     if (vista.error) throw new Error(`No pude preparar el PDF: ${vista.error.message}`, { cause: vista.error })
     if (descarga.error) throw new Error(`No pude preparar el PDF: ${descarga.error.message}`, { cause: descarga.error })
     archivoUrl = vista.data.signedUrl
     archivoDescarga = descarga.data.signedUrl
   }
+  const diseno = disenoGuardado(p.id, v.diseno)
+  const vistas = diseno && v.archivo_ruta ? await vistasDelCarrusel(db, v.archivo_ruta, diseno.laminas.length) : []
   const tipo = leerTipo(p.cuentas.tipo)
   const horarios = await horariosOcupados(db, p.cuentas.id, ahora, p.id)
   const planSigueVigente = p.planeada_para !== null && Date.parse(p.planeada_para) > ahora + 60_000
@@ -290,6 +336,10 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
       huella: v.huella,
       archivoUrl,
       archivoDescarga,
+      tema: diseno && v.tema && esTema(v.tema) ? v.tema : null,
+      diseno,
+      disenoCrudo: v.diseno,
+      vistas,
     },
     fechaPropuesta:
       planSigueVigente && p.planeada_para

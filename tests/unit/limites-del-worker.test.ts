@@ -88,4 +88,25 @@ describe("Worker boundary", () => {
     expect([...grafo.archivos].filter(esDelClienteDeClaude)).toEqual([])
     expect([...grafo.paquetes].filter(esElSdk)).toEqual([])
   })
+
+  test("nothing reachable from a route, a component or the proxy imports the carousel renderer or Playwright", () => {
+    const entradas = [
+      ...archivos("app"),
+      ...archivos("components"),
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos].filter((a) => a.startsWith("lib/carrusel/"))).toEqual([])
+    expect([...grafo.paquetes].filter((p) => p === "playwright" || p.startsWith("playwright/"))).toEqual([])
+  })
+
+  test("the cheap carousel poller does not reach Playwright or the renderer's task", () => {
+    const grafo = recorrerImports(["trigger/vigilar-carruseles.ts"], disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos].filter((a) => a === "trigger/carruseles.ts" || a === "lib/carrusel/render.ts")).toEqual(
+      [],
+    )
+    expect([...grafo.paquetes].filter((p) => p === "playwright" || p.startsWith("playwright/"))).toEqual([])
+  })
 })

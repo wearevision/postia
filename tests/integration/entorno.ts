@@ -84,6 +84,26 @@ export async function piezaDe(db: Db, cuentaId: string, texto = "Hola desde Post
   return data
 }
 
+/** A hand-made carousel piece (C1 path); a stub PDF is enough, the database never reads it. */
+export async function carruselDe(db: Db, cuentaId: string, marcaId?: string): Promise<string> {
+  const marca = marcaId ?? (await admin().from("cuentas").select("marca_id").eq("id", cuentaId).single()).data?.marca_id
+  const ruta = `${marca}/${randomUUID()}.pdf`
+  const subida = await admin()
+    .storage.from("piezas")
+    .upload(ruta, new TextEncoder().encode("%PDF-1.4"), { contentType: "application/pdf" })
+  if (subida.error) throw subida.error
+  const { data, error } = await db.rpc("crear_pieza", {
+    p_cuenta: cuentaId,
+    p_formato: "carrusel_pdf",
+    p_texto: "Post",
+    p_titulo: "Documento",
+    p_archivo_ruta: ruta,
+    p_archivo_sha256: "a".repeat(64),
+  })
+  if (error) throw error
+  return data
+}
+
 export async function versionVigente(piezaId: string): Promise<{ id: string; huella: string }> {
   const { data, error } = await admin()
     .from("versiones")

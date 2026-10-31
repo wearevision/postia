@@ -92,7 +92,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - run: bash scripts/supabase-env.sh > .env.local
-      - run: pnpm exec playwright install --with-deps webkit
+      - run: pnpm exec playwright install --with-deps webkit chromium
+      - run: pnpm test:render
       - run: pnpm test:e2e
 
   deploy:

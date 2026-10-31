@@ -5,6 +5,7 @@ export const RUTA_DE_MARCAS = "/marcas"
 export const RUTA_DE_AJUSTES = "/ajustes"
 export const RUTA_DE_NUEVA_PIEZA = "/piezas/nueva"
 export const RUTA_DE_PEDIR_TEXTO = "/piezas/pedir"
+export const RUTA_DE_CARRUSEL = "/piezas/carrusel"
 export const RUTA_DE_CALENDARIO = "/calendario"
 export const RUTA_DE_VOZ = "/voz"
 export const RUTA_DE_CLIENTES = "/clientes"
@@ -22,6 +23,10 @@ export function rutaDeVoz(marcaId: string, version?: number): string {
 /** `aviso` names what a new piece could not get (lib/piezas/acciones.ts AvisoDePiezaNueva); its page asks for it. */
 export function rutaDePieza(id: string, aviso: readonly string[] = []): string {
   return `/piezas/${id}${aviso.length > 0 ? `?aviso=${aviso.join(",")}` : ""}`
+}
+
+export function rutaDeEditarCarrusel(piezaId: string): string {
+  return `${RUTA_DE_CARRUSEL}?pieza=${encodeURIComponent(piezaId)}`
 }
 
 const PUBLICAS = new Set([RUTA_DE_INGRESO])

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { type Excepcion, mensajeDe, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
+import { carruselInicial } from "@/lib/plantillas/iniciales"
+import { textoDeLasLaminas } from "@/lib/plantillas/texto"
 
 const HOY = "2026-11-02"
 
@@ -181,5 +183,22 @@ describe("textoARevisar", () => {
     expect(textoARevisar("Título", "Cuerpo")).toBe("Título\nCuerpo")
     expect(textoARevisar(null, "Cuerpo")).toBe("Cuerpo")
     expect(textoARevisar("", "Cuerpo")).toBe("Cuerpo")
+  })
+
+  test("adds the slides' text after the post, so the review reads every word that is published", () => {
+    expect(textoARevisar("Doc", "Post", "lámina que nombra a Cliente X")).toBe(
+      "Doc\nPost\nlámina que nombra a Cliente X",
+    )
+    expect(textoARevisar(null, "Post", "")).toBe("Post")
+  })
+
+  test("a client named only on slide 4 of a carousel is a finding", () => {
+    const diseno = carruselInicial("wav")
+    diseno.laminas[3] = { tipo: "lista", titulo: "Dónde trabajamos", items: ["Con Banco Ñuñoa", "En regiones"] }
+    const r = prepararRevision([excepcion()], HOY)
+    expect(r.revisar(textoARevisar("Doc", "Un post sin clientes"), "nosotros")).toEqual([])
+    expect(
+      r.revisar(textoARevisar("Doc", "Un post sin clientes", textoDeLasLaminas(diseno)), "nosotros"),
+    ).toContainEqual({ tipo: "cliente", cliente: "Banco Ñuñoa", excepcion: "no_nombrar", fragmento: "Banco Ñuñoa" })
   })
 })

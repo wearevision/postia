@@ -1,6 +1,7 @@
 /** The text a verdict reviews: title and body, as the piece reads. */
-export function textoARevisar(titulo: string | null, texto: string): string {
-  return [titulo, texto].filter(Boolean).join("\n")
+/** `extra` carries what else is published with the post, such as a carousel's slides (D13). */
+export function textoARevisar(titulo: string | null, texto: string, ...extra: string[]): string {
+  return [titulo, texto, ...extra].filter(Boolean).join("\n")
 }
 
 export type TipoDeExcepcion = "no_nombrar" | "sin_fotos" | "sin_logo" | "confidencial"
