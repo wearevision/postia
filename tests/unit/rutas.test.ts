@@ -5,6 +5,7 @@ import {
   RUTA_DE_CLIENTES,
   RUTA_DE_VOZ,
   rutaDeCalendario,
+  rutaDeEditarCarrusel,
   rutaDePieza,
   rutaDeVoz,
 } from "@/lib/sesion/rutas"
@@ -49,5 +50,11 @@ describe("rutaDePieza", () => {
     expect(rutaDePieza("p1", [])).toBe("/piezas/p1")
     expect(rutaDePieza("p1", ["pilar"])).toBe("/piezas/p1?aviso=pilar")
     expect(rutaDePieza("p1", ["plan", "pilar"])).toBe("/piezas/p1?aviso=plan,pilar")
+  })
+})
+
+describe("rutaDeEditarCarrusel", () => {
+  test("opens the carousel editor on a piece", () => {
+    expect(rutaDeEditarCarrusel("abc")).toBe("/piezas/carrusel?pieza=abc")
   })
 })
