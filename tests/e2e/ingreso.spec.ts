@@ -30,7 +30,9 @@ test("an invited person signs in with the six-digit code and lands on Inicio", a
   await page.getByLabel("Código de 6 números").fill(await codigoPara(request, correo))
   await page.getByRole("button", { name: "Entrar" }).click()
   await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible()
-  await expect(page.getByText("No hay nada pendiente.")).toBeVisible()
+  // Ideas and reports are shared by the whole team, so other specs may leave some «Por revisar»; a new person has no
+  // pieces of their own to sign.
+  await expect(page.getByRole("heading", { name: "Por firmar" })).toHaveCount(0)
 })
 
 test("a person who was not invited gets the same answer and no email", async ({ page, request }) => {
