@@ -143,6 +143,35 @@ describe("design requests", () => {
     expect(p?.estado).toBe("obsoleto")
   })
 
+  test("a request whose lease expired twice is closed as failed instead of leased a third time", async () => {
+    const { data: id } = await dueno.db.rpc("pedir_diseno", pedido(cuenta))
+    await tomarSolo(id as string)
+    const vencer = async () => {
+      const { error } = await admin()
+        .from("pedidos_de_diseno")
+        .update({ arrendado_hasta: new Date(Date.now() - 60_000).toISOString() })
+        .eq("id", id as string)
+      if (error) throw error
+    }
+    await vencer()
+    const segunda = await admin().rpc("tomar_pedidos_de_diseno")
+    expect(segunda.data?.map((p) => [p.id, p.intentos])).toEqual([[id, 2]])
+    await vencer()
+    const tercera = await admin().rpc("tomar_pedidos_de_diseno")
+    expect(tercera.error).toBeNull()
+    expect(tercera.data).toEqual([])
+    const { data: p } = await admin()
+      .from("pedidos_de_diseno")
+      .select("estado, motivo, arrendado_hasta")
+      .eq("id", id as string)
+      .single()
+    expect(p).toEqual({
+      estado: "fallo",
+      motivo: "No pude armar el carrusel después de dos intentos. Revisa las láminas o pídelo de nuevo.",
+      arrendado_hasta: null,
+    })
+  })
+
   test("people cannot call the worker's RPCs", async () => {
     const { data: id } = await dueno.db.rpc("pedir_diseno", pedido(cuenta))
     await tomarSolo(id as string)

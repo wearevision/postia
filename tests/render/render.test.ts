@@ -1,3 +1,5 @@
+import { createServer, type Server } from "node:http"
+import type { AddressInfo } from "node:net"
 import { PDFDocument } from "pdf-lib"
 import { type Browser, chromium } from "playwright"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
@@ -25,11 +27,17 @@ function medidas(jpeg: Uint8Array): { ancho: number; alto: number } {
 }
 
 let navegador: Browser
+// Accepts the request and never answers: a page that never finishes loading.
+let colgado: Server
 beforeAll(async () => {
   navegador = await chromium.launch()
+  colgado = createServer(() => {})
+  await new Promise<void>((listo) => colgado.listen(0, "127.0.0.1", listo))
 })
 afterAll(async () => {
   await navegador.close()
+  colgado.closeAllConnections()
+  colgado.close()
 })
 
 describe("renderizarCarrusel", () => {
@@ -66,5 +74,13 @@ describe("renderizarCarrusel", () => {
   test("fails when a font did not load instead of rendering with a fallback", async () => {
     const html = htmlDelCarrusel({ tema: "oscura", ...carruselInicial("wr3") }, () => "data:font/woff2;base64,AAAA")
     await expect(renderizarCarrusel(navegador, html)).rejects.toThrow(/fuente/)
+  })
+
+  test("fails a step that hangs instead of eating the whole run", async () => {
+    const { port } = colgado.address() as AddressInfo
+    const html = `<!doctype html><html><body><img src="http://127.0.0.1:${port}/nunca.png"></body></html>`
+    const inicio = Date.now()
+    await expect(renderizarCarrusel(navegador, html, 500)).rejects.toThrow(/Timeout/i)
+    expect(Date.now() - inicio).toBeLessThan(10_000)
   })
 })

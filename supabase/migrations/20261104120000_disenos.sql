@@ -41,6 +41,8 @@ create table public.pedidos_de_diseno (
   motivo text check (length(motivo) <= 500),
   resultado_pieza_id uuid references public.piezas (id) on delete set null,
   arrendado_hasta timestamptz,
+  -- Leases taken: a request that kills the run (Chromium hang, OOM) is not retried forever.
+  intentos integer not null default 0,
   pedido_por uuid not null references auth.users (id),
   creado_en timestamptz not null default now(),
   terminado_en timestamptz,
@@ -107,17 +109,26 @@ begin
 end $$;
 
 -- The renderer (service role only). One at a time: Chromium is the slow part and a run is far below the lease.
+-- A lease that expired means the run died on that request; after two of those it is closed instead of taken again.
 create function public.tomar_pedidos_de_diseno() returns setof public.pedidos_de_diseno
-language sql security definer set search_path = '' as $$
-  update public.pedidos_de_diseno p set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes'
+language plpgsql security definer set search_path = '' as $$
+begin
+  update public.pedidos_de_diseno
+     set estado = 'fallo',
+         motivo = 'No pude armar el carrusel después de dos intentos. Revisa las láminas o pídelo de nuevo.',
+         terminado_en = now(), arrendado_hasta = null
+   where estado = 'trabajando' and arrendado_hasta < now() and intentos >= 2;
+  return query
+  update public.pedidos_de_diseno p
+     set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes', intentos = p.intentos + 1
    where p.id in (
      select id from public.pedidos_de_diseno
       where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
       order by creado_en
       limit 1
       for update skip locked)
-  returning p.*
-$$;
+  returning p.*;
+end $$;
 
 create function public.terminar_pedido_de_diseno(p_pedido uuid, p_estado text, p_motivo text) returns void
 language plpgsql security definer set search_path = '' as $$

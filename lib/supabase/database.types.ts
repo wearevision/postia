@@ -578,6 +578,7 @@ export type Database = {
           diseno: Json
           estado: string
           id: string
+          intentos: number
           motivo: string | null
           pedido_por: string
           pieza_id: string | null
@@ -595,6 +596,7 @@ export type Database = {
           diseno: Json
           estado?: string
           id?: string
+          intentos?: number
           motivo?: string | null
           pedido_por: string
           pieza_id?: string | null
@@ -612,6 +614,7 @@ export type Database = {
           diseno?: Json
           estado?: string
           id?: string
+          intentos?: number
           motivo?: string | null
           pedido_por?: string
           pieza_id?: string | null
@@ -1458,6 +1461,7 @@ export type Database = {
           diseno: Json
           estado: string
           id: string
+          intentos: number
           motivo: string | null
           pedido_por: string
           pieza_id: string | null
