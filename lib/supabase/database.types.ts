@@ -34,6 +34,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      asignaciones: {
+        Row: {
+          arrendado_hasta: string | null
+          creada_en: string
+          cuenta_id: string
+          estado: string
+          formato: string
+          id: string
+          idea_id: string
+          intentos: number
+          motivo: string | null
+          pedido_de_diseno_id: string | null
+          pieza_id: string | null
+          planeada_para: string
+        }
+        Insert: {
+          arrendado_hasta?: string | null
+          creada_en?: string
+          cuenta_id: string
+          estado?: string
+          formato: string
+          id?: string
+          idea_id: string
+          intentos?: number
+          motivo?: string | null
+          pedido_de_diseno_id?: string | null
+          pieza_id?: string | null
+          planeada_para: string
+        }
+        Update: {
+          arrendado_hasta?: string | null
+          creada_en?: string
+          cuenta_id?: string
+          estado?: string
+          formato?: string
+          id?: string
+          idea_id?: string
+          intentos?: number
+          motivo?: string | null
+          pedido_de_diseno_id?: string | null
+          pieza_id?: string | null
+          planeada_para?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asignaciones_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_pedido_de_diseno_id_fkey"
+            columns: ["pedido_de_diseno_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_de_diseno"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avisos_de_tope: {
         Row: {
           alcance: string
@@ -152,7 +226,9 @@ export type Database = {
           expira_en: string
           id: string
           nombre: string | null
+          organizacion: string | null
           red: string
+          renovacion_expira_en: string | null
           scopes: string[]
           titular: string
         }
@@ -163,7 +239,9 @@ export type Database = {
           expira_en: string
           id?: string
           nombre?: string | null
+          organizacion?: string | null
           red: string
+          renovacion_expira_en?: string | null
           scopes: string[]
           titular: string
         }
@@ -174,7 +252,9 @@ export type Database = {
           expira_en?: string
           id?: string
           nombre?: string | null
+          organizacion?: string | null
           red?: string
+          renovacion_expira_en?: string | null
           scopes?: string[]
           titular?: string
         }
@@ -227,6 +307,53 @@ export type Database = {
             columns: ["marca_id"]
             isOneToOne: false
             referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elecciones_de_pagina: {
+        Row: {
+          conectada_por: string
+          creada_en: string
+          cuenta_id: string
+          expira_en: string
+          id: string
+          nombre: string | null
+          paginas: Json
+          renovacion_expira_en: string | null
+          scopes: string[]
+          titular: string
+        }
+        Insert: {
+          conectada_por: string
+          creada_en?: string
+          cuenta_id: string
+          expira_en: string
+          id?: string
+          nombre?: string | null
+          paginas: Json
+          renovacion_expira_en?: string | null
+          scopes: string[]
+          titular: string
+        }
+        Update: {
+          conectada_por?: string
+          creada_en?: string
+          cuenta_id?: string
+          expira_en?: string
+          id?: string
+          nombre?: string | null
+          paginas?: Json
+          renovacion_expira_en?: string | null
+          scopes?: string[]
+          titular?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elecciones_de_pagina_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
             referencedColumns: ["id"]
           },
         ]
@@ -480,6 +607,92 @@ export type Database = {
           },
         ]
       }
+      ideas: {
+        Row: {
+          aprobada_por: string | null
+          creada_en: string
+          cuenta_sugerida: string
+          esqueleto: Json
+          estado: string
+          formato: string
+          fuentes: string[]
+          gancho: string
+          id: string
+          investigacion_id: string | null
+          orden: number
+          pilar_id: string | null
+          razon: string
+          reemplaza_a: string | null
+          resumen: string
+          vector: string
+        }
+        Insert: {
+          aprobada_por?: string | null
+          creada_en?: string
+          cuenta_sugerida: string
+          esqueleto: Json
+          estado?: string
+          formato: string
+          fuentes: string[]
+          gancho: string
+          id?: string
+          investigacion_id?: string | null
+          orden?: number
+          pilar_id?: string | null
+          razon: string
+          reemplaza_a?: string | null
+          resumen: string
+          vector: string
+        }
+        Update: {
+          aprobada_por?: string | null
+          creada_en?: string
+          cuenta_sugerida?: string
+          esqueleto?: Json
+          estado?: string
+          formato?: string
+          fuentes?: string[]
+          gancho?: string
+          id?: string
+          investigacion_id?: string | null
+          orden?: number
+          pilar_id?: string | null
+          razon?: string
+          reemplaza_a?: string | null
+          resumen?: string
+          vector?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ideas_cuenta_sugerida_fkey"
+            columns: ["cuenta_sugerida"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ideas_investigacion_id_fkey"
+            columns: ["investigacion_id"]
+            isOneToOne: false
+            referencedRelation: "investigaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ideas_pilar_id_fkey"
+            columns: ["pilar_id"]
+            isOneToOne: false
+            referencedRelation: "pilares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ideas_reemplaza_a_fkey"
+            columns: ["reemplaza_a"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investigaciones: {
         Row: {
           angulos: Json
@@ -640,15 +853,19 @@ export type Database = {
       pedidos_de_diseno: {
         Row: {
           arrendado_hasta: string | null
+          asignacion_id: string | null
           creado_en: string
           cuenta_id: string
           diseno: Json
           estado: string
           id: string
           intentos: number
+          linea_version: number | null
           motivo: string | null
+          origen: string
           pedido_por: string
           pieza_id: string | null
+          planeada_para: string | null
           resultado_pieza_id: string | null
           tema: string
           terminado_en: string | null
@@ -658,15 +875,19 @@ export type Database = {
         }
         Insert: {
           arrendado_hasta?: string | null
+          asignacion_id?: string | null
           creado_en?: string
           cuenta_id: string
           diseno: Json
           estado?: string
           id?: string
           intentos?: number
+          linea_version?: number | null
           motivo?: string | null
+          origen?: string
           pedido_por: string
           pieza_id?: string | null
+          planeada_para?: string | null
           resultado_pieza_id?: string | null
           tema: string
           terminado_en?: string | null
@@ -676,15 +897,19 @@ export type Database = {
         }
         Update: {
           arrendado_hasta?: string | null
+          asignacion_id?: string | null
           creado_en?: string
           cuenta_id?: string
           diseno?: Json
           estado?: string
           id?: string
           intentos?: number
+          linea_version?: number | null
           motivo?: string | null
+          origen?: string
           pedido_por?: string
           pieza_id?: string | null
+          planeada_para?: string | null
           resultado_pieza_id?: string | null
           tema?: string
           terminado_en?: string | null
@@ -693,6 +918,13 @@ export type Database = {
           version_base_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_de_diseno_asignacion_id_fkey"
+            columns: ["asignacion_id"]
+            isOneToOne: false
+            referencedRelation: "asignaciones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedidos_de_diseno_cuenta_id_fkey"
             columns: ["cuenta_id"]
@@ -1135,6 +1367,7 @@ export type Database = {
           creado_en: string
           estado: string
           id: string
+          idea_id: string | null
           intentos: number
           investigacion_id: string
           motivo: string | null
@@ -1147,6 +1380,7 @@ export type Database = {
           creado_en?: string
           estado?: string
           id?: string
+          idea_id?: string | null
           intentos?: number
           investigacion_id: string
           motivo?: string | null
@@ -1159,6 +1393,7 @@ export type Database = {
           creado_en?: string
           estado?: string
           id?: string
+          idea_id?: string | null
           intentos?: number
           investigacion_id?: string
           motivo?: string | null
@@ -1166,6 +1401,13 @@ export type Database = {
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trabajos_de_investigacion_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trabajos_de_investigacion_investigacion_id_fkey"
             columns: ["investigacion_id"]
@@ -1239,8 +1481,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aprobar_idea: {
+        Args: { p_asignaciones: Json; p_idea: string }
+        Returns: string[]
+      }
       aprobar_informe: { Args: { p_investigacion: string }; Returns: undefined }
+      barrer_elecciones: { Args: { p_ahora?: string }; Returns: number }
       barrer_gastos: { Args: { p_ahora?: string }; Returns: number }
+      cambiar_ruta: {
+        Args: { p_cuenta: string; p_ruta: string }
+        Returns: undefined
+      }
       cerrar_a_mano: {
         Args: { p_enlace: string; p_pieza: string }
         Returns: undefined
@@ -1260,9 +1511,13 @@ export type Database = {
       }
       conectar_linkedin: {
         Args: {
+          p_app?: string
           p_cuenta: string
           p_expira_en: string
           p_nombre: string
+          p_organizacion?: string
+          p_renovacion?: string
+          p_renovacion_expira_en?: string
           p_scopes: string[]
           p_titular: string
           p_token: string
@@ -1287,6 +1542,15 @@ export type Database = {
           p_titulo?: string
         }
         Returns: string
+      }
+      crear_pieza_de_asignacion: {
+        Args: {
+          p_asignacion: string
+          p_linea_version: number
+          p_planeada_para: string
+          p_texto: string
+        }
+        Returns: Json
       }
       crear_pieza_de_claude: {
         Args: {
@@ -1313,6 +1577,7 @@ export type Database = {
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {
+          autor: string
           expira_en: string
           titular: string
           token: string
@@ -1323,6 +1588,7 @@ export type Database = {
         Returns: string
       }
       descartar_hallazgo: { Args: { p_hallazgo: string }; Returns: undefined }
+      descartar_idea: { Args: { p_idea: string }; Returns: undefined }
       descartar_informe: {
         Args: { p_investigacion: string }
         Returns: undefined
@@ -1338,9 +1604,23 @@ export type Database = {
         Returns: string
       }
       dudoso_a_mano: { Args: { p_pieza: string }; Returns: undefined }
+      editar_idea: {
+        Args: { p_esqueleto: Json; p_gancho: string; p_idea: string }
+        Returns: undefined
+      }
+      elegir_pagina: {
+        Args: { p_eleccion: string; p_organizacion: string }
+        Returns: string
+      }
       es_dueno: { Args: { p_marca: string }; Returns: boolean }
       es_dueno_de_alguna: { Args: never; Returns: boolean }
       es_miembro: { Args: { p_marca: string }; Returns: boolean }
+      esqueleto_valido: { Args: { p: Json }; Returns: boolean }
+      fallar_asignacion: {
+        Args: { p_asignacion: string; p_motivo: string }
+        Returns: undefined
+      }
+      fecha_de_asignacion_valida: { Args: { p: string }; Returns: boolean }
       firmar_para_reserva: {
         Args: { p_huella: string; p_pieza: string }
         Returns: string
@@ -1359,6 +1639,20 @@ export type Database = {
           p_planeada_para?: string
         }
         Returns: Json
+      }
+      guardar_eleccion: {
+        Args: {
+          p_cuenta: string
+          p_expira_en: string
+          p_nombre: string
+          p_paginas: Json
+          p_renovacion?: string
+          p_renovacion_expira_en?: string
+          p_scopes: string[]
+          p_titular: string
+          p_token: string
+        }
+        Returns: string
       }
       guardar_hallazgo: {
         Args: {
@@ -1395,9 +1689,27 @@ export type Database = {
         }
         Returns: number
       }
+      guardar_renovacion: {
+        Args: {
+          p_conexion: string
+          p_expira_en: string
+          p_renovacion: string
+          p_renovacion_expira_en: string
+          p_token: string
+        }
+        Returns: undefined
+      }
       guardar_revision_ia: {
         Args: { p_pedido?: string; p_veredicto: Json; p_version: string }
         Returns: undefined
+      }
+      guardar_secreto: {
+        Args: { p_nombre: string; p_valor: string }
+        Returns: undefined
+      }
+      guardar_serie: {
+        Args: { p_ideas: Json; p_investigacion: string }
+        Returns: string[]
       }
       guardar_sugerencias: { Args: { p_sugerencias: Json }; Returns: undefined }
       guardar_tope: {
@@ -1410,6 +1722,15 @@ export type Database = {
           id: string
           resumen: string
           vector: string
+        }[]
+      }
+      ideas_parecidas: {
+        Args: { p_excepto?: string[]; p_umbral: number; p_vector: string }
+        Returns: {
+          estado: string
+          gancho: string
+          id: string
+          similitud: number
         }[]
       }
       liberar_gasto: {
@@ -1428,6 +1749,10 @@ export type Database = {
         Returns: string
       }
       mes_de: { Args: { p_ahora: string }; Returns: string }
+      mover_asignacion: {
+        Args: { p_asignacion: string; p_fecha: string }
+        Returns: undefined
+      }
       normalizar_texto: { Args: { p: string }; Returns: string }
       nueva_version: {
         Args: {
@@ -1439,6 +1764,7 @@ export type Database = {
         }
         Returns: string
       }
+      olvidar_renovacion: { Args: { p_conexion: string }; Returns: undefined }
       pedir_ampliacion: {
         Args: { p_angulo: string; p_investigacion: string }
         Returns: string
@@ -1454,6 +1780,18 @@ export type Database = {
         }
         Returns: string
       }
+      pedir_diseno_de_asignacion: {
+        Args: {
+          p_asignacion: string
+          p_diseno: Json
+          p_linea_version: number
+          p_planeada_para: string
+          p_tema: string
+          p_texto: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       pedir_investigacion: {
         Args: {
           p_cantidad: number
@@ -1463,11 +1801,13 @@ export type Database = {
         }
         Returns: string
       }
+      pedir_otra_idea: { Args: { p_idea: string }; Returns: string }
       pedir_reescritura: {
         Args: { p_instruccion: string; p_pieza: string }
         Returns: string
       }
       pedir_revision: { Args: { p_pieza: string }; Returns: string }
+      pedir_serie: { Args: { p_investigacion: string }; Returns: string }
       pedir_texto: {
         Args: {
           p_cuenta: string
@@ -1502,6 +1842,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      pilar_de_idea_en_cuenta: {
+        Args: { p_cuenta: string; p_idea: string }
+        Returns: string
+      }
       planear_pieza: {
         Args: { p_fecha: string; p_pieza: string }
         Returns: undefined
@@ -1515,6 +1859,15 @@ export type Database = {
       registrar_falla_de_espacio: {
         Args: { p_motivo: string; p_pieza: string }
         Returns: boolean
+      }
+      renovaciones_pendientes: {
+        Args: { p_hasta: string }
+        Returns: {
+          conexion: string
+          expira_en: string
+          renovacion: string
+          renovacion_expira_en: string
+        }[]
       }
       reservar_envio: {
         Args: { p_firma: string; p_pieza: string; p_version: string }
@@ -1534,6 +1887,7 @@ export type Database = {
       resumen_de_gasto: { Args: never; Returns: Json }
       reubicar_pendientes: { Args: { p_umbral: number }; Returns: number }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
+      soltar_conexion: { Args: { p_conexion: string }; Returns: undefined }
       tema_de_la_voz: {
         Args: { p_tema: string; p_voz: string }
         Returns: boolean
@@ -1574,6 +1928,29 @@ export type Database = {
         Returns: undefined
       }
       tiene_acceso: { Args: never; Returns: boolean }
+      tomar_asignaciones: {
+        Args: { p_hasta: string; p_limite: number }
+        Returns: {
+          arrendado_hasta: string | null
+          creada_en: string
+          cuenta_id: string
+          estado: string
+          formato: string
+          id: string
+          idea_id: string
+          intentos: number
+          motivo: string | null
+          pedido_de_diseno_id: string | null
+          pieza_id: string | null
+          planeada_para: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "asignaciones"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       tomar_para_publicar: {
         Args: never
         Returns: {
@@ -1630,15 +2007,19 @@ export type Database = {
         Args: never
         Returns: {
           arrendado_hasta: string | null
+          asignacion_id: string | null
           creado_en: string
           cuenta_id: string
           diseno: Json
           estado: string
           id: string
           intentos: number
+          linea_version: number | null
           motivo: string | null
+          origen: string
           pedido_por: string
           pieza_id: string | null
+          planeada_para: string | null
           resultado_pieza_id: string | null
           tema: string
           terminado_en: string | null
@@ -1661,6 +2042,7 @@ export type Database = {
           creado_en: string
           estado: string
           id: string
+          idea_id: string | null
           intentos: number
           investigacion_id: string
           motivo: string | null

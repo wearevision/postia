@@ -7,6 +7,13 @@ import type { Pedir } from "@/lib/ia/claude"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { comoDatos } from "@/lib/redaccion/instrucciones"
 import {
+  armarSerie,
+  otraIdea,
+  type PuertosDeSerie,
+  type ResultadoDeSerie,
+  type TrabajoDeSerie,
+} from "@/lib/series/armar"
+import {
   type Angulo,
   investigarUno,
   type PuertosDeInvestigacion,
@@ -184,39 +191,50 @@ export async function vigilar(
 
 // The queue worker ---------------------------------------------------------------------------------------------
 
-export interface PuertosDeAtencionDeInvestigacion extends PuertosDeInvestigacion {
-  /** Leases the oldest open job, or null. */
-  tomar(): Promise<Trabajo | null>
+export interface PuertosDeAtencionDeInvestigacion extends PuertosDeInvestigacion, PuertosDeSerie {
+  /** Leases the oldest open job (research or series), or null. */
+  tomar(): Promise<Trabajo | TrabajoDeSerie | null>
   terminar(trabajoId: string, estado: "hecho" | "fallo", motivo?: string): Promise<void>
 }
 
 const GENERICO = "No pude terminar la investigación. Pídela de nuevo en un rato."
+const GENERICO_DE_SERIE = "No pude armar la serie. Pídela de nuevo en un rato."
 
-function motivoDe(error: unknown): string {
+const esDeSerie = (t: Trabajo | TrabajoDeSerie): t is TrabajoDeSerie => t.tipo === "serie" || t.tipo === "otra_idea"
+
+function motivoDe(error: unknown, serie: boolean): string {
   if (error instanceof TopeAlcanzado) return "Se alcanzó el tope de gasto del mes. Súbelo en Ajustes y pídela de nuevo."
   if (error instanceof PasoYaPagado)
-    return "Esta investigación ya se había empezado a pagar y no sé si terminó. Pídela de nuevo."
+    return serie
+      ? "Esta serie ya se había empezado a pagar y no sé si terminó. Pídela de nuevo."
+      : "Esta investigación ya se había empezado a pagar y no sé si terminó. Pídela de nuevo."
   if (error instanceof Falla) return error.message
-  return GENERICO
+  return serie ? GENERICO_DE_SERIE : GENERICO
+}
+
+function atenderUno(p: PuertosDeAtencionDeInvestigacion, t: Trabajo | TrabajoDeSerie) {
+  if (!esDeSerie(t)) return investigarUno(p, t)
+  return t.tipo === "serie" ? armarSerie(p, t) : otraIdea(p, t)
 }
 
 /**
- * One job per run (a search can take minutes). A failure closes the job with a reason Federico can read; an error
- * nobody expected is rethrown after closing it, so the Trigger.dev run shows as failed.
+ * One job per run (a search can take minutes); series jobs (4f) run on the same queue. A failure closes the job with
+ * a reason Federico can read; an error nobody expected is rethrown after closing it, so the Trigger.dev run shows as
+ * failed.
  */
 export async function atenderInvestigaciones(
   p: PuertosDeAtencionDeInvestigacion,
-): Promise<ResultadoDeInvestigacion | null> {
+): Promise<ResultadoDeInvestigacion | ResultadoDeSerie | null> {
   const trabajo = await p.tomar()
   if (!trabajo) return null
-  let resultado: ResultadoDeInvestigacion
+  let resultado: ResultadoDeInvestigacion | ResultadoDeSerie
   try {
-    resultado = await investigarUno(p, trabajo)
+    resultado = await atenderUno(p, trabajo)
   } catch (error) {
     const inesperados = esperado(error) ? [] : [error]
     if (inesperados.length > 0) console.error(`La investigación ${trabajo.id} falló`, mensajeDe(error))
     try {
-      await p.terminar(trabajo.id, "fallo", motivoDe(error))
+      await p.terminar(trabajo.id, "fallo", motivoDe(error, esDeSerie(trabajo)))
     } catch (errorAlTerminar) {
       inesperados.push(errorAlTerminar)
     }

@@ -36,7 +36,7 @@ export interface DepsDeConexion {
   guardar: (args: ArgsDeConexion) => Promise<{ error: { message: string } | null }>
 }
 
-export type MotivoDeFallo = "estado" | "cancelada" | "rechazada" | "permisos" | "sin_app" | "fallo"
+export type MotivoDeFallo = "estado" | "cancelada" | "rechazada" | "permisos" | "sin_app" | "cuenta_es_pagina" | "fallo"
 export type ResultadoDeConexion = { ok: true; nombre: string | null } | { ok: false; motivo: MotivoDeFallo }
 
 export interface Llegada {
@@ -67,6 +67,7 @@ export async function terminarConexionLinkedin(deps: DepsDeConexion, llegada: Ll
       p_scopes: acceso.scopes ?? ["openid", "profile", "w_member_social"],
       p_expira_en: new Date(deps.ahora() + acceso.expiraEnSegundos * 1000).toISOString(),
     })
+    if (error?.message === "cuenta_y_app_no_calzan") return { ok: false, motivo: "cuenta_es_pagina" }
     if (error) throw new Error(`No pude guardar la conexión de LinkedIn: ${error.message}`)
     return { ok: true, nombre }
   } catch (error) {

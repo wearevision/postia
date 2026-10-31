@@ -97,9 +97,7 @@ export function AprobarInforme({
       >
         Aprobar informe
       </button>
-      <p className="text-sm text-apagado">
-        Con el informe aprobado, PostIA arma la serie de propuestas (llega pronto).
-      </p>
+      <p className="text-sm text-apagado">Al aprobarlo, PostIA arma la serie de propuestas.</p>
       <Alerta error={error} />
     </div>
   )
@@ -137,6 +135,31 @@ export function DescartarInforme({
           Sí, descartar
         </button>
       </div>
+      <Alerta error={error} />
+    </div>
+  )
+}
+
+/** For a report approved before 4f, or whose series did not come out. */
+export function ArmarSerie({
+  investigacionId,
+  pedir,
+}: {
+  investigacionId: string
+  pedir: (investigacionId: string) => Promise<Resultado>
+}) {
+  const { error, pendiente, ejecutar } = useAccion()
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        disabled={pendiente}
+        onClick={() => ejecutar(() => pedir(investigacionId))}
+        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
+      >
+        Armar la serie
+      </button>
+      <p className="text-sm text-apagado">PostIA propone las ideas de este informe. Cuesta cerca de US$0,50.</p>
       <Alerta error={error} />
     </div>
   )

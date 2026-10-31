@@ -3,6 +3,7 @@ import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, type TarjetaDePieza } from "@/lib/piezas/lectura"
 import {
   RUTA_DE_CARRUSEL,
+  RUTA_DE_IDEAS,
   RUTA_DE_INVESTIGAR,
   RUTA_DE_NUEVA_PIEZA,
   RUTA_DE_PEDIR_TEXTO,
@@ -50,6 +51,9 @@ export default async function Inicio() {
       </Link>
       <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
         Investigar
+      </Link>
+      <Link href={RUTA_DE_IDEAS} className="boton w-full py-3">
+        Ideas y series
       </Link>
       <Seccion titulo="Por firmar" tarjetas={porFirmar} />
       <Seccion titulo="Publicar a mano" tarjetas={aMano} />

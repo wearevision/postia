@@ -13,4 +13,8 @@ describe("EstadoDeConexionChip", () => {
     rerender(<EstadoDeConexionChip estado={{ estado: "vencida" }} />)
     expect(screen.getByText("Vencida · vuelve a conectar")).toBeInTheDocument()
   })
+  test("a connection that renews itself says so, without a countdown", () => {
+    render(<EstadoDeConexionChip estado={{ estado: "se_renueva", dias: 300 }} />)
+    expect(screen.getByText("Se renueva sola")).toBeInTheDocument()
+  })
 })

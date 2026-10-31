@@ -240,18 +240,45 @@ describe("repositorioDePublicacion", () => {
     const c = await vencida()
     expect(await repo().credencial(c.cuenta)).toBeNull()
     const expira = new Date(Date.now() + 60 * 86_400_000).toISOString()
+    const titular = `urn:li:person:abc${crypto.randomUUID().slice(0, 8)}`
     const { error } = await c.db.rpc("conectar_linkedin", {
       p_cuenta: c.cuenta,
       p_token: "token-de-prueba",
-      p_titular: "urn:li:person:abc123",
+      p_titular: titular,
       p_nombre: "Federico Elgueta",
       p_scopes: ["openid", "profile", "w_member_social"],
       p_expira_en: expira,
     })
     expect(error).toBeNull()
     const credencial = await repo().credencial(c.cuenta)
-    expect(credencial).toMatchObject({ token: "token-de-prueba", titular: "urn:li:person:abc123" })
+    expect(credencial).toMatchObject({
+      token: "token-de-prueba",
+      titular,
+      autor: titular,
+    })
     expect(new Date(credencial?.expiraEn ?? "").toISOString()).toBe(expira)
+  })
+
+  test("credencial gives a page's connection the organization as its author", async () => {
+    const dueno = await personaConSesion("repo-pagina")
+    const marca = await marcaConDueno(dueno.userId)
+    const cuenta = await cuentaDe(marca, "empresa", "api")
+    const { error } = await dueno.db.rpc("conectar_linkedin", {
+      p_cuenta: cuenta,
+      p_token: "token-de-pagina",
+      p_titular: "urn:li:person:admin1",
+      p_nombre: "",
+      p_scopes: ["r_basicprofile", "rw_organization_admin", "w_organization_social"],
+      p_expira_en: new Date(Date.now() + 60 * 86_400_000).toISOString(),
+      p_app: "estudio_wav",
+      p_organizacion: "urn:li:organization:123",
+    })
+    expect(error).toBeNull()
+    expect(await repo().credencial(cuenta)).toMatchObject({
+      token: "token-de-pagina",
+      titular: "urn:li:person:admin1",
+      autor: "urn:li:organization:123",
+    })
   })
 
   test("descargar returns the bytes of a stored file and fails for a missing one", async () => {

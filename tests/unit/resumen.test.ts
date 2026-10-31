@@ -6,6 +6,7 @@ const VACIO: EstadoDelResumen = {
   aMano: 0,
   revisar: 0,
   informes: 0,
+  ideas: 0,
   reservas: [],
   huecos: [],
   pilares: [],
@@ -111,6 +112,14 @@ describe("armarResumen", () => {
     expect(armarResumen({ ...VACIO, informes: 1 })?.cuerpo).toBe("1 informe espera tu revisión.")
     expect(armarResumen({ ...VACIO, porFirmar: 1, aMano: 1, informes: 1 })?.cuerpo).toBe(
       "1 pieza espera tu firma.\n1 informe espera tu revisión.\n1 para publicar a mano.",
+    )
+  })
+
+  test("counts the ideas waiting for review right after the reports", () => {
+    expect(armarResumen({ ...VACIO, ideas: 4 })?.cuerpo).toBe("4 ideas esperan tu revisión.")
+    expect(armarResumen({ ...VACIO, ideas: 1 })?.cuerpo).toBe("1 idea espera tu revisión.")
+    expect(armarResumen({ ...VACIO, porFirmar: 1, informes: 1, ideas: 2, aMano: 1 })?.cuerpo).toBe(
+      "1 pieza espera tu firma.\n1 informe espera tu revisión.\n2 ideas esperan tu revisión.\n1 para publicar a mano.",
     )
   })
 })

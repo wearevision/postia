@@ -6,7 +6,7 @@ import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import type { Db } from "@/lib/supabase/database"
 import { lineaDeMarca } from "@/lib/voz/lectura"
 import type { PedidoDeTexto, PuertosDeAtencion } from "./atender"
-import { nombresVetados } from "./instrucciones"
+import { type ContextoDeRedaccion, nombresVetados } from "./instrucciones"
 
 // Service role only (Trigger.dev): it reads and writes across brands.
 
@@ -25,6 +25,22 @@ function fechaLibre(tipo: "persona" | "empresa", ocupados: readonly number[], ah
   } catch (error) {
     console.error("No encontré horario para la pieza de Claude", error instanceof Error ? error.message : String(error))
     return null
+  }
+}
+
+/** What Claude gets about a brand and one of its accounts; null when the brand has no editorial line yet. */
+export async function contextoDeRedaccion(
+  db: Db,
+  marcaId: string,
+  cuenta: { nombre: string; tipo: string },
+): Promise<ContextoDeRedaccion | null> {
+  const linea = await lineaDeMarca(db, marcaId)
+  if (!linea?.actual) return null
+  return {
+    marca: { id: linea.marca.id, nombre: linea.marca.nombre, voz: linea.marca.voz },
+    cuenta: { nombre: cuenta.nombre, tipo: leerTipo(cuenta.tipo) },
+    linea: { version: linea.actual.version, secciones: linea.actual.secciones, pilares: linea.actual.pilares },
+    noNombrar: nombresVetados(await leerExcepciones(db), diaEnSantiago(Date.now())),
   }
 }
 
@@ -82,14 +98,9 @@ export function repositorioDeRedaccion(db: Db): Omit<PuertosDeAtencion, "pedir">
         .eq("id", pedido.id)
         .single()
       if (error) fallo("No pude leer la cuenta del pedido", error)
-      const linea = await lineaDeMarca(db, pedido.marcaId)
-      if (!linea?.actual || !pieza.cuentas) throw new Error(`El pedido ${pedido.id} no tiene marca con línea editorial`)
-      return {
-        marca: { id: linea.marca.id, nombre: linea.marca.nombre, voz: linea.marca.voz },
-        cuenta: { nombre: pieza.cuentas.nombre, tipo: leerTipo(pieza.cuentas.tipo) },
-        linea: { version: linea.actual.version, secciones: linea.actual.secciones, pilares: linea.actual.pilares },
-        noNombrar: nombresVetados(await leerExcepciones(db), diaEnSantiago(Date.now())),
-      }
+      const c = pieza.cuentas ? await contextoDeRedaccion(db, pedido.marcaId, pieza.cuentas) : null
+      if (!c) throw new Error(`El pedido ${pedido.id} no tiene marca con línea editorial`)
+      return c
     },
 
     async base(pedido) {

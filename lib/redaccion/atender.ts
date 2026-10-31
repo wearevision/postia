@@ -53,9 +53,9 @@ export function motivoDe(error: unknown): string {
 const esperado = (error: unknown) =>
   error instanceof TopeAlcanzado || error instanceof PasoYaPagado || error instanceof Falla
 
-/** The piece already exists: a failed review is logged and the page offers «Revisar con Claude». */
-async function revisarSinPerder(
-  p: PuertosDeAtencion,
+/** The piece already exists: a failed review is logged and the page offers «Revisar con Claude». Shared with 4f. */
+export async function revisarSinPerder(
+  p: Pick<PuertosDeAtencion, "pedir" | "guardarRevision">,
   c: ContextoDeRedaccion,
   versionId: string,
   texto: string,

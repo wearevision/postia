@@ -20,10 +20,10 @@ function servicio() {
 }
 
 /** An api account of a fresh owner, linked to a connection that expires `diasRestantes` from now. */
-async function conConexion(diasRestantes: number, expiraEn?: string) {
+async function conConexion(diasRestantes: number, expiraEn?: string, renovacionExpiraEn?: string) {
   const { userId } = await personaConSesion("vigilar")
   const marca = await marcaConDueno(userId)
-  const cuenta = await cuentaDe(marca, "persona", "api")
+  const cuenta = await cuentaDe(marca, renovacionExpiraEn ? "empresa" : "persona", "api")
   const endpoint = `https://push.prueba.test/vigilar-${crypto.randomUUID()}`
   const aparato = await admin().from("suscripciones_push").insert({ user_id: userId, endpoint, p256dh: "k", auth: "a" })
   if (aparato.error) throw aparato.error
@@ -31,11 +31,17 @@ async function conConexion(diasRestantes: number, expiraEn?: string) {
     .from("conexiones")
     .insert({
       red: "linkedin",
-      app: "estudio_wav_perfil",
       titular: `urn:li:person:${crypto.randomUUID().replaceAll("-", "")}`,
-      scopes: ["w_member_social"],
       expira_en: expiraEn ?? new Date(Date.now() + diasRestantes * DIA).toISOString(),
       conectada_por: userId,
+      ...(renovacionExpiraEn
+        ? {
+            app: "estudio_wav",
+            organizacion: `urn:li:organization:${Math.floor(Math.random() * 1e9)}`,
+            scopes: ["w_organization_social"],
+            renovacion_expira_en: renovacionExpiraEn,
+          }
+        : { app: "estudio_wav_perfil", scopes: ["w_member_social"] }),
     })
     .select("id")
     .single()
@@ -74,6 +80,31 @@ describe("vigilarConexiones", () => {
     expect(lineas[0]?.cuerpo).toContain("vence en 14 días")
   })
 
+  test("a page connection that renews itself says nothing at 14 days of its access token", async () => {
+    const c = await conConexion(
+      14,
+      instanteDesdeValorLocal(`${sumarDias(diaEnSantiago(Date.now()), 14)}T12:00`) ?? undefined,
+      new Date(Date.now() + 300 * DIA).toISOString(),
+    )
+    const { falso, de } = servicio()
+    await vigilarConexiones(admin(), falso, Date.now())
+    expect(de(c.endpoint)).toEqual([])
+    expect(await lineasDe(c.marca)).toEqual([])
+  })
+
+  test("a page connection whose refresh token runs out in 14 days queues a line", async () => {
+    const c = await conConexion(
+      12,
+      undefined,
+      instanteDesdeValorLocal(`${sumarDias(diaEnSantiago(Date.now()), 14)}T12:00`) ?? undefined,
+    )
+    const { falso, de } = servicio()
+    await vigilarConexiones(admin(), falso, Date.now())
+    expect(de(c.endpoint)).toEqual([])
+    const lineas = await lineasDe(c.marca)
+    expect(lineas.map((l) => l.cuerpo)).toEqual([expect.stringContaining("deja de renovarse sola en 14 días")])
+  })
+
   test("a connection with a quiet number of days left says nothing", async () => {
     const c = await conConexion(30)
     const { falso, de } = servicio()
@@ -95,5 +126,15 @@ describe("vigilarConexiones", () => {
     const nombreMano = nombres?.find((n) => n.id === aMano)?.nombre ?? ""
     expect(de(c.endpoint)[0]?.mensaje.titulo).toContain(nombreApi)
     expect(de(c.endpoint)[0]?.mensaje.titulo).not.toContain(nombreMano)
+  })
+
+  test("a paused account keeps its connection but the watch says nothing about it", async () => {
+    const c = await conConexion(-1)
+    const pausa = await admin().from("cuentas").update({ ruta: "a_mano" }).eq("id", c.cuenta)
+    expect(pausa.error).toBeNull()
+    const { falso, de } = servicio()
+    await vigilarConexiones(admin(), falso, Date.now())
+    expect(de(c.endpoint)).toEqual([])
+    expect(await lineasDe(c.marca)).toEqual([])
   })
 })

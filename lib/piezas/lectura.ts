@@ -73,18 +73,38 @@ function extractoDe(versiones: { numero: number; texto: string; titulo: string |
   return base.length > largo ? `${base.slice(0, largo).join("")}…` : base.join("")
 }
 
-/** The slots an account holds from `desde` on, signed and planned alike (plano: huecosLibres reads this). */
+// An idea planned for an account but not yet written (4f) holds its slot like a planned piece.
+const ASIGNACION_ABIERTA = ["por_escribir", "escribiendo"] as const
+
+/**
+ * The slots an account holds from `desde` on: signed and planned pieces, and open assignments (plano: huecosLibres
+ * reads this). `excepto` leaves out one piece.
+ */
 export async function horariosOcupados(db: Db, cuentaId: string, desde: number, excepto?: string): Promise<number[]> {
-  let consulta = db
+  const inicio = new Date(desde).toISOString()
+  let piezas = db
     .from("piezas")
     .select("planeada_para")
     .eq("cuenta_id", cuentaId)
     .in("estado", [...CON_HORARIO])
-    .gte("planeada_para", new Date(desde).toISOString())
-  if (excepto) consulta = consulta.neq("id", excepto)
-  const { data, error } = await consulta
-  if (error) throw new Error(`No pude leer los horarios: ${error.message}`, { cause: error })
-  return data.flatMap((f) => (f.planeada_para === null ? [] : [Date.parse(f.planeada_para)]))
+    .gte("planeada_para", inicio)
+  if (excepto) piezas = piezas.neq("id", excepto)
+  const [dePiezas, deAsignaciones] = await Promise.all([
+    piezas,
+    db
+      .from("asignaciones")
+      .select("planeada_para")
+      .eq("cuenta_id", cuentaId)
+      .in("estado", [...ASIGNACION_ABIERTA])
+      .gte("planeada_para", inicio),
+  ])
+  if (dePiezas.error) throw new Error(`No pude leer los horarios: ${dePiezas.error.message}`, { cause: dePiezas.error })
+  if (deAsignaciones.error)
+    throw new Error(`No pude leer los horarios: ${deAsignaciones.error.message}`, { cause: deAsignaciones.error })
+  return [
+    ...dePiezas.data.flatMap((f) => (f.planeada_para === null ? [] : [Date.parse(f.planeada_para)])),
+    ...deAsignaciones.data.map((a) => Date.parse(a.planeada_para)),
+  ]
 }
 
 export interface CuentaDelCalendario {
@@ -105,6 +125,18 @@ export interface PiezaDelCalendario {
   extracto: string
 }
 
+/** An idea planned for an account and not yet written (4f): it shows as «Por escribir» and links to its idea. */
+export interface AsignacionDelCalendario {
+  tipo: "asignacion"
+  id: string
+  ideaId: string
+  investigacionId: string | null
+  cuentaId: string
+  estado: (typeof ASIGNACION_ABIERTA)[number]
+  instante: string
+  gancho: string
+}
+
 const RangoDelCalendario = z.object({
   desde: z.iso.datetime({ offset: true }),
   hasta: z.iso.datetime({ offset: true }),
@@ -115,13 +147,13 @@ export async function calendario(
   db: Db,
   desde: string,
   hasta: string,
-): Promise<{ cuentas: CuentaDelCalendario[]; piezas: PiezaDelCalendario[] }> {
+): Promise<{ cuentas: CuentaDelCalendario[]; piezas: PiezaDelCalendario[]; asignaciones: AsignacionDelCalendario[] }> {
   const rango = RangoDelCalendario.safeParse({ desde, hasta })
   if (!rango.success || Date.parse(hasta) <= Date.parse(desde)) throw new Error("Rango de fechas inválido.")
   if (Date.parse(hasta) - Date.parse(desde) > SEIS_SEMANAS_MS) {
     throw new Error("El calendario no muestra más de seis semanas a la vez.")
   }
-  const [cuentas, reservas, piezas] = await Promise.all([
+  const [cuentas, reservas, piezas, asignaciones] = await Promise.all([
     db.from("cuentas").select("id, nombre, marca_id, tipo, ritmo_semanal").order("nombre"),
     db.from("piezas").select("cuenta_id").eq("estado", "en_reserva"),
     db
@@ -131,11 +163,22 @@ export async function calendario(
       .gte("planeada_para", desde)
       .lt("planeada_para", hasta)
       .order("planeada_para"),
+    db
+      .from("asignaciones")
+      .select("id, idea_id, cuenta_id, estado, planeada_para, ideas(gancho, investigacion_id)")
+      .in("estado", [...ASIGNACION_ABIERTA])
+      .gte("planeada_para", desde)
+      .lt("planeada_para", hasta)
+      .order("planeada_para"),
   ])
   if (cuentas.error) throw new Error(`No pude leer el calendario: ${cuentas.error.message}`, { cause: cuentas.error })
   if (reservas.error)
     throw new Error(`No pude leer el calendario: ${reservas.error.message}`, { cause: reservas.error })
   if (piezas.error) throw new Error(`No pude leer el calendario: ${piezas.error.message}`, { cause: piezas.error })
+  if (asignaciones.error)
+    throw new Error(`No pude leer el calendario: ${asignaciones.error.message}`, { cause: asignaciones.error })
+  // Ideas belong to no brand, so their assignments are readable by every member: keep only this person's accounts.
+  const visibles = new Set(cuentas.data.map((c) => c.id))
   const enReserva = new Map<string, number>()
   for (const r of reservas.data) enReserva.set(r.cuenta_id, (enReserva.get(r.cuenta_id) ?? 0) + 1)
   return {
@@ -160,6 +203,22 @@ export async function calendario(
               extracto: extractoDe(p.versiones, 60),
             },
           ],
+    ),
+    asignaciones: asignaciones.data.flatMap((a) =>
+      visibles.has(a.cuenta_id) && a.ideas
+        ? [
+            {
+              tipo: "asignacion" as const,
+              id: a.id,
+              ideaId: a.idea_id,
+              investigacionId: a.ideas.investigacion_id,
+              cuentaId: a.cuenta_id,
+              estado: a.estado === "escribiendo" ? ("escribiendo" as const) : ("por_escribir" as const),
+              instante: a.planeada_para,
+              gancho: a.ideas.gancho,
+            },
+          ]
+        : [],
     ),
   }
 }

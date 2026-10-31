@@ -1,3 +1,4 @@
+import { seRenuevaSola } from "@/lib/marcas/estado-conexion"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
@@ -7,7 +8,7 @@ import type { ServicioPush } from "./push"
 import { anotarAviso } from "./repositorio-de-avisos"
 import type { MensajePush } from "./tipos"
 
-// Calendar days before expiry that earn a digest line (the token lives 60 days and has no refresh).
+// Calendar days before expiry that earn a digest line (a profile token lives 60 days and has no refresh).
 const MARCAS_DE_AVISO = new Set([14, 3])
 // The marks where a signed piece scheduled after the expiry is worth a line; every day would repeat it for weeks.
 const MARCAS_DE_PIEZAS = new Set([14, 3, 1])
@@ -15,6 +16,8 @@ const DIA_MS = 86_400_000
 
 export interface DatosDeConexion {
   expiraEn: string
+  /** A page's refresh token: the daily refresh keeps the connection alive while seRenuevaSola holds. */
+  renovacionExpiraEn?: string | null
   cuentas: readonly string[]
   ultimaProgramada: string | null
 }
@@ -36,8 +39,8 @@ export function revisarConexion(
     cuerpo,
     url: RUTA_DE_MARCAS,
   })
-  const dias = diasDeCalendario(d.expiraEn, ahora)
   if (Date.parse(d.expiraEn) <= ahora) {
+    const dias = diasDeCalendario(d.expiraEn, ahora)
     const venció = aviso(`La conexión de LinkedIn de ${quien} venció. Reconéctala en Marcas.`)
     // One push when it happens; the following days it waits for the digest instead of buzzing every morning.
     return dias >= -1 ? { urgente: venció, lineas: [] } : { urgente: null, lineas: [venció] }
@@ -48,14 +51,25 @@ export function revisarConexion(
       lineas: [],
     }
   }
+  // A self-renewing connection really ends with its refresh token: that is the date worth warning about. The access
+  // token still earns the urgent pushes above, in case every daily refresh failed.
+  const renovable = seRenuevaSola(d.expiraEn, d.renovacionExpiraEn, ahora) && d.renovacionExpiraEn
+  const fin = renovable || d.expiraEn
+  const dias = diasDeCalendario(fin, ahora)
   const lineas: MensajePush[] = []
   if (MARCAS_DE_AVISO.has(dias)) {
-    lineas.push(aviso(`La conexión de LinkedIn de ${quien} vence en ${dias} días. Reconéctala en Marcas.`))
-  }
-  if (MARCAS_DE_PIEZAS.has(dias) && d.ultimaProgramada && Date.parse(d.ultimaProgramada) >= Date.parse(d.expiraEn)) {
     lineas.push(
       aviso(
-        `Hay piezas de ${quien} programadas después del ${fechaLarga(d.expiraEn)}, cuando vence su conexión. Reconéctala en Marcas.`,
+        renovable
+          ? `La conexión de LinkedIn de ${quien} deja de renovarse sola en ${dias} días. Reconéctala en Marcas.`
+          : `La conexión de LinkedIn de ${quien} vence en ${dias} días. Reconéctala en Marcas.`,
+      ),
+    )
+  }
+  if (MARCAS_DE_PIEZAS.has(dias) && d.ultimaProgramada && Date.parse(d.ultimaProgramada) >= Date.parse(fin)) {
+    lineas.push(
+      aviso(
+        `Hay piezas de ${quien} programadas después del ${fechaLarga(fin)}, cuando vence su conexión. Reconéctala en Marcas.`,
       ),
     )
   }
@@ -70,7 +84,7 @@ export async function vigilarConexiones(
 ): Promise<{ urgentes: number; lineas: number }> {
   const { data: conexiones, error } = await db
     .from("conexiones")
-    .select("id, expira_en, cuentas(id, nombre, marca_id, ruta)")
+    .select("id, expira_en, renovacion_expira_en, cuentas(id, nombre, marca_id, ruta)")
   if (error) throw new Error(`No pude leer las conexiones: ${error.message}`, { cause: error })
   const total = { urgentes: 0, lineas: 0 }
   for (const conexion of conexiones) {
@@ -92,6 +106,7 @@ export async function vigilarConexiones(
       const revision = revisarConexion(
         {
           expiraEn: conexion.expira_en,
+          renovacionExpiraEn: conexion.renovacion_expira_en,
           cuentas: cuentas.map((c) => c.nombre),
           ultimaProgramada: ultima?.programada_para ?? null,
         },

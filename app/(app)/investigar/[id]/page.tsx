@@ -6,8 +6,10 @@ import {
   informe,
   NOMBRE_DEL_ESTADO_DE_INVESTIGACION,
 } from "@/lib/investigacion/lectura"
-import { RUTA_DE_INVESTIGAR } from "@/lib/sesion/rutas"
+import { serieDelInforme } from "@/lib/series/lectura"
+import { RUTA_DE_INVESTIGAR, rutaDeSerie } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
+import { pedirSerieAccion } from "../../ideas/acciones"
 import { Refrescar } from "../../piezas/refrescar"
 import {
   aprobarInformeAccion,
@@ -15,7 +17,7 @@ import {
   descartarInformeAccion,
   pedirAmpliacionAccion,
 } from "../acciones"
-import { AmpliarAngulo, AprobarInforme, DescartarHallazgo, DescartarInforme } from "./controles"
+import { AmpliarAngulo, AprobarInforme, ArmarSerie, DescartarHallazgo, DescartarInforme } from "./controles"
 
 const FECHA = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })
 
@@ -62,8 +64,10 @@ function Hallazgo({
 
 export default async function Informe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const leido = await informe(await createClient(), id)
+  const db = await createClient()
+  const leido = await informe(db, id)
   if (!leido) notFound()
+  const serie = leido.estado === "aprobada" ? await serieDelInforme(db, leido.id) : null
   const porAprobar = leido.estado === "informe_por_aprobar"
   const total = leido.angulos.reduce((n, a) => n + a.hallazgos.length, 0)
 
@@ -114,6 +118,17 @@ export default async function Informe({ params }: { params: Promise<{ id: string
           {porAprobar && <AmpliarAngulo investigacionId={leido.id} angulo={a.nombre} ampliar={pedirAmpliacionAccion} />}
         </section>
       ))}
+      {serie && (
+        <section className="space-y-3 border-t border-borde pt-4">
+          {serie.ideas > 0 || serie.trabajando ? (
+            <Link href={rutaDeSerie(leido.id)} className="boton w-full py-3">
+              Ver la serie
+            </Link>
+          ) : (
+            <ArmarSerie investigacionId={leido.id} pedir={pedirSerieAccion} />
+          )}
+        </section>
+      )}
       {porAprobar && (
         <section className="space-y-3 border-t border-borde pt-4">
           <AprobarInforme investigacionId={leido.id} aprobar={aprobarInformeAccion} />

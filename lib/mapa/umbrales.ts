@@ -9,6 +9,8 @@ export const UMBRALES = {
   tema: 0.8,
   /** Two topics this close merge on their own. */
   fusion: 0.92,
+  /** Two ideas this close are the same idea: the later one is dropped (4f, «Armar la serie»). */
+  idea: 0.9,
   /** Loose findings form a topic only in groups this big. */
   minimoParaTema: 3,
 } as const

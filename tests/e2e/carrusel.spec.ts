@@ -10,10 +10,9 @@ test("an owner asks for a carousel from the defaults, and its piece shows the sl
   const db = admin()
   const correo = correoUnico("e2e-carrusel")
   const { marcaId } = await invitar(db, { correo, marca: `Marca ${correo}`, voz: "nosotros" })
-  // A company account cannot publish by API (constraint api_solo_perfil).
   const { data: cuenta, error } = await db
     .from("cuentas")
-    .insert({ marca_id: marcaId, red: "linkedin", tipo: "empresa", ruta: "a_mano", nombre: "Página E2E" })
+    .insert({ marca_id: marcaId, red: "linkedin", tipo: "empresa", ruta: "api", nombre: "Página E2E" })
     .select("id")
     .single()
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)

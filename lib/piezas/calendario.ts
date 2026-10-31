@@ -85,14 +85,20 @@ const CUENTAN_PARA_EL_RITMO: ReadonlySet<EstadoDePieza> = new Set<EstadoDePieza>
   "envio_dudoso",
 ])
 
-/** How many pieces each account still lacks in one week against its weekly rhythm (plano: marcarHuecos). */
+/**
+ * How many pieces each account still lacks in one week against its weekly rhythm (plano: marcarHuecos). An open
+ * assignment (4f) is a piece on its way: it fills its slot.
+ */
 export function huecosDeLaSemana(
   cuentas: readonly { id: string; ritmoSemanal: number }[],
   piezas: readonly { cuentaId: string; estado: EstadoDePieza }[],
+  asignaciones: readonly { cuentaId: string }[] = [],
 ): Record<string, number> {
   return Object.fromEntries(
     cuentas.map((c) => {
-      const tiene = piezas.filter((p) => p.cuentaId === c.id && CUENTAN_PARA_EL_RITMO.has(p.estado)).length
+      const tiene =
+        piezas.filter((p) => p.cuentaId === c.id && CUENTAN_PARA_EL_RITMO.has(p.estado)).length +
+        asignaciones.filter((a) => a.cuentaId === c.id).length
       return [c.id, Math.max(0, c.ritmoSemanal - tiene)]
     }),
   )

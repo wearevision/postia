@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import { describe, expect, test, vi } from "vitest"
+import { beforeEach, describe, expect, test, vi } from "vitest"
 import { enviarResumenes } from "@/lib/avisos/enviar-resumen"
 import type { ServicioPush, SuscripcionPush } from "@/lib/avisos/push"
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
@@ -45,6 +45,18 @@ async function sinInformesPorAprobar() {
     .eq("estado", "informe_por_aprobar")
   if (error) throw error
 }
+
+/** Ideas waiting are counted globally too. Local test database only. */
+async function sinIdeasPorRevisar() {
+  const { error } = await admin().from("ideas").update({ estado: "descartada" }).eq("estado", "propuesta")
+  if (error) throw error
+}
+
+// Reports and ideas waiting are counted across every brand: each test starts with none left by other files.
+beforeEach(async () => {
+  await sinInformesPorAprobar()
+  await sinIdeasPorRevisar()
+})
 
 const lineaSinEnviar = async (marca: string) =>
   (await admin().from("avisos_pendientes").select("enviado_en").eq("marca_id", marca)).data?.map((l) => l.enviado_en)
@@ -214,6 +226,7 @@ describe("enviarResumenes", () => {
 
   test("every owner hears how many research reports wait, whatever the brand", async () => {
     await sinInformesPorAprobar()
+    await sinIdeasPorRevisar()
     const pide = await personaConSesion("resumen-informes-pide")
     await marcaConDueno(pide.userId)
     const otro = await personaConSesion("resumen-informes-otro")
@@ -240,5 +253,38 @@ describe("enviarResumenes", () => {
     expect(de(endpoint)).toHaveLength(1)
     expect(de(endpoint)[0]?.mensaje.cuerpo).toBe("2 informes esperan tu revisión.")
     await sinInformesPorAprobar()
+  })
+
+  test("every owner hears how many ideas wait for review, once, after the reports", async () => {
+    await sinInformesPorAprobar()
+    await sinIdeasPorRevisar()
+    const dueno = await personaConSesion("resumen-ideas")
+    const marcaA = await marcaConDueno(dueno.userId)
+    const marcaB = await marcaConDueno(dueno.userId)
+    const cuenta = await cuentaConRitmo(marcaA, 0)
+    await cuentaConRitmo(marcaB, 0)
+    const { error } = await admin()
+      .from("ideas")
+      .insert(
+        ["Uno", "Dos", "Tres"].map((gancho, i) => ({
+          gancho,
+          resumen: "Un resumen",
+          formato: "texto",
+          esqueleto: [{ idea: "Un paso" }],
+          fuentes: [crypto.randomUUID()],
+          cuenta_sugerida: cuenta,
+          razon: "Porque sí.",
+          vector: `[${Array.from({ length: 1024 }, (_, j) => (j === 900 + i ? 1 : 0)).join(",")}]`,
+        })),
+      )
+    if (error) throw error
+    const endpoint = await aparato(dueno.userId)
+    const { falso, de } = servicio()
+
+    await enviarResumenes(admin(), falso, Date.now())
+
+    expect(de(endpoint)).toHaveLength(1)
+    expect(de(endpoint)[0]?.mensaje.cuerpo).toBe("3 ideas esperan tu revisión.")
+    await sinIdeasPorRevisar()
   })
 })

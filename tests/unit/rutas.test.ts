@@ -3,10 +3,13 @@ import {
   destinoDe,
   RUTA_DE_CALENDARIO,
   RUTA_DE_CLIENTES,
+  RUTA_DE_IDEAS,
   RUTA_DE_VOZ,
   rutaDeCalendario,
   rutaDeEditarCarrusel,
+  rutaDeIdea,
   rutaDePieza,
+  rutaDeSerie,
   rutaDeVoz,
 } from "@/lib/sesion/rutas"
 
@@ -56,5 +59,14 @@ describe("rutaDePieza", () => {
 describe("rutaDeEditarCarrusel", () => {
   test("opens the carousel editor on a piece", () => {
     expect(rutaDeEditarCarrusel("abc")).toBe("/piezas/carrusel?pieza=abc")
+  })
+})
+
+describe("Ideas y series", () => {
+  test("the page, one series, and one idea inside its series", () => {
+    expect(RUTA_DE_IDEAS).toBe("/ideas")
+    expect(rutaDeSerie("inv1")).toBe("/ideas?serie=inv1")
+    expect(rutaDeIdea("i1", "inv1")).toBe("/ideas?serie=inv1#idea-i1")
+    expect(rutaDeIdea("i1", null)).toBe("/ideas#idea-i1")
   })
 })

@@ -5,9 +5,10 @@ import { crearReal, pedirPagando } from "@/lib/ia/claude"
 import { embeberPagando, llamarVoyageReal } from "@/lib/ia/voyage"
 import { repositorioDeInvestigaciones } from "@/lib/investigacion/repositorio"
 import { atenderInvestigaciones as atender, vigilar } from "@/lib/investigacion/vigilancia"
+import { repositorioDeSeries } from "@/lib/series/repositorio"
 import { createAdminClient } from "@/lib/supabase/admin"
 
-/** Every paid call goes through the 4a ledger, charged to «General» (marcaId null). */
+/** Every paid call goes through the 4a ledger, charged to «General» (marcaId null): research and series alike. */
 function puertos() {
   const db = createAdminClient()
   const pago = {
@@ -18,10 +19,13 @@ function puertos() {
   const voyage = { ...pago, llamar: llamarVoyageReal() }
   return {
     ...repositorioDeInvestigaciones(db),
+    ...repositorioDeSeries(db),
     pedir: (paso: Parameters<typeof pedirPagando>[1], pedido: Parameters<typeof pedirPagando>[2]) =>
       pedirPagando(claude, paso, pedido),
     embeber: (clave: string, textos: string[]) =>
       embeberPagando(voyage, { clave, paso: "vectores-de-hallazgos" }, textos),
+    embeberIdeas: (clave: string, textos: string[]) =>
+      embeberPagando(voyage, { clave, paso: "vectores-de-ideas" }, textos),
   }
 }
 

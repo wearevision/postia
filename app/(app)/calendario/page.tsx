@@ -25,7 +25,10 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   )
   const { desde, hasta } = vista.vista === "semana" ? vista.semana : limitesDelMes(vista.mes)
   const db = await createClient()
-  const [{ cuentas, piezas }, balances] = await Promise.all([calendario(db, desde, hasta), balancePorCuenta(db, ahora)])
+  const [{ cuentas, piezas, asignaciones }, balances] = await Promise.all([
+    calendario(db, desde, hasta),
+    balancePorCuenta(db, ahora),
+  ])
   const enSemana = vista.vista === "semana"
   // From another month, «Semana» opens the week that holds that month's first day.
   const semanaDelMes =
@@ -59,10 +62,11 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
           lunes={vista.semana.lunes}
           cuentas={cuentas}
           piezas={piezas}
+          asignaciones={asignaciones}
           terminada={Date.parse(vista.semana.hasta) <= ahora}
         />
       ) : (
-        <VistaDelMes mes={vista.mes} piezas={piezas} />
+        <VistaDelMes mes={vista.mes} piezas={piezas} asignaciones={asignaciones} />
       )}
       <PilaresDelCalendario balances={balances} />
     </div>
