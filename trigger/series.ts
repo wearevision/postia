@@ -1,5 +1,6 @@
 import { schedules } from "@trigger.dev/sdk"
 import { servicioPushReal } from "@/lib/avisos/push"
+import { instanteDe } from "@/lib/dominio/instante"
 import { avisarTope, libroDeGastos } from "@/lib/gasto/repositorio"
 import { crearReal, pedirPagando } from "@/lib/ia/claude"
 import { escribirPiezas as escribir } from "@/lib/series/escribir"
@@ -24,7 +25,7 @@ export const escribirPiezas = schedules.task({
     }
     return escribir(
       { ...repositorioDeEscritura(db), pedir: (paso, pedido) => pedirPagando(puertos, paso, pedido) },
-      payload.timestamp.getTime(),
+      instanteDe(payload.timestamp).getTime(),
     )
   },
 })
