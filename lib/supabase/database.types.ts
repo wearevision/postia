@@ -486,6 +486,7 @@ export type Database = {
           cantidad: number | null
           cerrada_en: string | null
           creada_en: string
+          dia: string | null
           enfoque: string | null
           estado: string
           formato: string | null
@@ -500,6 +501,7 @@ export type Database = {
           cantidad?: number | null
           cerrada_en?: string | null
           creada_en?: string
+          dia?: string | null
           enfoque?: string | null
           estado?: string
           formato?: string | null
@@ -514,6 +516,7 @@ export type Database = {
           cantidad?: number | null
           cerrada_en?: string | null
           creada_en?: string
+          dia?: string | null
           enfoque?: string | null
           estado?: string
           formato?: string | null
@@ -1292,7 +1295,10 @@ export type Database = {
         }
         Returns: string
       }
-      crear_vigilancia: { Args: { p_temas: string[] }; Returns: string }
+      crear_vigilancia: {
+        Args: { p_dia: string; p_temas: string[] }
+        Returns: string
+      }
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {

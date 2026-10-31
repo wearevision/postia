@@ -186,12 +186,13 @@ describe("repositorioDeInvestigaciones", () => {
   })
 
   test("creates a watch with its topics", async () => {
-    const id = await repo().crearVigilancia(["Eventos", "Retail"])
+    const id = await repo().crearVigilancia("2030-02-01", ["Eventos", "Retail"])
     vigilancias.push(id)
     expect(await investigacion(id)).toMatchObject({
       origen: "vigilancia",
       estado: "investigando",
       tema: "Eventos · Retail",
+      dia: "2030-02-01",
     })
   })
 

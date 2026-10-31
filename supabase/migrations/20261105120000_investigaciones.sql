@@ -17,11 +17,15 @@ create table public.investigaciones (
     check (estado in ('en_cola', 'investigando', 'informe_por_aprobar', 'aprobada', 'descartada', 'fallo')),
   motivo text check (length(motivo) <= 500),
   pedida_por uuid references auth.users (id),
+  -- A watch's Santiago date: one watch per day, so a re-run the same day reuses its row.
+  dia date,
   creada_en timestamptz not null default now(),
   cerrada_en timestamptz,
+  constraint dia_de_vigilancia check ((origen = 'vigilancia') = (dia is not null)),
   constraint encargo_completo check (origen = 'vigilancia' or (cantidad is not null and formato is not null and pedida_por is not null))
 );
 create index investigaciones_por_estado on public.investigaciones (estado, creada_en desc);
+create unique index una_vigilancia_por_dia on public.investigaciones (dia) where origen = 'vigilancia';
 create index investigaciones_por_persona on public.investigaciones (pedida_por) where pedida_por is not null;
 
 create table public.trabajos_de_investigacion (
@@ -253,13 +257,20 @@ begin
    where id = p_investigacion;
 end $$;
 
-create function public.crear_vigilancia(p_temas text[]) returns uuid
+-- A re-run the same day (a retry, or topics edited after the first run) gets the day's row back with the current
+-- topics and open again, so its close can append; cerrar_investigacion keeps the angles already there.
+create function public.crear_vigilancia(p_dia date, p_temas text[]) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
   v_id uuid;
 begin
-  insert into public.investigaciones (origen, tema, estado)
-  values ('vigilancia', left(array_to_string(p_temas, ' · '), 300), 'investigando')
+  if p_dia is null then
+    raise exception using errcode = '22023', message = 'dia_requerido';
+  end if;
+  insert into public.investigaciones (origen, tema, estado, dia)
+  values ('vigilancia', left(array_to_string(p_temas, ' · '), 300), 'investigando', p_dia)
+  on conflict (dia) where origen = 'vigilancia'
+  do update set tema = excluded.tema, estado = 'investigando', cerrada_en = null
   returning id into v_id;
   return v_id;
 end $$;
@@ -346,7 +357,7 @@ revoke execute on function
   public.tomar_trabajo_de_investigacion(),
   public.terminar_trabajo_de_investigacion(uuid, text, text),
   public.cerrar_investigacion(uuid, jsonb),
-  public.crear_vigilancia(text[]),
+  public.crear_vigilancia(date, text[]),
   public.guardar_sugerencias(jsonb),
   public.guardar_hallazgo(text, text, text, text, text, real, real, text, date, uuid, text)
 from public, anon, authenticated;
@@ -354,7 +365,7 @@ grant execute on function
   public.tomar_trabajo_de_investigacion(),
   public.terminar_trabajo_de_investigacion(uuid, text, text),
   public.cerrar_investigacion(uuid, jsonb),
-  public.crear_vigilancia(text[]),
+  public.crear_vigilancia(date, text[]),
   public.guardar_sugerencias(jsonb),
   public.guardar_hallazgo(text, text, text, text, text, real, real, text, date, uuid, text)
 to service_role;

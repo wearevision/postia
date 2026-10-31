@@ -156,7 +156,10 @@ describe("pedir_investigacion", () => {
   })
 
   test("a running watch does not count against the request limit", async () => {
-    const { data: vigilancia, error } = await admin().rpc("crear_vigilancia", { p_temas: ["Eventos"] })
+    const { data: vigilancia, error } = await admin().rpc("crear_vigilancia", {
+      p_dia: "2030-01-01",
+      p_temas: ["Eventos"],
+    })
     if (error) throw error
     vigilancias.push(vigilancia)
     await pedir()
@@ -267,7 +270,10 @@ describe("closing a research", () => {
   })
 
   test("a watch closes approved, without a report", async () => {
-    const { data: id, error } = await admin().rpc("crear_vigilancia", { p_temas: ["Eventos híbridos", "Focus groups"] })
+    const { data: id, error } = await admin().rpc("crear_vigilancia", {
+      p_dia: "2030-01-02",
+      p_temas: ["Eventos híbridos", "Focus groups"],
+    })
     if (error) throw error
     vigilancias.push(id)
     expect(await investigacion(id)).toMatchObject({
@@ -275,14 +281,57 @@ describe("closing a research", () => {
       estado: "investigando",
       tema: "Eventos híbridos · Focus groups",
       pedida_por: null,
+      dia: "2030-01-02",
     })
     expect((await admin().rpc("cerrar_investigacion", { p_investigacion: id, p_angulos: [] })).error).toBeNull()
     expect((await investigacion(id)).estado).toBe("aprobada")
   })
 
+  test("a second watch the same day returns the same row, open again, and an empty close keeps its angles", async () => {
+    const primera = await admin().rpc("crear_vigilancia", { p_dia: "2030-01-05", p_temas: ["Eventos"] })
+    if (primera.error) throw primera.error
+    vigilancias.push(primera.data)
+    expect(
+      (await admin().rpc("cerrar_investigacion", { p_investigacion: primera.data, p_angulos: ANGULOS })).error,
+    ).toBeNull()
+    const segunda = await admin().rpc("crear_vigilancia", { p_dia: "2030-01-05", p_temas: ["Eventos", "Ferias"] })
+    if (segunda.error) throw segunda.error
+    expect(segunda.data).toBe(primera.data)
+    expect(await investigacion(primera.data)).toMatchObject({
+      estado: "investigando",
+      cerrada_en: null,
+      tema: "Eventos · Ferias",
+    })
+    expect(
+      (await admin().rpc("cerrar_investigacion", { p_investigacion: primera.data, p_angulos: [] })).error,
+    ).toBeNull()
+    expect(await investigacion(primera.data)).toMatchObject({ estado: "aprobada", angulos: ANGULOS })
+  })
+
+  test("a watch closed with no angles is reopened by the same day's re-run; another day gets its own row", async () => {
+    const primera = await admin().rpc("crear_vigilancia", { p_dia: "2030-01-06", p_temas: ["Eventos"] })
+    if (primera.error) throw primera.error
+    vigilancias.push(primera.data)
+    await admin().rpc("cerrar_investigacion", { p_investigacion: primera.data, p_angulos: [] })
+    const otra = await admin().rpc("crear_vigilancia", { p_dia: "2030-01-07", p_temas: ["Eventos"] })
+    if (otra.error) throw otra.error
+    vigilancias.push(otra.data)
+    expect(otra.data).not.toBe(primera.data)
+    const segunda = await admin().rpc("crear_vigilancia", { p_dia: "2030-01-06", p_temas: ["Eventos"] })
+    expect(segunda.data).toBe(primera.data)
+    expect((await investigacion(primera.data)).estado).toBe("investigando")
+  })
+
+  test("only a watch carries a day", async () => {
+    const id = await pedir()
+    expect((await investigacion(id)).dia).toBeNull()
+    const sinDia = await admin().from("investigaciones").insert({ origen: "vigilancia", tema: "x" })
+    expect(sinDia.error).not.toBeNull()
+  })
+
   test("a watch with many topics is truncated to 300 characters", async () => {
     const temas = Array.from({ length: 40 }, (_, i) => `Tema número ${i}`)
-    const { data: id, error } = await admin().rpc("crear_vigilancia", { p_temas: temas })
+    const { data: id, error } = await admin().rpc("crear_vigilancia", { p_dia: "2030-01-03", p_temas: temas })
     if (error) throw error
     vigilancias.push(id)
     expect((await investigacion(id)).tema).toHaveLength(300)
@@ -466,7 +515,7 @@ describe("service RPCs", () => {
       await dueno.db.rpc("tomar_trabajo_de_investigacion"),
       await dueno.db.rpc("terminar_trabajo_de_investigacion", { p_trabajo: randomUUID(), p_estado: "hecho" }),
       await dueno.db.rpc("cerrar_investigacion", { p_investigacion: id, p_angulos: [] }),
-      await dueno.db.rpc("crear_vigilancia", { p_temas: ["Algo"] }),
+      await dueno.db.rpc("crear_vigilancia", { p_dia: "2030-01-04", p_temas: ["Algo"] }),
       await dueno.db.rpc("guardar_sugerencias", { p_sugerencias: [] }),
       await dueno.db.rpc("guardar_hallazgo", {
         p_resumen: "x",

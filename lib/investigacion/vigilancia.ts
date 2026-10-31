@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod"
 import { z } from "zod"
 import { Falla } from "@/lib/dominio/falla"
@@ -33,6 +34,9 @@ export function temasAVigilar(lineas: string[]): string[] {
   }
   return temas.slice(0, TEMAS_POR_SABADO)
 }
+
+/** A topic's ledger key part: its text, not its position, so editing the list the same day keeps the paid keys. */
+const claveDeTema = (tema: string) => createHash("sha256").update(tema.trim().toLowerCase()).digest("hex").slice(0, 12)
 
 const esperado = (error: unknown) =>
   error instanceof Falla || error instanceof TopeAlcanzado || error instanceof PasoYaPagado
@@ -95,15 +99,17 @@ async function sugerir(
 export interface PuertosDeVigilancia extends PuertosDeInvestigacion {
   /** The «temas a vigilar» of every brand's latest editorial line. */
   temasDeLasLineas(): Promise<string[]>
-  crearVigilancia(temas: string[]): Promise<string>
+  /** The day's watch (Santiago date), created once: a re-run the same day gets the same row back, open again. */
+  crearVigilancia(dia: string, temas: string[]): Promise<string>
   /** Active (not merged) topics: how many there are, and some names and descriptions. */
   temasDelMapa(): Promise<{ activos: number; temas: { nombre: string; descripcion: string }[] }>
   guardarSugerencias(sugerencias: Sugerencia[]): Promise<void>
 }
 
 /**
- * Plano «Vigilancia semanal»: one watch row, each topic searched for the last 14 days under a per-day key (a second
- * run the same day finds its steps paid and skips them), closed once with every angle. One topic failing never stops
+ * Plano «Vigilancia semanal»: one watch row per day, each topic searched for the last 14 days under a key of the day
+ * and the topic's text (a second run the same day finds those steps paid and skips them, but runs a topic added since),
+ * closed once with every angle; closing appends by name, so a re-run keeps the angles already there. One topic failing never stops
  * the others; unexpected errors are rethrown together at the end so the run shows as failed.
  */
 export async function vigilar(
@@ -114,16 +120,17 @@ export async function vigilar(
   if (temas.length === 0) return { temas: 0, guardados: 0, repetidos: 0, fallidos: 0, sugerencias: 0 }
   const dia = diaEnSantiago(ahora)
   const desde = diaEnSantiago(ahora - DIAS_DE_VIGILANCIA * 86_400_000)
-  const vigilanciaId = await p.crearVigilancia(temas)
+  const vigilanciaId = await p.crearVigilancia(dia, temas)
   const inesperados: unknown[] = []
   const angulos = new Map<string, Angulo>()
   let guardados = 0
   let repetidos = 0
   let fallidos = 0
 
-  for (const [n, tema] of temas.entries()) {
+  for (const tema of temas) {
+    const clave = `vigilar:${dia}:${claveDeTema(tema)}`
     const trabajo: Trabajo = {
-      id: `${dia}:${n}`,
+      id: clave,
       tipo: "investigar",
       investigacionId: vigilanciaId,
       angulo: null,
@@ -136,7 +143,7 @@ export async function vigilar(
     }
     try {
       const r: ResultadoDeInvestigacion = await investigarUno(p, trabajo, {
-        clave: `vigilar:${dia}:${n}`,
+        clave,
         desde,
         cerrar: false,
       })

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from "node:crypto"
 import type Anthropic from "@anthropic-ai/sdk"
 import { describe, expect, test, vi } from "vitest"
 import { Falla } from "@/lib/dominio/falla"
@@ -44,6 +45,9 @@ const orden = (nombre: string, enlace: string): RespuestaDeClaude => ({
   detenido: "end_turn",
   bloques: [],
 })
+
+/** The ledger key's topic part: the first 12 hex characters of the sha256 of the lowercased, trimmed topic. */
+const h = (tema: string) => createHash("sha256").update(tema.trim().toLowerCase()).digest("hex").slice(0, 12)
 
 const SUGERENCIAS = [{ tema: "Ferias", enriquece: "Cruza eventos con retail." }]
 
@@ -101,23 +105,46 @@ describe("vigilar", () => {
   test("creates one watch, researches each topic under its day key from 14 days back, and closes once", async () => {
     const p = puertosDeVigilancia()
     const r = await vigilar(p, AHORA)
-    expect(p.crearVigilancia).toHaveBeenCalledWith(["Eventos", "Retail"])
+    expect(p.crearVigilancia).toHaveBeenCalledWith("2026-10-31", ["Eventos", "Retail"])
     const claves = vi.mocked(p.pedir).mock.calls.map(([paso]) => paso.clave)
     expect(claves).toEqual([
-      "vigilar:2026-10-31:0:buscar:0",
-      "vigilar:2026-10-31:0:ordenar",
-      "vigilar:2026-10-31:1:buscar:0",
-      "vigilar:2026-10-31:1:ordenar",
+      `vigilar:2026-10-31:${h("Eventos")}:buscar:0`,
+      `vigilar:2026-10-31:${h("Eventos")}:ordenar`,
+      `vigilar:2026-10-31:${h("Retail")}:buscar:0`,
+      `vigilar:2026-10-31:${h("Retail")}:ordenar`,
       "sugerir:2026-10-31",
     ])
     expect(JSON.stringify(vi.mocked(p.pedir).mock.calls[0][1].mensajes)).toContain("2026-10-17")
     expect(p.guardarHallazgo).toHaveBeenCalledWith(expect.objectContaining({ investigacionId: "v1" }))
     expect(p.cerrar).toHaveBeenCalledTimes(1)
     expect(p.cerrar).toHaveBeenCalledWith("v1", [
-      { nombre: "Angulo 0", por_que: "x" },
-      { nombre: "Angulo 1", por_que: "x" },
+      { nombre: `Angulo ${h("Eventos")}`, por_que: "x" },
+      { nombre: `Angulo ${h("Retail")}`, por_que: "x" },
     ])
     expect(r).toMatchObject({ temas: 2, guardados: 2, fallidos: 0 })
+  })
+
+  test("keys each topic by its text, not its position, so editing the list the same day keeps the paid keys", async () => {
+    const antes = puertosDeVigilancia({ temasDeLasLineas: vi.fn(async () => ["Eventos\nRetail"]) })
+    await vigilar(antes, AHORA)
+    const despues = puertosDeVigilancia({ temasDeLasLineas: vi.fn(async () => ["Ferias\nRETAIL "]) })
+    await vigilar(despues, AHORA)
+    const claves = (p: PuertosDeVigilancia) =>
+      vi.mocked(p.pedir).mock.calls.flatMap(([paso]) => (paso.paso === "buscar" ? [paso.clave] : []))
+    expect(claves(antes)[1]).toBe(claves(despues)[1])
+    expect(claves(despues)[0]).toBe(`vigilar:2026-10-31:${h("Ferias")}:buscar:0`)
+  })
+
+  test("a re-run that finds every topic already paid still closes the watch, adding no angles", async () => {
+    const pedir = vi.fn<Pedir>(async (paso) => {
+      if (paso.paso === "sugerir")
+        return { texto: JSON.stringify({ sugerencias: [] }), detenido: "end_turn", bloques: [] }
+      throw new PasoYaPagado(paso.clave)
+    })
+    const p = puertosDeVigilancia({ pedir })
+    const r = await vigilar(p, AHORA)
+    expect(p.cerrar).toHaveBeenCalledWith("v1", [])
+    expect(r).toMatchObject({ temas: 2, guardados: 0, fallidos: 2 })
   })
 
   test("closes with each angle name once when two topics share it", async () => {
@@ -135,15 +162,16 @@ describe("vigilar", () => {
   test("a topic that fails expectedly is skipped; an unexpected error is rethrown after the rest ran and the watch closed", async () => {
     const base = pedirPorTema()
     const pedir = vi.fn<Pedir>(async (paso, pedido) => {
-      if (paso.clave === "vigilar:2026-10-31:0:buscar:0") throw new Falla("Claude no quiso investigar este tema.")
-      if (paso.clave === "vigilar:2026-10-31:1:buscar:0") throw new Error("red caída")
-      if (paso.clave === "vigilar:2026-10-31:2:buscar:0") throw new TopeAlcanzado("global")
+      if (paso.clave === `vigilar:2026-10-31:${h("Uno")}:buscar:0`)
+        throw new Falla("Claude no quiso investigar este tema.")
+      if (paso.clave === `vigilar:2026-10-31:${h("Dos")}:buscar:0`) throw new Error("red caída")
+      if (paso.clave === `vigilar:2026-10-31:${h("Tres")}:buscar:0`) throw new TopeAlcanzado("global")
       return base(paso, pedido)
     })
     const p = puertosDeVigilancia({ pedir, temasDeLasLineas: vi.fn(async () => ["Uno\nDos\nTres\nCuatro"]) })
     await expect(vigilar(p, AHORA)).rejects.toBeInstanceOf(AggregateError)
     expect(p.guardarHallazgo).toHaveBeenCalledTimes(1)
-    expect(p.cerrar).toHaveBeenCalledWith("v1", [{ nombre: "Angulo 3", por_que: "x" }])
+    expect(p.cerrar).toHaveBeenCalledWith("v1", [{ nombre: `Angulo ${h("Cuatro")}`, por_que: "x" }])
     expect(p.guardarSugerencias).toHaveBeenCalled()
   })
 

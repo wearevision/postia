@@ -93,8 +93,8 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
       return [...vigentes.values()]
     },
 
-    async crearVigilancia(temas) {
-      const { data, error } = await db.rpc("crear_vigilancia", { p_temas: temas })
+    async crearVigilancia(dia, temas) {
+      const { data, error } = await db.rpc("crear_vigilancia", { p_dia: dia, p_temas: temas })
       if (error) fallo("No pude crear la vigilancia", error)
       return data
     },

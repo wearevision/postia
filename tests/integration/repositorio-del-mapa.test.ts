@@ -24,7 +24,10 @@ describe("repositorioDelMapa", () => {
   })
 
   test("saves the research and the angle a finding came from", async () => {
-    const { data: investigacion, error } = await admin().rpc("crear_vigilancia", { p_temas: ["Eventos"] })
+    const { data: investigacion, error } = await admin().rpc("crear_vigilancia", {
+      p_dia: "2030-03-01",
+      p_temas: ["Eventos"],
+    })
     if (error) throw error
     try {
       const r = await repositorioDelMapa(admin()).guardarHallazgo(
