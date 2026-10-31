@@ -198,6 +198,8 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
   const [editando, setEditando] = useState(false)
   const { error, setError, pendiente, ejecutar } = useAccion()
   const diferida = useAccionDiferida()
+  // While an approval counts down nothing else may run: a discard would land before the approval it cannot undo.
+  const ocupada = pendiente || diferida.esperando
   // The suggested account always shows, even if it is not among the person's own.
   const opciones = cuentas.some((c) => c.id === idea.cuentaSugerida.id) ? cuentas : [idea.cuentaSugerida, ...cuentas]
 
@@ -240,23 +242,18 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
         </button>
       )}
       <div className="grid grid-cols-3 gap-2">
-        <button type="button" disabled={pendiente} onClick={() => setEditando(true)} className={BOTON}>
+        <button type="button" disabled={ocupada} onClick={() => setEditando(true)} className={BOTON}>
           Editar
         </button>
         <button
           type="button"
-          disabled={pendiente || idea.pidiendoOtra}
+          disabled={ocupada || idea.pidiendoOtra}
           onClick={() => ejecutar(() => a.pedirOtra(idea.id))}
           className={BOTON}
         >
           Pedir otra
         </button>
-        <button
-          type="button"
-          disabled={pendiente}
-          onClick={() => ejecutar(() => a.descartar(idea.id))}
-          className={BOTON}
-        >
+        <button type="button" disabled={ocupada} onClick={() => ejecutar(() => a.descartar(idea.id))} className={BOTON}>
           Descartar
         </button>
       </div>

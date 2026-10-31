@@ -142,6 +142,8 @@ describe("TarjetaDeIdea", () => {
     const a = tarjeta(PROPUESTA)
     fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
     await waitFor(() => expect(a.descartar).toHaveBeenCalledWith("i1"))
+    // The buttons stay disabled until the discard settles; a click before that is ignored.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pedir otra" })).toBeEnabled())
     fireEvent.click(screen.getByRole("button", { name: "Pedir otra" }))
     await waitFor(() => expect(a.pedirOtra).toHaveBeenCalledWith("i1"))
   })
@@ -268,10 +270,15 @@ describe("TarjetaDeIdea", () => {
     await act(() => vi.advanceTimersByTimeAsync(10_000))
     expect(a.aprobar).toHaveBeenCalledWith("c1", [PAGINA.id])
     vi.useRealTimers()
+    const habilitado = (nombre: string) =>
+      waitFor(() => expect(screen.getByRole("button", { name: nombre })).toBeEnabled())
+    await habilitado("Pedir otra")
     fireEvent.click(screen.getByRole("button", { name: "Pedir otra" }))
     await waitFor(() => expect(a.pedirOtra).toHaveBeenCalledWith("c1"))
+    await habilitado("Descartar")
     fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
     await waitFor(() => expect(a.descartar).toHaveBeenCalledWith("c1"))
+    await habilitado("Editar")
     fireEvent.click(screen.getByRole("button", { name: "Editar" }))
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }))
     await waitFor(() =>
@@ -281,6 +288,21 @@ describe("TarjetaDeIdea", () => {
         "Lo que dice uno\nLo que dice el otro",
       ),
     )
+  })
+})
+
+describe("during the approval countdown", () => {
+  test("the other actions wait, so a discard can never follow an approval already on its way", async () => {
+    vi.useFakeTimers()
+    tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    for (const nombre of ["Editar", "Pedir otra", "Descartar"]) {
+      expect(screen.getByRole("button", { name: nombre })).toBeDisabled()
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
+    for (const nombre of ["Editar", "Pedir otra", "Descartar"]) {
+      expect(screen.getByRole("button", { name: nombre })).toBeEnabled()
+    }
   })
 })
 
