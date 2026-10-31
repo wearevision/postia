@@ -5,7 +5,7 @@ import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
-import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
+import type { EstadoDePieza } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { lineaEnReserva } from "@/lib/piezas/textos"
@@ -14,6 +14,7 @@ import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectu
 import { rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
+import { MarcaDeEstado } from "../../marca-de-estado"
 import { Refrescar } from "../refrescar"
 import { PublicarAMano } from "./a-mano"
 import {
@@ -153,7 +154,9 @@ export default async function Pieza({
       <header className="space-y-2">
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
         <h1 className="text-2xl font-semibold">{version.titulo ?? "Post de texto"}</h1>
-        <p className="text-apagado">{NOMBRE_DEL_ESTADO[estado]}</p>
+        <p>
+          <MarcaDeEstado estado={estado} />
+        </p>
         {pieza.motivo && !firmaCaida && <p className="text-sm">{pieza.motivo}</p>}
         {!SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && pieza.pilarNombre && (
           <p className="text-sm text-apagado">Pilar: {pieza.pilarNombre}</p>
