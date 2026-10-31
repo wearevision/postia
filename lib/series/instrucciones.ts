@@ -113,11 +113,16 @@ function cuentaDeSerie(c: CuentaDeSerie, i: number): string {
   ].join("\n")
 }
 
-/** Stable per set of accounts and exception list, so the cache hits across series. */
-export function sistemaDeSerie(cuentas: readonly CuentaDeSerie[], noNombrar: readonly string[]): string {
+/** The accounts as every idea prompt lists them: numbered, with voice, pillars and vetoed topics. */
+export function cuentasDelPrompt(cuentas: readonly CuentaDeSerie[]): string {
+  return `# Cuentas\n${cuentas.map(cuentaDeSerie).join("\n")}`
+}
+
+/** 4f's rules for proposing ideas; only the rule about sources changes between series, crosses and Sunday. */
+export function reglasDeIdeas(reglaDeFuentes: string, noNombrar: readonly string[]): string {
   const reglas = [
     "Cada idea es distinta de las demás: otro ángulo y otro gancho, no la misma idea dicha de otra forma.",
-    `Cada idea usa de 1 a ${MAXIMO_DE_FUENTES} hallazgos del informe, por su número. Nunca inventes una fuente, una cifra, un cliente ni un caso.`,
+    reglaDeFuentes,
     `formato «texto» es un post de texto: su esqueleto lleva de ${PASOS_DE_TEXTO.minimo} a ${PASOS_DE_TEXTO.maximo} pasos, cada uno con tipo null y la idea del paso.`,
     `formato «carrusel_pdf» es un carrusel: su esqueleto lleva de ${LIMITES.carrusel.minimo} a ${LIMITES.carrusel.maximo} láminas, una por paso, cada una con su tipo; la primera es portada y la última cierre. Tipos: ${TIPOS_EN_UNA_LINEA}.`,
     "cuenta es el número de la cuenta que mejor le calza a la idea, y razon dice por qué en una sola oración. Una persona lo confirma.",
@@ -129,10 +134,21 @@ export function sistemaDeSerie(cuentas: readonly CuentaDeSerie[], noNombrar: rea
     "Nunca precios ni presupuestos.",
   ]
   if (noNombrar.length > 0) reglas.push(`Nunca nombres ni aludas a estos clientes: ${noNombrar.join(", ")}.`)
+  return `# Reglas\n${reglas.map((r) => `- ${r}`).join("\n")}`
+}
+
+export const QUIENES_SOMOS =
+  "Las cuentas son de WAV, una agencia chilena de experiencias, eventos y BTL que nació en agosto de 2025, y de Federico, su fundador. Escribes en español de Chile."
+
+/** Stable per set of accounts and exception list, so the cache hits across series. */
+export function sistemaDeSerie(cuentas: readonly CuentaDeSerie[], noNombrar: readonly string[]): string {
   return [
-    "Propones una serie de ideas para LinkedIn a partir de un informe de investigación que Federico aprobó. Las cuentas son de WAV, una agencia chilena de experiencias, eventos y BTL que nació en agosto de 2025, y de Federico, su fundador. Escribes en español de Chile.",
-    `# Cuentas\n${cuentas.map(cuentaDeSerie).join("\n")}`,
-    `# Reglas\n${reglas.map((r) => `- ${r}`).join("\n")}`,
+    `Propones una serie de ideas para LinkedIn a partir de un informe de investigación que Federico aprobó. ${QUIENES_SOMOS}`,
+    cuentasDelPrompt(cuentas),
+    reglasDeIdeas(
+      `Cada idea usa de 1 a ${MAXIMO_DE_FUENTES} hallazgos del informe, por su número. Nunca inventes una fuente, una cifra, un cliente ni un caso.`,
+      noNombrar,
+    ),
     "Si los hallazgos no alcanzan para todas las ideas pedidas, propón menos. Mejor pocas ideas sólidas que muchas repetidas.",
   ].join("\n\n")
 }
@@ -156,7 +172,8 @@ function cuerpoDelInforme(informe: InformeDeSerie): string {
   ].join("\n\n")
 }
 
-function lista(ganchos: readonly string[]): string {
+/** Previous hooks or titles as a data list, or «(ninguna)». */
+export function lista(ganchos: readonly string[]): string {
   return ganchos.length > 0 ? comoDatos(ganchos.map((g) => `- ${g}`).join("\n")) : "(ninguna)"
 }
 

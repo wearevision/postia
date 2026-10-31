@@ -41,7 +41,7 @@ export interface ContextoDeSerie {
 // uuids it could garble. Text limits are checked per idea in validarSerie rather than here, so one long hook does not
 // sink the whole paid answer.
 const Indice = z.number().int()
-const Idea = z.object({
+export const Idea = z.object({
   gancho: z.string().trim().min(1),
   resumen: z.string().trim().min(1),
   formato: z.enum(["texto", "carrusel_pdf"]),
@@ -96,7 +96,7 @@ const MOTIVOS = {
   paso: `Un paso del esqueleto pasa los ${LARGO_DE_PASO} caracteres.`,
 }
 
-const deIndice = <T>(lista: readonly T[], indice: number): T | undefined =>
+export const deIndice = <T>(lista: readonly T[], indice: number): T | undefined =>
   Number.isInteger(indice) && indice >= 1 ? lista[indice - 1] : undefined
 
 function esqueletoDeCarrusel(esqueleto: IdeaPropuesta["esqueleto"]): PasoDeEsqueleto[] | null {
@@ -116,9 +116,10 @@ function esqueletoDeTexto(esqueleto: IdeaPropuesta["esqueleto"]): PasoDeEsquelet
   return esqueleto.map((p) => ({ idea: p.idea }))
 }
 
-type Validacion = { ok: true; idea: IdeaValidada } | { ok: false; motivo: string }
+export type Validacion = { ok: true; idea: IdeaValidada } | { ok: false; motivo: string }
 
-function validarIdea(
+/** 4f's per-idea rules, shared with crosses and Sunday ideas (lib/ideas/propuestas.ts). */
+export function validarIdea(
   idea: IdeaPropuesta,
   contexto: {
     cuentas: readonly Pick<CuentaDeSerie, "id" | "pilares">[]
