@@ -5,12 +5,12 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
-import { FinDelTexto, useLectura } from "./lectura"
+import { useLectura } from "./lectura"
 
 interface Props {
   piezaId: string
   huella: string
-  texto: string
+  /** The date it signs for: the planned date while it is still valid, else the next free slot. */
   fechaPropuesta: string
   /** When the server rendered the page: a signature is refused if an exception was marked after it. */
   abiertaEn: string
@@ -23,6 +23,8 @@ interface Props {
     abiertaEn: string
   }) => Promise<Resultado>
   firmarParaReserva: (entrada: { piezaId: string; huella: string; abiertaEn: string }) => Promise<Resultado>
+  /** Moves the planned date; the page then re-renders with the new fechaPropuesta and remounts this form. */
+  planear: (entrada: { piezaId: string; planeadaPara: string }) => Promise<Resultado>
   /** A rewrite is open: signing now keeps this version and Claude's is dropped as obsolete. */
   reescribiendo?: boolean
   /** Pause between automatic attempts after the connection drops, in milliseconds. */
@@ -38,19 +40,21 @@ const esperar = (milisegundos: number) => new Promise<void>((resolver) => setTim
 export function FirmaDePieza({
   piezaId,
   huella,
-  texto,
   fechaPropuesta,
   abiertaEn,
   ruta,
   cuenta,
   firmar,
   firmarParaReserva,
+  planear,
   reescribiendo = false,
   esperaEntreIntentos = ESPERA_ENTRE_INTENTOS,
 }: Props) {
+  const [cambiando, setCambiando] = useState(false)
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
+  const [guardando, iniciarGuardado] = useTransition()
   const [cual, setCual] = useState<"fecha" | "reserva">("fecha")
   const [intento, setIntento] = useState(1)
   const [sinRed, setSinRed] = useState(false)
@@ -58,11 +62,17 @@ export function FirmaDePieza({
   const campoDeFecha = useRef<HTMLInputElement>(null)
   const lectura = useLectura()
   const bloqueada = pendiente || !lectura.puedeFirmar
-  const instante = instanteDesdeValorLocal(fecha)
+  const [enfocarFecha, setEnfocarFecha] = useState(false)
 
   useEffect(() => {
     if (sinRed) avisoDeRed.current?.focus()
   }, [sinRed])
+
+  useEffect(() => {
+    if (!enfocarFecha) return
+    campoDeFecha.current?.focus()
+    setEnfocarFecha(false)
+  }, [enfocarFecha])
 
   // A rejected call means the answer never arrived (the server answers refusals as a value), so only that is retried.
   async function conReintentos(accion: () => Promise<Resultado>): Promise<Resultado | null> {
@@ -78,14 +88,13 @@ export function FirmaDePieza({
   }
 
   function lanzar(cualDeLas: "fecha" | "reserva") {
-    if (cualDeLas === "fecha" && !instante) return setError("Elige la fecha y la hora.")
     setError(null)
     setSinRed(false)
     setCual(cualDeLas)
     iniciar(async () => {
       const resultado = await conReintentos(() =>
-        cualDeLas === "fecha" && instante
-          ? firmar({ piezaId, huella, programadaPara: instante, abiertaEn })
+        cualDeLas === "fecha"
+          ? firmar({ piezaId, huella, programadaPara: fechaPropuesta, abiertaEn })
           : firmarParaReserva({ piezaId, huella, abiertaEn }),
       )
       if (resultado === null) setSinRed(true)
@@ -98,31 +107,57 @@ export function FirmaDePieza({
     lanzar("fecha")
   }
 
+  function guardarFecha() {
+    const nueva = instanteDesdeValorLocal(fecha)
+    if (!nueva) return setError("Elige la fecha y la hora.")
+    setError(null)
+    iniciarGuardado(async () => {
+      const resultado = await planear({ piezaId, planeadaPara: nueva })
+      if (!resultado.ok) setError(resultado.error)
+    })
+  }
+
   function volverALaPieza() {
     setSinRed(false)
-    campoDeFecha.current?.focus()
+    setCambiando(true)
+    setEnfocarFecha(true)
   }
 
   return (
     <form onSubmit={enviar} className="space-y-4">
-      <p className="whitespace-pre-wrap tarjeta p-3">{texto}</p>
-      <FinDelTexto />
-      <label className="block space-y-1">
-        <span className="text-sm">Fecha y hora de publicación</span>
-        <input
-          ref={campoDeFecha}
-          type="datetime-local"
-          value={fecha}
-          onChange={(evento) => setFecha(evento.target.value)}
-          className="campo block min-h-12 w-full min-w-0 max-w-full appearance-none"
-        />
-      </label>
-      {instante && (
+      <section className="space-y-2">
         <p>
-          Sale el <strong>{fechaLarga(instante)}</strong>
+          Sale el <strong>{fechaLarga(fechaPropuesta)}</strong>
           <span className="block text-sm text-apagado">Hora de Chile.</span>
         </p>
-      )}
+        {cambiando ? (
+          <div className="space-y-2">
+            <label className="block space-y-1">
+              <span className="text-sm">Fecha y hora de publicación</span>
+              <input
+                ref={campoDeFecha}
+                type="datetime-local"
+                value={fecha}
+                onChange={(evento) => setFecha(evento.target.value)}
+                onKeyDown={(evento) => {
+                  // Enter would submit the form and sign for the old date: it saves the new one instead.
+                  if (evento.key !== "Enter") return
+                  evento.preventDefault()
+                  guardarFecha()
+                }}
+                className="campo block min-h-12 w-full min-w-0 max-w-full appearance-none"
+              />
+            </label>
+            <button type="button" disabled={guardando} onClick={guardarFecha} className="boton w-full">
+              Guardar fecha
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setCambiando(true)} className="min-h-11 text-sm underline">
+            Cambiar fecha
+          </button>
+        )}
+      </section>
       {reescribiendo && (
         <p className="text-sm">Claude está reescribiendo. Si firmas ahora, esa versión no se aplica.</p>
       )}
@@ -139,11 +174,7 @@ export function FirmaDePieza({
         aria-describedby={lectura.motivo ? "motivo-de-lectura" : undefined}
         className="boton-primario w-full gap-2"
       >
-        {pendiente && cual === "fecha" ? (
-          <Ocupado />
-        ) : (
-          `Firmar ${cuenta}${instante ? ` · ${fechaCorta(instante)}` : ""}`
-        )}
+        {pendiente && cual === "fecha" ? <Ocupado /> : `Firmar ${cuenta} · ${fechaCorta(fechaPropuesta)}`}
       </button>
       {ruta === "a_mano" && <p className="text-sm text-apagado">Te aviso a la hora para publicarla a mano.</p>}
       <button
@@ -173,8 +204,7 @@ export function FirmaDePieza({
           <p className="text-sm">
             Todavía no se publicó nada y tu texto está intacto.
             {cual === "fecha" &&
-              instante &&
-              ` Si la conexión no vuelve antes del ${fechaLarga(instante)}, la pieza no sale y vuelve a pedirte la firma.`}
+              ` Si la conexión no vuelve antes del ${fechaLarga(fechaPropuesta)}, la pieza no sale y vuelve a pedirte la firma.`}
           </p>
           <div className="flex gap-2">
             <button type="button" onClick={() => lanzar(cual)} className="boton-primario flex-1">

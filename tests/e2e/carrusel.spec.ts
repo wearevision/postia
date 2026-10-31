@@ -71,9 +71,13 @@ test("a carousel asked for in the editor shows its slides at gate 1 and opens ag
   await page.goto(`/piezas/${piezaId}`)
   await expect(page.getByRole("list", { name: "Láminas del carrusel" }).getByRole("img")).toHaveCount(laminas)
   await expect(page.getByRole("img", { name: `Lámina 1 de ${laminas}` })).toBeAttached()
-  await expect(page.getByRole("link", { name: "Descargar el PDF" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Descargar el PDF" })).toHaveCount(0)
   await expect(page.getByText("Un carrusel para probar el editor.")).toBeVisible()
 
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Cambiar$/ })
+    .click()
   await page.getByRole("link", { name: "Editar el carrusel" }).click()
   await expect(page.getByRole("heading", { name: "Editar carrusel" })).toBeVisible()
   await expect(page.getByLabel("Texto del post")).toHaveValue("Un carrusel para probar el editor.")

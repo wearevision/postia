@@ -30,13 +30,13 @@ function montar() {
     <FirmaDePieza
       piezaId="11111111-1111-4111-8111-111111111111"
       huella={HUELLA}
-      texto="Texto"
       fechaPropuesta="2026-11-03T14:00:00.000Z"
       abiertaEn="2026-11-02T20:00:00.000Z"
       ruta="api"
       cuenta="WAV"
       firmar={firmar}
       firmarParaReserva={firmarParaReserva}
+      planear={vi.fn(async () => ({ ok: true as const }))}
     />,
   )
   return salida

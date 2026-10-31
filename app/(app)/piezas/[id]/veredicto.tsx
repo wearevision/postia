@@ -1,10 +1,10 @@
 import { type Hallazgo, mensajeDe } from "@/lib/clientes/revision"
 
-/** Gate 1 review without AI: it shows, it never blocks. The person signing decides. Null: it could not run. */
+/** Gate 1 review without AI, shown inside the folded «Revisión»: it shows, it never blocks. The person signing decides. Null: it could not run. */
 export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] | null }) {
   if (hallazgos === null) {
     return (
-      <p role="alert" className="tarjeta p-3 text-sm">
+      <p role="alert" className="text-sm">
         No pude revisar los clientes. Revísalo tú antes de firmar.
       </p>
     )
@@ -17,7 +17,7 @@ export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] | null }) {
     )
   }
   return (
-    <section aria-labelledby="veredicto" className="space-y-2 tarjeta p-3">
+    <section aria-labelledby="veredicto" className="space-y-2">
       <h2 id="veredicto" className="font-medium">
         Revisa antes de firmar
       </h2>
