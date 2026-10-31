@@ -84,7 +84,7 @@ describe("investigarUno", () => {
     const [pasoBusqueda, pedidoBusqueda] = vi.mocked(p.pedir).mock.calls[0]
     expect(pasoBusqueda).toEqual({ clave: "investigar:j1:buscar:0", paso: "buscar", marcaId: null })
     expect(pedidoBusqueda).toMatchObject({ modelo: "claude-opus-5-5", esfuerzo: "medium" })
-    expect(pedidoBusqueda.herramientas?.[0]).toMatchObject({ type: "web_search_20260209", max_uses: 10 })
+    expect(pedidoBusqueda.herramientas?.[0]).toMatchObject({ type: "web_search_20260209", max_uses: 8 })
     const [pasoOrden, pedidoOrden] = vi.mocked(p.pedir).mock.calls[1]
     expect(pasoOrden).toEqual({ clave: "investigar:j1:ordenar", paso: "ordenar", marcaId: null })
     expect(pedidoOrden).toMatchObject({ modelo: "claude-sonnet-5-5", esfuerzo: "low" })
@@ -105,14 +105,20 @@ describe("investigarUno", () => {
     })
   })
 
-  test("caps an encargo at 12 searches", async () => {
+  test("caps an encargo at 8 searches", async () => {
     const p = puertos()
     await investigarUno(p, { ...trabajo, cantidad: 30 })
-    expect(vi.mocked(p.pedir).mock.calls[0][1].herramientas?.[0]).toMatchObject({ max_uses: 12 })
+    expect(vi.mocked(p.pedir).mock.calls[0][1].herramientas?.[0]).toMatchObject({ max_uses: 8 })
+  })
+
+  test("an encargo for 2 pieces searches 6 times", async () => {
+    const p = puertos()
+    await investigarUno(p, { ...trabajo, cantidad: 2 })
+    expect(vi.mocked(p.pedir).mock.calls[0][1].herramientas?.[0]).toMatchObject({ max_uses: 6 })
   })
 
   test("continues a paused search with the assistant turn, a new ledger key and the searches left, at most twice", async () => {
-    const pausada = { ...busqueda(["https://a.cl/1"], 4), detenido: "pause_turn" as const }
+    const pausada = { ...busqueda(["https://a.cl/1"], 2), detenido: "pause_turn" as const }
     const pedir = vi
       .fn<Pedir>()
       .mockResolvedValueOnce(pausada)
@@ -129,21 +135,23 @@ describe("investigarUno", () => {
     ])
     expect(pedir.mock.calls[1][1].mensajes.at(-1)).toMatchObject({ role: "assistant" })
     expect(pedir.mock.calls.slice(0, 3).map((c) => c[1].herramientas?.[0])).toMatchObject([
-      { max_uses: 10 },
+      { max_uses: 8 },
       { max_uses: 6 },
-      { max_uses: 2 },
+      { max_uses: 4 },
     ])
   })
 
-  test("a continuation never asks for fewer than one search", async () => {
-    const pausada = { ...busqueda(["https://a.cl/1"], 11), detenido: "pause_turn" as const }
+  test("a paused search with no searches left stops there and sorts what it gathered", async () => {
+    const pausada = { ...busqueda(["https://a.cl/1"], 8), detenido: "pause_turn" as const }
     const p = puertos({
-      pedir: vi.fn<Pedir>(async (paso) =>
-        paso.paso === "ordenar" ? orden(["https://a.cl/1"]) : paso.clave.endsWith(":0") ? pausada : busqueda([]),
-      ),
+      pedir: vi.fn<Pedir>(async (paso) => (paso.paso === "ordenar" ? orden(["https://a.cl/1"]) : pausada)),
     })
-    await investigarUno(p, trabajo)
-    expect(vi.mocked(p.pedir).mock.calls[1][1].herramientas?.[0]).toMatchObject({ max_uses: 1 })
+    const r = await investigarUno(p, trabajo)
+    expect(vi.mocked(p.pedir).mock.calls.map((c) => c[0].clave)).toEqual([
+      "investigar:j1:buscar:0",
+      "investigar:j1:ordenar",
+    ])
+    expect(r.guardados).toBe(1)
   })
 
   test("a refused search fails with a readable reason and pays nothing more", async () => {

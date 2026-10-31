@@ -65,7 +65,7 @@ const ILEGIBLE = "Claude devolvió un informe que no pude leer. Pide la investig
 function busquedasPermitidas(t: Trabajo): number {
   if (t.origen === "vigilancia") return 3
   if (t.tipo === "ampliar") return 4
-  return Math.min(4 + (t.cantidad ?? 0), 12)
+  return Math.min(4 + (t.cantidad ?? 0), 8)
 }
 
 function modeloDe(t: Trabajo): { modelo: ModeloClaude; esfuerzo: "low" | "medium" } {
@@ -90,7 +90,8 @@ const busquedasHechas = (bloques: readonly Anthropic.ContentBlock[]) =>
 
 /**
  * The server loop pauses (`pause_turn`) when it runs long: the assistant turn goes back as is, under its own ledger
- * key, with only the searches still allowed. A last pause or a cut keeps what was gathered: notes can be partial.
+ * key, with only the searches still allowed. A last pause, a pause with no searches left or a cut keeps what was
+ * gathered: notes can be partial, and the run never searches more than the estimate reserved.
  */
 async function buscar(
   p: PuertosDeInvestigacion,
@@ -103,6 +104,8 @@ async function buscar(
   const bloques: Anthropic.ContentBlock[] = []
   const textos: string[] = []
   for (let n = 0; n <= CONTINUACIONES; n++) {
+    const quedan = permitidas - busquedasHechas(bloques)
+    if (quedan < 1) break
     const mensajes: Anthropic.MessageParam[] =
       n === 0 ? [pregunta] : [pregunta, { role: "assistant", content: [...bloques] }]
     const respuesta: RespuestaDeClaude = await p.pedir(
@@ -112,7 +115,7 @@ async function buscar(
         sistema: sistemaDeBusqueda(),
         mensajes,
         maxTokens: MAX_TOKENS,
-        herramientas: [herramientaDeBusqueda(Math.max(1, permitidas - busquedasHechas(bloques)))],
+        herramientas: [herramientaDeBusqueda(quedan)],
       },
     )
     if (respuesta.detenido === "refusal") throw new Falla("Claude no quiso investigar este tema.")

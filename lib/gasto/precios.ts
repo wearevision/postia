@@ -63,8 +63,16 @@ export function estimarVoyage(caracteres: number): number {
 const TOKENS_POR_BUSQUEDA = 30_000
 
 /**
+ * Inside the server loop each iteration re-reads the context gathered so far, so billed input grows with the square
+ * of the searches: n searches re-read on average ceil((n + 1) / 2) result sets each.
+ */
+function tokensDeBusquedas(busquedas: number): number {
+  return busquedas * TOKENS_POR_BUSQUEDA * Math.ceil((busquedas + 1) / 2)
+}
+
+/**
  * The worst case before calling: every input token written to cache, the whole max_tokens produced, and every allowed
- * search used with its bound of result tokens.
+ * search used with its bound of result tokens re-read across the loop.
  */
 export function estimarCosto(
   modelo: ModeloClaude,
@@ -74,7 +82,7 @@ export function estimarCosto(
     entrada: 0,
     salida: pedido.maxTokens,
     escrituraDeCache:
-      Math.ceil(pedido.caracteresDeEntrada / CARACTERES_POR_TOKEN) + pedido.busquedas * TOKENS_POR_BUSQUEDA,
+      Math.ceil(pedido.caracteresDeEntrada / CARACTERES_POR_TOKEN) + tokensDeBusquedas(pedido.busquedas),
     lecturaDeCache: 0,
     busquedas: pedido.busquedas,
   })
