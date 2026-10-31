@@ -297,6 +297,149 @@ language sql stable security definer set search_path = '' as $$
    limit greatest(0, least(coalesce(p_limite, 0), 5000))
 $$;
 
+-- Leases --------------------------------------------------------------------------------------------------------
+-- `where id in (select … limit n for update skip locked)` may re-run the locking subquery once per outer row (a semi
+-- join without Materialize), and each run can lock and return other rows: one call could lease more than its limit.
+-- A materialized CTE runs once. Every lease is redefined with that form; the rest of each body is copied unchanged.
+
+-- C1's body (piezas).
+create or replace function public.tomar_para_publicar() returns setof public.piezas
+language sql security definer set search_path = '' as $$
+  with elegida as materialized (
+    select id from public.piezas
+     where estado = 'programada' and programada_para <= now()
+       and (arrendada_hasta is null or arrendada_hasta < now())
+     order by programada_para
+     -- Serial work: ~90 s per carousel x 3 is an estimate against the 540 s maxDuration and the 600 s lease; the worst case can exceed it.
+     -- Safety does not rest on the arithmetic but on concurrencyLimit 1, the atomic reservation (reservar_envio) and the doubtful sweep.
+     limit 3
+     for update skip locked
+  )
+  update public.piezas p set arrendada_hasta = now() + interval '10 minutes'
+    from elegida
+   where p.id = elegida.id
+  returning p.*
+$$;
+
+-- 4a's body (redaccion).
+create or replace function public.tomar_pedidos() returns setof public.pedidos_de_texto
+language sql security definer set search_path = '' as $$
+  with elegido as materialized (
+    select id from public.pedidos_de_texto
+     where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
+     order by creado_en
+     limit 1
+     for update skip locked
+  )
+  update public.pedidos_de_texto p set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes'
+    from elegido
+   where p.id = elegido.id
+  returning p.*
+$$;
+
+-- 4f's body (series).
+create or replace function public.tomar_pedidos_de_diseno() returns setof public.pedidos_de_diseno
+language plpgsql security definer set search_path = '' as $$
+begin
+  with vencidos as (
+    update public.pedidos_de_diseno
+       set estado = 'fallo',
+           motivo = 'No pude armar el carrusel después de dos intentos. Revisa las láminas o pídelo de nuevo.',
+           terminado_en = now(), arrendado_hasta = null
+     where estado = 'trabajando' and arrendado_hasta < now() and intentos >= 2
+    returning asignacion_id, motivo
+  )
+  update public.asignaciones a
+     set estado = 'fallo', motivo = v.motivo, arrendado_hasta = null
+    from vencidos v
+   where a.id = v.asignacion_id and a.estado = 'escribiendo';
+  return query
+  with elegido as materialized (
+    select id from public.pedidos_de_diseno
+     where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
+     order by creado_en
+     limit 1
+     for update skip locked
+  )
+  update public.pedidos_de_diseno p
+     set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes', intentos = p.intentos + 1
+    from elegido
+   where p.id = elegido.id
+  returning p.*;
+end $$;
+
+-- 4f's body (series).
+create or replace function public.tomar_trabajo_de_investigacion() returns setof public.trabajos_de_investigacion
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_motivo constant text := 'No pude terminar la investigación después de dos intentos. Pídela de nuevo.';
+begin
+  -- Poison guard, as in tomar_pedidos_de_diseno: a job that died twice is not leased a third time. A failed request
+  -- fails its research; a failed extension leaves the report it extends standing, as terminar does.
+  with vencidos as (
+    update public.trabajos_de_investigacion
+       set estado = 'fallo', motivo = v_motivo, terminado_en = now(), arrendado_hasta = null
+     where estado = 'trabajando' and arrendado_hasta < now() and intentos >= 2
+    returning investigacion_id, tipo
+  )
+  update public.investigaciones i
+     set estado = case when v.tipo = 'investigar' then 'fallo' else 'informe_por_aprobar' end,
+         motivo = case when v.tipo = 'investigar' then v_motivo else i.motivo end,
+         cerrada_en = case when v.tipo = 'investigar' then now() else i.cerrada_en end
+    from vencidos v
+   where i.id = v.investigacion_id and i.estado = 'investigando' and v.tipo in ('investigar', 'ampliar');
+
+  return query
+  with elegido as materialized (
+    select id from public.trabajos_de_investigacion
+     where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
+     order by creado_en
+     limit 1
+     for update skip locked
+  ), tomado as (
+    update public.trabajos_de_investigacion t
+       set estado = 'trabajando', arrendado_hasta = now() + interval '15 minutes', intentos = t.intentos + 1
+      from elegido
+     where t.id = elegido.id
+    returning t.*
+  ), marcada as (
+    update public.investigaciones i set estado = 'investigando'
+      from tomado
+     where i.id = tomado.investigacion_id and tomado.tipo in ('investigar', 'ampliar')
+  )
+  select * from tomado;
+end $$;
+
+-- 4f's body (series).
+create or replace function public.tomar_asignaciones(p_hasta timestamptz, p_limite integer) returns setof public.asignaciones
+language plpgsql security definer set search_path = '' as $$
+begin
+  update public.asignaciones
+     set estado = 'fallo', motivo = 'No pude escribir esta pieza después de dos intentos.', arrendado_hasta = null
+   where estado = 'escribiendo' and arrendado_hasta < now() and intentos >= 2;
+  update public.asignaciones a
+     set estado = 'fallo', motivo = 'El carrusel no se pudo armar. Pídelo de nuevo desde la idea.'
+   where a.estado = 'escribiendo' and a.formato = 'carrusel_pdf' and a.arrendado_hasta is null
+     and (a.pedido_de_diseno_id is null
+          or exists (select 1 from public.pedidos_de_diseno p
+                      where p.id = a.pedido_de_diseno_id and p.estado in ('fallo', 'obsoleto')));
+  return query
+  with elegida as materialized (
+    select id from public.asignaciones
+     where (estado = 'por_escribir' and planeada_para <= p_hasta)
+        or (estado = 'escribiendo' and arrendado_hasta < now())
+     order by planeada_para
+     limit greatest(1, least(coalesce(p_limite, 1), 10))
+     for update skip locked
+  )
+  update public.asignaciones a
+     set estado = 'escribiendo', arrendado_hasta = now() + interval '15 minutes', intentos = a.intentos + 1,
+         motivo = null
+    from elegida
+   where a.id = elegida.id
+  returning a.*;
+end $$;
+
 -- Grants. create or replace kept the grants of the redefined functions. Supabase's default privileges grant execute
 -- to anon and authenticated otherwise.
 revoke execute on function public.cuenta_y_pilar_de_idea(jsonb) from public, anon, authenticated, service_role;
