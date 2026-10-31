@@ -28,7 +28,8 @@ export const Informe = z.object({
 export type Informe = z.infer<typeof Informe>
 export type HallazgoDelInforme = z.infer<typeof Hallazgo>
 
-const LINKEDIN = ["linkedin.com", "lnkd.in"]
+// licdn.com is LinkedIn's media CDN: images and documents of members' posts.
+const LINKEDIN = ["linkedin.com", "lnkd.in", "licdn.com"]
 
 /** Data from LinkedIn never reaches Claude or the map (CLAUDE.md); an unparseable link is treated the same way. */
 export function esDeLinkedin(enlace: string): boolean {

@@ -43,6 +43,7 @@ describe("esDeLinkedin", () => {
     expect(esDeLinkedin("https://www.linkedin.com/posts/x")).toBe(true)
     expect(esDeLinkedin("https://cl.linkedin.com/pulse/x")).toBe(true)
     expect(esDeLinkedin("https://lnkd.in/abc")).toBe(true)
+    expect(esDeLinkedin("https://media.licdn.com/dms/image/x")).toBe(true)
     expect(esDeLinkedin("https://notlinkedin.com/x")).toBe(false)
     expect(esDeLinkedin("no es una url")).toBe(true)
   })

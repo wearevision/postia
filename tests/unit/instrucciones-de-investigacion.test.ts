@@ -26,7 +26,7 @@ describe("herramientaDeBusqueda", () => {
       type: "web_search_20260209",
       name: "web_search",
       max_uses: 8,
-      blocked_domains: ["linkedin.com", "lnkd.in"],
+      blocked_domains: ["linkedin.com", "lnkd.in", "licdn.com"],
       user_location: { type: "approximate", country: "CL", city: "Santiago", timezone: "America/Santiago" },
     })
   })

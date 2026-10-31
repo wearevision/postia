@@ -25,7 +25,7 @@ export function herramientaDeBusqueda(maximo: number): Anthropic.Messages.WebSea
     type: "web_search_20260209",
     name: "web_search",
     max_uses: maximo,
-    blocked_domains: ["linkedin.com", "lnkd.in"],
+    blocked_domains: ["linkedin.com", "lnkd.in", "licdn.com"],
     user_location: { type: "approximate", country: "CL", city: "Santiago", timezone: "America/Santiago" },
   }
 }

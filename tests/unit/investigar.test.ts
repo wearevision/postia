@@ -174,6 +174,31 @@ describe("investigarUno", () => {
     expect(p.guardarHallazgo).not.toHaveBeenCalled()
   })
 
+  test("never shows the sort a LinkedIn link the search returned", async () => {
+    const p = puertos({
+      pedir: vi.fn<Pedir>(async (paso) =>
+        paso.paso === "buscar"
+          ? busqueda(["https://a.cl/1", "https://www.linkedin.com/posts/x", "https://media.licdn.com/y"])
+          : orden(["https://a.cl/1"]),
+      ),
+    })
+    await investigarUno(p, trabajo)
+    const mensajes = JSON.stringify(vi.mocked(p.pedir).mock.calls[1][1].mensajes)
+    expect(mensajes).toContain("https://a.cl/1")
+    expect(mensajes).not.toContain("linkedin.com")
+    expect(mensajes).not.toContain("licdn.com")
+  })
+
+  test("a search that returned only LinkedIn links fails before the sort", async () => {
+    const p = puertos({
+      pedir: vi.fn<Pedir>(async () => busqueda(["https://www.linkedin.com/posts/x"])),
+    })
+    await expect(investigarUno(p, trabajo)).rejects.toThrow(
+      new Falla("La búsqueda no encontró fuentes que pueda citar. Prueba con otro enfoque."),
+    )
+    expect(p.pedir).toHaveBeenCalledTimes(1)
+  })
+
   test("a sort whose every link was invented fails the same way, before embedding", async () => {
     const p = puertos({
       pedir: vi.fn<Pedir>(async (paso) =>

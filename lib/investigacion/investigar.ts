@@ -4,7 +4,7 @@ import { Falla } from "@/lib/dominio/falla"
 import type { ModeloClaude } from "@/lib/gasto/precios"
 import type { Pedir, RespuestaDeClaude } from "@/lib/ia/claude"
 import type { HallazgoNuevo, ResultadoDeGuardar } from "@/lib/mapa/repositorio"
-import { Informe, urlsDeLaBusqueda, validarInforme } from "./informe"
+import { esDeLinkedin, Informe, urlsDeLaBusqueda, validarInforme } from "./informe"
 import {
   type EnfoqueDeInvestigacion,
   type FormatoDeInvestigacion,
@@ -163,7 +163,8 @@ export async function investigarUno(
 ): Promise<ResultadoDeInvestigacion> {
   const base = opciones.clave ?? `investigar:${t.id}`
   const { notas, bloques } = await buscar(p, t, base, opciones.desde)
-  const urls = urlsDeLaBusqueda(bloques)
+  // LinkedIn is blocked in the tool already; a link that slips through still never reaches Claude (CLAUDE.md).
+  const urls = new Set([...urlsDeLaBusqueda(bloques)].filter((u) => !esDeLinkedin(u)))
   if (urls.size === 0) throw new Falla(SIN_FUENTES)
 
   const respuesta = await p.pedir(
