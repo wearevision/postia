@@ -208,6 +208,24 @@ describe("refresh tokens", () => {
     expect(new Date(fila?.renovacion_expira_en ?? "").toISOString()).toBe(renovacionExpira)
   })
 
+  test("forgetting a refused refresh token clears its expiry and its secret, and leaves the access token", async () => {
+    const { db, cuenta } = await duenoCon("empresa")
+    const { data: conexion } = await conectarPagina(db, cuenta, {
+      p_renovacion: "renovacion-rechazada",
+      p_renovacion_expira_en: EN_DIAS(365),
+    })
+    expect((await admin().rpc("olvidar_renovacion", { p_conexion: conexion ?? "" })).error).toBeNull()
+    const { data: fila } = await admin()
+      .from("conexiones")
+      .select("renovacion_expira_en")
+      .eq("id", conexion ?? "")
+      .single()
+    expect(fila?.renovacion_expira_en).toBeNull()
+    expect(secretosLlamados(`conexion:${conexion}:renovacion`)).toBe(0)
+    expect(secretosLlamados(`conexion:${conexion}`)).toBe(1)
+    expect((await db.rpc("olvidar_renovacion", { p_conexion: conexion ?? "" })).error?.code).toBe("42501")
+  })
+
   test("a person can call neither renewal function", async () => {
     const { db } = await duenoCon("empresa")
     expect((await db.rpc("renovaciones_pendientes", { p_hasta: EN_DIAS(10) })).error?.code).toBe("42501")

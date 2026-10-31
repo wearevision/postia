@@ -180,6 +180,15 @@ begin
   end if;
 end $$;
 
+-- Daily refresh task (service role): LinkedIn refused this refresh token, so it is forgotten. Without it the
+-- connection no longer counts as self-renewing and the watch warns about its access token again.
+create function public.olvidar_renovacion(p_conexion uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  update public.conexiones set renovacion_expira_en = null where id = p_conexion;
+  delete from vault.secrets where name = 'conexion:' || p_conexion || ':renovacion';
+end $$;
+
 -- An administrator of several pages picks one. The list holds page names only for this short flow: it is ignored
 -- after 10 minutes and deleted when a page is picked or by the nightly sweep (LinkedIn: organization data ≤ 8 weeks).
 -- The token waits in Vault as 'eleccion:<id>' (and 'eleccion:<id>:renovacion').
@@ -301,7 +310,7 @@ revoke execute on function
   public.conectar_linkedin(uuid, text, text, text, text[], timestamptz, text, text, text, timestamptz),
   public.desconectar_cuenta(uuid), public.credencial_de_cuenta(uuid), public.cambiar_ruta(uuid, text),
   public.renovaciones_pendientes(timestamptz),
-  public.guardar_renovacion(uuid, text, timestamptz, text, timestamptz),
+  public.guardar_renovacion(uuid, text, timestamptz, text, timestamptz), public.olvidar_renovacion(uuid),
   public.guardar_eleccion(uuid, text, text, jsonb, text, text[], timestamptz, text, timestamptz),
   public.elegir_pagina(uuid, text), public.barrer_elecciones(timestamptz)
   from public, anon, authenticated;
@@ -312,5 +321,6 @@ grant execute on function
   public.elegir_pagina(uuid, text)
   to authenticated;
 grant execute on function public.credencial_de_cuenta(uuid), public.renovaciones_pendientes(timestamptz),
-  public.guardar_renovacion(uuid, text, timestamptz, text, timestamptz), public.barrer_elecciones(timestamptz)
+  public.guardar_renovacion(uuid, text, timestamptz, text, timestamptz), public.olvidar_renovacion(uuid),
+  public.barrer_elecciones(timestamptz)
   to service_role;

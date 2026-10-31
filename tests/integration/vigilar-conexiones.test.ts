@@ -94,7 +94,7 @@ describe("vigilarConexiones", () => {
 
   test("a page connection whose refresh token runs out in 14 days queues a line", async () => {
     const c = await conConexion(
-      5,
+      12,
       undefined,
       instanteDesdeValorLocal(`${sumarDias(diaEnSantiago(Date.now()), 14)}T12:00`) ?? undefined,
     )

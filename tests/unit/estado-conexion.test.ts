@@ -25,12 +25,17 @@ describe("estadoDeConexion", () => {
   })
   test("renews itself while its refresh token outlives its access token", () => {
     expect(
-      estadoDeConexion(new Date(AHORA + 5 * DIA).toISOString(), AHORA, new Date(AHORA + 300 * DIA).toISOString()),
+      estadoDeConexion(new Date(AHORA + 30 * DIA).toISOString(), AHORA, new Date(AHORA + 300 * DIA).toISOString()),
     ).toEqual({ estado: "se_renueva", dias: 300 })
+  })
+  test("an access token within 10 days counts down like any other: the daily refresh should have run by then", () => {
+    expect(
+      estadoDeConexion(new Date(AHORA + 5 * DIA).toISOString(), AHORA, new Date(AHORA + 300 * DIA).toISOString()),
+    ).toEqual({ estado: "por_vencer", dias: 5 })
   })
   test("is about to expire 14 days before its refresh token runs out", () => {
     expect(
-      estadoDeConexion(new Date(AHORA + 5 * DIA).toISOString(), AHORA, new Date(AHORA + 14 * DIA).toISOString()),
+      estadoDeConexion(new Date(AHORA + 12 * DIA).toISOString(), AHORA, new Date(AHORA + 14 * DIA).toISOString()),
     ).toEqual({ estado: "por_vencer", dias: 14 })
   })
   test("an access token that ran out is expired even with a refresh token", () => {

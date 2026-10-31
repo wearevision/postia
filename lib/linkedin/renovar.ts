@@ -29,6 +29,8 @@ export interface PuertosDeRenovacion {
   pendientes(hasta: string): Promise<Pendiente[]>
   renovar(refreshToken: string): ReturnType<typeof renovarToken>
   guardar(renovada: Renovada): Promise<void>
+  /** LinkedIn refused the refresh token: forget it, so the watch counts down the access token again. */
+  olvidar(conexion: string): Promise<void>
 }
 
 /** The «Estudio WAV» app as Trigger.dev knows it: no redirect, since the refresh needs none. */
@@ -39,7 +41,8 @@ export function appDeRenovacion(entorno: Entorno): { clientId: string; clientSec
 
 /**
  * Plano «Vigilar conexiones», page part: renews every page token that runs out within 10 days while its refresh token
- * lives. A refusal is left to the watch, which warns before the token runs out. Logs carry ids and HTTP codes only:
+ * lives. A refusal forgets the refresh token and leaves the rest to the watch, which then warns before the access token
+ * runs out. Logs carry ids and HTTP codes only:
  * LinkedIn's or the database's words could echo a token.
  */
 export async function renovarConexiones(
@@ -70,6 +73,12 @@ export async function renovarConexiones(
           `LinkedIn no renovó la conexión ${pendiente.conexion} (HTTP ${error.http}): queda para la vigilancia.`,
         )
         total.rechazadas++
+        try {
+          await p.olvidar(pendiente.conexion)
+        } catch (errorAlOlvidar) {
+          console.error(`No pude olvidar la renovación rechazada de ${pendiente.conexion}.`)
+          inesperados.push({ conexion: pendiente.conexion, error: errorAlOlvidar })
+        }
         continue
       }
       console.error(`No pude renovar la conexión ${pendiente.conexion}.`)
@@ -108,6 +117,10 @@ export function puertosDeRenovacion(db: Db, app: { clientId: string; clientSecre
       })
       // The database's message is not repeated: a failed write could quote the value it refused.
       if (error) throw new Error(`No pude guardar la conexión renovada ${r.conexion} (${error.code ?? "sin código"}).`)
+    },
+    async olvidar(conexion) {
+      const { error } = await db.rpc("olvidar_renovacion", { p_conexion: conexion })
+      if (error) throw new Error(`No pude olvidar la renovación de ${conexion} (${error.code ?? "sin código"}).`)
     },
   }
 }

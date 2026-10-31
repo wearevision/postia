@@ -23,6 +23,7 @@ function puertos(cambios: Partial<PuertosDeRenovacion> = {}) {
       refreshTokenExpiraEnSegundos: null as number | null,
     })),
     guardar: vi.fn(async () => {}),
+    olvidar: vi.fn(async () => {}),
   } satisfies PuertosDeRenovacion
   return { m, p: { ...m, ...cambios } as PuertosDeRenovacion }
 }
@@ -72,6 +73,25 @@ describe("renovarConexiones", () => {
     expect(await renovarConexiones(p, AHORA)).toEqual({ renovadas: 1, rechazadas: 1 })
     expect(m.guardar).toHaveBeenCalledTimes(1)
     expect(registro).toHaveBeenCalledWith("LinkedIn no renovó la conexión c1 (HTTP 400): queda para la vigilancia.")
+  })
+
+  test("a refusal forgets that connection's refresh token, so the watch warns about its access token again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const { m, p } = puertos()
+    m.renovar.mockRejectedValueOnce(new RechazoDeLinkedin(400, "invalid_grant"))
+    await renovarConexiones(p, AHORA)
+    expect(m.olvidar).toHaveBeenCalledTimes(1)
+    expect(m.olvidar).toHaveBeenCalledWith("c1")
+  })
+
+  test("failing to forget a refused refresh token surfaces at the end", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const { m, p } = puertos()
+    m.renovar.mockRejectedValueOnce(new RechazoDeLinkedin(400, "invalid_grant"))
+    m.olvidar.mockRejectedValueOnce(new Error("sin base"))
+    const error = await renovarConexiones(p, AHORA).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(AggregateError)
+    expect(m.guardar).toHaveBeenCalledTimes(1)
   })
 
   test("an unexpected error does not stop the others and surfaces at the end", async () => {

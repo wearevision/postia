@@ -1764,6 +1764,7 @@ export type Database = {
         }
         Returns: string
       }
+      olvidar_renovacion: { Args: { p_conexion: string }; Returns: undefined }
       pedir_ampliacion: {
         Args: { p_angulo: string; p_investigacion: string }
         Returns: string

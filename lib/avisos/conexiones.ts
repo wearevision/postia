@@ -1,3 +1,4 @@
+import { seRenuevaSola } from "@/lib/marcas/estado-conexion"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
@@ -15,15 +16,10 @@ const DIA_MS = 86_400_000
 
 export interface DatosDeConexion {
   expiraEn: string
-  /** A page's refresh token: while it outlives the access token, the daily refresh keeps the connection alive. */
+  /** A page's refresh token: the daily refresh keeps the connection alive while seRenuevaSola holds. */
   renovacionExpiraEn?: string | null
   cuentas: readonly string[]
   ultimaProgramada: string | null
-}
-
-/** Whether the daily refresh (lib/linkedin/renovar.ts) can still carry this connection past its access token. */
-export function seRenuevaSola(expiraEn: string, renovacionExpiraEn: string | null | undefined): boolean {
-  return !!renovacionExpiraEn && Date.parse(renovacionExpiraEn) > Date.parse(expiraEn)
 }
 
 /** Chile calendar days from today to the expiry day: a 24-hour count would slip by one across a daylight saving change. */
@@ -57,7 +53,7 @@ export function revisarConexion(
   }
   // A self-renewing connection really ends with its refresh token: that is the date worth warning about. The access
   // token still earns the urgent pushes above, in case every daily refresh failed.
-  const renovable = seRenuevaSola(d.expiraEn, d.renovacionExpiraEn) && d.renovacionExpiraEn
+  const renovable = seRenuevaSola(d.expiraEn, d.renovacionExpiraEn, ahora) && d.renovacionExpiraEn
   const fin = renovable || d.expiraEn
   const dias = diasDeCalendario(fin, ahora)
   const lineas: MensajePush[] = []
