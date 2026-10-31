@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from "vitest"
 import { pedirDiseno } from "@/lib/disenos/acciones"
-import { disenoDePieza, pedidosDeDisenoRecientes } from "@/lib/disenos/lectura"
+import { carruselParaEditar, disenoDePieza, pedidosDeDisenoRecientes } from "@/lib/disenos/lectura"
 import { carruselInicial } from "@/lib/plantillas/iniciales"
 import { admin, carruselDe, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
@@ -103,5 +103,34 @@ describe("asking for a carousel", () => {
     })
     expect(error).toBeNull()
     expect(await disenoDePieza(dueno.db, pieza)).toEqual({ abierto: false, ultimoFallo: null })
+  })
+
+  test("the editor reads a designed carousel's latest version, and nothing for a hand-made one", async () => {
+    const r = await pedirDiseno(dueno.db, entrada({ titulo: "Para editar" }))
+    const id = r.ok ? r.pedidoId : ""
+    await admin()
+      .from("pedidos_de_diseno")
+      .update({ estado: "obsoleto" })
+      .in("estado", ["pendiente", "trabajando"])
+      .neq("id", id)
+    await admin().rpc("tomar_pedidos_de_diseno")
+    const { data: marca } = await admin().from("cuentas").select("marca_id").eq("id", cuenta).single()
+    const guardado = await admin().rpc("guardar_diseno", {
+      p_pedido: id,
+      p_archivo_ruta: `${marca?.marca_id}/${crypto.randomUUID()}.pdf`,
+      p_archivo_sha256: "b".repeat(64),
+    })
+    expect(guardado.error).toBeNull()
+    const pieza = (guardado.data as { pieza: string }).pieza
+    expect(await carruselParaEditar(dueno.db, pieza)).toEqual({
+      piezaId: pieza,
+      cuentaId: cuenta,
+      tema: "wav-noche",
+      titulo: "Para editar",
+      texto: "Post",
+      diseno: carruselInicial("wav"),
+    })
+    expect(await carruselParaEditar(dueno.db, await carruselDe(dueno.db, cuenta))).toBeNull()
+    expect(await carruselParaEditar(dueno.db, "no-es-un-id")).toBeNull()
   })
 })
