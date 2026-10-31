@@ -9,11 +9,12 @@ import {
   pedirInvestigacion,
 } from "@/lib/investigacion/acciones"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { RUTA_DE_INVESTIGAR, rutaDeInvestigacion } from "@/lib/sesion/rutas"
+import { RUTA_DE_INICIO, RUTA_DE_INVESTIGAR, rutaDeInvestigacion } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
 function revalidar(investigacionId?: string): void {
   revalidatePath(RUTA_DE_INVESTIGAR)
+  revalidatePath(RUTA_DE_INICIO)
   if (investigacionId) revalidatePath(rutaDeInvestigacion(investigacionId))
 }
 

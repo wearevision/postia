@@ -11,12 +11,13 @@ import {
   pedirOtraIdea,
   pedirSerie,
 } from "@/lib/series/acciones"
-import { RUTA_DE_CALENDARIO, RUTA_DE_IDEAS, rutaDeInvestigacion } from "@/lib/sesion/rutas"
+import { RUTA_DE_CALENDARIO, RUTA_DE_IDEAS, RUTA_DE_INICIO, rutaDeInvestigacion } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
 function revalidar(): void {
   revalidatePath(RUTA_DE_IDEAS)
   revalidatePath(RUTA_DE_CALENDARIO)
+  revalidatePath(RUTA_DE_INICIO)
 }
 
 async function conRevalidacion<T extends Resultado>(resultado: Promise<T>): Promise<T> {
