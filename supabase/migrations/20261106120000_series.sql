@@ -219,6 +219,7 @@ end $$;
 
 -- p_asignaciones: [{ cuenta, planeada_para }], the dates proposed by the app (repartirFechas). Owners of each target
 -- account's brand only. A clash with a piece or another assignment is 23505 horario_ocupado: the app retries once.
+-- Refused while a replacement of the idea is being written (otra_idea): its result would replace an approved idea.
 create function public.aprobar_idea(p_idea uuid, p_asignaciones jsonb) returns uuid[]
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -227,6 +228,8 @@ declare
   v_cuenta uuid;
   v_fecha timestamptz;
   v_marca uuid;
+  v_cuentas uuid[] := '{}';
+  v_fechas timestamptz[] := '{}';
   v_id uuid;
   v_ids uuid[] := '{}';
 begin
@@ -240,6 +243,10 @@ begin
   select * into v_idea from public.ideas where id = p_idea for update;
   if not found or v_idea.estado <> 'propuesta' then
     raise exception using errcode = '22023', message = 'idea_no_esta_propuesta';
+  end if;
+  if exists (select 1 from public.trabajos_de_investigacion
+              where idea_id = p_idea and tipo = 'otra_idea' and estado in ('pendiente', 'trabajando')) then
+    raise exception using errcode = '22023', message = 'trabajo_en_curso';
   end if;
   for v_item in select e from jsonb_array_elements(p_asignaciones) with ordinality as x(e, n) order by n loop
     begin
@@ -258,12 +265,22 @@ begin
     if not public.fecha_de_asignacion_valida(v_fecha) then
       raise exception using errcode = '22023', message = 'fecha_no_valida';
     end if;
-    if exists (select 1 from public.asignaciones where idea_id = p_idea and cuenta_id = v_cuenta) then
+    if v_cuenta = any (v_cuentas)
+       or exists (select 1 from public.asignaciones where idea_id = p_idea and cuenta_id = v_cuenta) then
       raise exception using errcode = '22023', message = 'cuenta_repetida';
     end if;
+    v_cuentas := v_cuentas || v_cuenta;
+    v_fechas := v_fechas || v_fecha;
+  end loop;
+  -- The insert trigger locks each account's slots (horario_de_asignacion_libre). Taking them all first, in one order,
+  -- keeps two approvals that share accounts from each holding one and waiting on the other.
+  for v_cuenta in select c from unnest(v_cuentas) c order by c loop
+    perform pg_advisory_xact_lock(hashtext('horario:' || v_cuenta::text));
+  end loop;
+  for n in 1 .. cardinality(v_cuentas) loop
     begin
       insert into public.asignaciones (idea_id, cuenta_id, formato, planeada_para)
-      values (p_idea, v_cuenta, v_idea.formato, v_fecha)
+      values (p_idea, v_cuentas[n], v_idea.formato, v_fechas[n])
       returning id into v_id;
     exception when unique_violation then
       raise exception using errcode = '23505', message = 'horario_ocupado';

@@ -64,6 +64,9 @@ async function fechasPropuestas(
 
 class CuentaInvisible extends Error {}
 
+/** aprobar_idea's trabajo_en_curso: the open job is a replacement of this idea («Pedir otra»). */
+const OTRA_EN_CURSO = "Se está escribiendo otra versión de esta idea. Espera a que termine."
+
 /**
  * Plans the idea on each account's next free slot (D19) and approves it. Two approvals can race for one slot: the
  * database refuses the second (horario_ocupado) and this retries once with fresh slots, as 4c does.
@@ -77,6 +80,7 @@ export async function aprobarIdea(db: Db, entrada: unknown, ahora = Date.now()):
       const asignaciones = await fechasPropuestas(db, cuentas, ahora)
       const { error } = await db.rpc("aprobar_idea", { p_idea: leida.data.ideaId, p_asignaciones: asignaciones })
       if (!error) return { ok: true }
+      if (error.message === "trabajo_en_curso") return { ok: false, error: OTRA_EN_CURSO }
       if (error.message !== "horario_ocupado" || intento >= 1) return falla(error)
     }
   } catch (causa) {

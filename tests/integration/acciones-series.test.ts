@@ -205,6 +205,21 @@ describe("aprobarIdea", () => {
       error: "Esta idea ya no espera tu revisión.",
     })
   })
+
+  test("an idea whose replacement is being written says to wait for it", async () => {
+    const informe = await informeAprobado()
+    const [idea] = await serieDe(informe, [{ gancho: "Mientras tanto", cuenta: perfil }])
+    expect(await pedirOtraIdea(dueno.db, idea)).toEqual({ ok: true })
+    expect(await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil] })).toEqual({
+      ok: false,
+      error: "Se está escribiendo otra versión de esta idea. Espera a que termine.",
+    })
+    const { error } = await admin()
+      .from("trabajos_de_investigacion")
+      .update({ estado: "fallo", motivo: "Cerrado en la prueba." })
+      .eq("idea_id", idea)
+    if (error) throw error
+  })
 })
 
 describe("aprobarSerie", () => {

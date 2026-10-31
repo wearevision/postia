@@ -424,6 +424,24 @@ describe("aprobar_idea", () => {
     expect(otra.error?.message).toBe("idea_no_esta_propuesta")
   })
 
+  test("refuses while another version of the idea is being written, and approves once that job closes", async () => {
+    const wav = await cuentaDe(marcaWav, "empresa", "a_mano")
+    const { id, hallazgos } = await informeAprobado()
+    const [ideaId] = await guardarSerie(id, [idea({ fuentes: hallazgos, cuenta: wav, eje: 503 })])
+    await cerrarTrabajosAbiertos()
+    const pedido = await dueno.db.rpc("pedir_otra_idea", { p_idea: ideaId })
+    if (pedido.error) throw pedido.error
+    const intento = { p_idea: ideaId, p_asignaciones: [{ cuenta: wav, planeada_para: habil(10) }] }
+    expect((await dueno.db.rpc("aprobar_idea", intento)).error?.message).toBe("trabajo_en_curso")
+    const { data: tomados } = await admin().rpc("tomar_trabajo_de_investigacion")
+    expect(tomados?.map((t) => t.id)).toEqual([pedido.data])
+    expect((await dueno.db.rpc("aprobar_idea", intento)).error?.message).toBe("trabajo_en_curso")
+    expect((await leerIdea(ideaId)).estado).toBe("propuesta")
+    expect(await asignacionesDe(ideaId)).toEqual([])
+    await admin().rpc("terminar_trabajo_de_investigacion", { p_trabajo: pedido.data, p_estado: "fallo", p_motivo: "x" })
+    expect((await dueno.db.rpc("aprobar_idea", intento)).error).toBeNull()
+  })
+
   test("refuses an account of a brand the person does not own, and a person with no brand", async () => {
     const ajena = await cuentaDe(marcaAjena, "empresa", "a_mano")
     const { id, hallazgos } = await informeAprobado()
