@@ -216,7 +216,9 @@ describe.each(colas)("$nombre", ({ tabla, crear, tomar, porLlamada }) => {
     expect(segunda.error).toBeNull()
     const unas = ids(primera.data)
     const otras = ids(segunda.data)
-    expect(unas.length).toBeGreaterThan(0)
+    // Which call wins the race is the database's choice: one may take every eligible row and leave the other empty.
+    expect(unas.length + otras.length).toBeGreaterThan(0)
+    expect(unas.length + otras.length).toBeLessThanOrEqual(2 * porLlamada)
     expect(unas.filter((id) => otras.includes(id))).toEqual([])
     await borrar(tabla, creadas)
   })
