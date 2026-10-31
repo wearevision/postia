@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
-import { bloqueoDeFirma } from "@/lib/piezas/bloqueo"
+import { bloqueoDeFirma, DISENO_ILEGIBLE } from "@/lib/piezas/bloqueo"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import type { EstadoDePieza } from "@/lib/piezas/estados"
@@ -151,6 +151,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
     formato: pieza.formato,
     laminasEsperadas: version.diseno?.laminas.length ?? null,
     vistas: version.vistas.length,
+    disenoIlegible: rearmable && diseno === null,
   })
 
   function claudeEnLaRevision(): ClaudeEnLaRevision | undefined {
@@ -161,17 +162,22 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
     return { estado: "lista", revision: redaccion.revision }
   }
 
-  function estadoDelCarrusel() {
-    if (!diseno) return <p className="text-sm">No pude leer si se está armando el carrusel. Recarga en un rato.</p>
+  /** What the carousel's render requests say; it stays outside «Cambiar», where the person signing sees it. */
+  function avisosDelCarrusel() {
+    // While signing, the lock already says it next to the button.
+    if (!diseno) return porFirmar ? null : <p className="text-sm">{DISENO_ILEGIBLE}</p>
     if (diseno.abierto)
       return <Refrescar mensaje="Se está armando la nueva versión del carrusel. Esta página se actualiza sola." />
+    return diseno.ultimoFallo ? <p className="text-sm">{diseno.ultimoFallo}</p> : null
+  }
+
+  const editable = rearmable && diseno !== null && !diseno.abierto
+
+  function editarCarrusel() {
     return (
-      <>
-        {diseno.ultimoFallo && <p className="text-sm">{diseno.ultimoFallo}</p>}
-        <Link href={rutaDeEditarCarrusel(piezaId)} className="boton w-full py-3">
-          Editar el carrusel
-        </Link>
-      </>
+      <Link href={rutaDeEditarCarrusel(piezaId)} className="boton w-full py-3">
+        Editar el carrusel
+      </Link>
     )
   }
 
@@ -215,7 +221,8 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
       <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>
       {porFirmar && !armando && <FinDelTexto />}
-      {rearmable && (!porFirmar || armando) && estadoDelCarrusel()}
+      {rearmable && avisosDelCarrusel()}
+      {!porFirmar && editable && editarCarrusel()}
 
       {porFirmar && (
         <details className="tarjeta p-3" open={resumen.abierta}>
@@ -268,7 +275,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
         />
       )}
 
-      {porFirmar && (conPilar || redaccionLista || (rearmable && !armando)) && (
+      {porFirmar && (conPilar || redaccionLista || editable) && (
         <details className="tarjeta p-3">
           <summary className="min-h-11 cursor-pointer py-2 font-medium">Cambiar</summary>
           <div className="space-y-3 pt-2">
@@ -288,7 +295,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
                 />
               </>
             )}
-            {rearmable && !armando && estadoDelCarrusel()}
+            {editable && editarCarrusel()}
           </div>
         </details>
       )}

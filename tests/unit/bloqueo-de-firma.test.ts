@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { bloqueoDeFirma, SIN_LAMINAS } from "@/lib/piezas/bloqueo"
+import { bloqueoDeFirma, DISENO_ILEGIBLE, SIN_LAMINAS } from "@/lib/piezas/bloqueo"
 
 describe("bloqueoDeFirma", () => {
   test("lets a carousel be signed when every slide preview is present", () => {
@@ -24,5 +24,12 @@ describe("bloqueoDeFirma", () => {
 
   test("says why in the words shown next to the button", () => {
     expect(SIN_LAMINAS).toBe("No pude mostrar las láminas. Recarga o revisa el PDF; no se puede firmar sin verlas.")
+  })
+
+  test("blocks a carousel when its render requests could not be read: a rebuild may be in progress", () => {
+    expect(bloqueoDeFirma({ formato: "carrusel_pdf", laminasEsperadas: 3, vistas: 3, disenoIlegible: true })).toBe(
+      DISENO_ILEGIBLE,
+    )
+    expect(DISENO_ILEGIBLE).toBe("No pude leer si se está armando el carrusel. Recarga en un rato.")
   })
 })
