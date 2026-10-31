@@ -44,6 +44,7 @@ function puertos(cambios: Partial<PuertosDeAtencion> = {}, pedir?: Pedir): Puert
       vi.fn<Pedir>(async (paso) => ({
         texto: JSON.stringify(paso.paso === "revisar" ? VEREDICTO : { texto: "Nuevo", nota: "" }),
         detenido: "end_turn",
+        bloques: [],
       })),
     ...cambios,
   }
@@ -62,7 +63,7 @@ describe("atenderPedidos", () => {
   test("a failed review never loses the written piece", async () => {
     const pedir = vi.fn<Pedir>(async (paso) => {
       if (paso.paso === "revisar") throw new Error("se cayó")
-      return { texto: JSON.stringify({ texto: "Nuevo", nota: "" }), detenido: "end_turn" }
+      return { texto: JSON.stringify({ texto: "Nuevo", nota: "" }), detenido: "end_turn", bloques: [] }
     })
     const p = puertos({}, pedir)
     expect(await atenderPedidos(p)).toEqual({ atendidos: 1, fallidos: 0 })

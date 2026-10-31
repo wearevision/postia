@@ -21,12 +21,16 @@ export interface PedidoAClaude {
   esfuerzo: "low" | "medium" | "high"
   /** Structured outputs: the answer is JSON for this schema (callers validate it again with zod). */
   formato?: Anthropic.JSONOutputFormat
+  /** Every web search tool must carry `max_uses`: the estimate reserves each allowed search. */
+  herramientas?: Anthropic.Messages.ToolUnion[]
 }
 
 export interface RespuestaDeClaude {
   texto: string
   /** "refusal" must be handled by the caller before using `texto`. */
   detenido: Anthropic.StopReason | null
+  /** The raw content: search results, citations, and the assistant turn to send back after `pause_turn`. */
+  bloques: Anthropic.ContentBlock[]
 }
 
 /**
@@ -45,6 +49,7 @@ export function solicitudDe(pedido: PedidoAClaude): Anthropic.MessageCreateParam
     system: [bloque],
     messages: pedido.mensajes,
     output_config: pedido.formato ? { effort: pedido.esfuerzo, format: pedido.formato } : { effort: pedido.esfuerzo },
+    ...(pedido.herramientas && pedido.herramientas.length > 0 ? { tools: pedido.herramientas } : {}),
   }
 }
 
@@ -73,7 +78,7 @@ export function esRechazoProbado(error: unknown): boolean {
 }
 
 type Crear = (solicitud: Anthropic.MessageCreateParamsNonStreaming) => Promise<{
-  content: { type: string; text?: string }[]
+  content: Anthropic.ContentBlock[]
   stop_reason: Anthropic.StopReason | null
   usage: Parameters<typeof usoDe>[0]
 }>
@@ -90,13 +95,27 @@ export function crearReal(entorno: Record<string, string | undefined> = process.
   return (solicitud) => cliente.messages.stream(solicitud).finalMessage()
 }
 
-/** Only text is priced (lib/gasto/precios.ts): an image or document would be estimated by its base64 size. */
+/**
+ * Text is sized by its length. Search blocks sent back in a continuation (and text carrying citations) by their JSON
+ * length, which is above the tokens they bill. An image or document would be estimated by its base64 size: refused.
+ */
 function caracteresDe(mensaje: Anthropic.MessageParam): number {
   if (typeof mensaje.content === "string") return mensaje.content.length
   return mensaje.content.reduce((n, bloque) => {
-    if (bloque.type !== "text")
-      throw new Falla(`Todavía no sé calcular el costo de un bloque «${bloque.type}»; solo texto.`)
-    return n + bloque.text.length
+    if (bloque.type === "text" && !bloque.citations) return n + bloque.text.length
+    if (bloque.type === "text" || bloque.type === "server_tool_use" || bloque.type === "web_search_tool_result")
+      return n + JSON.stringify(bloque).length
+    throw new Falla(`Todavía no sé calcular el costo de un bloque «${bloque.type}»; solo texto y búsquedas web.`)
+  }, 0)
+}
+
+/** No search call is unbounded: the estimate needs the most searches each web search tool may run. */
+function busquedasPermitidas(herramientas: readonly Anthropic.Messages.ToolUnion[] = []): number {
+  return herramientas.reduce((n, h) => {
+    if (!h.type?.startsWith("web_search_")) return n
+    if (!("max_uses" in h) || typeof h.max_uses !== "number")
+      throw new Falla("Toda búsqueda web lleva un máximo de búsquedas.")
+    return n + h.max_uses
   }, 0)
 }
 
@@ -108,6 +127,7 @@ export async function pedirPagando(
   const solicitud = solicitudDe(pedido)
   const modelo = pedido.modelo ?? MODELO_POR_DEFECTO
   const caracteres = pedido.mensajes.reduce((n, m) => n + caracteresDe(m), pedido.sistema.length)
+  const busquedas = busquedasPermitidas(pedido.herramientas)
   return pagar(
     { libro: puertos.libro, avisar: puertos.avisar, esRechazoProbado },
     {
@@ -117,7 +137,7 @@ export async function pedirPagando(
       estimadoMicro: estimarCosto(modelo, {
         caracteresDeEntrada: caracteres,
         maxTokens: pedido.maxTokens,
-        busquedas: 0,
+        busquedas,
       }),
       marcaId: paso.marcaId,
     },
@@ -125,7 +145,7 @@ export async function pedirPagando(
       const respuesta = await puertos.crear(solicitud)
       const texto = respuesta.content.flatMap((b) => (b.type === "text" && b.text ? [b.text] : [])).join("")
       return {
-        resultado: { texto, detenido: respuesta.stop_reason },
+        resultado: { texto, detenido: respuesta.stop_reason, bloques: respuesta.content },
         costoMicro: costoReal(modelo, usoDe(respuesta.usage)),
       }
     },

@@ -25,6 +25,7 @@ describe("escribir", () => {
     const pedir = responde({
       texto: JSON.stringify({ texto: "Hola  \n", nota: "Supuse la fecha" }),
       detenido: "end_turn",
+      bloques: [],
     })
     const escrito = await escribir(pedir, CONTEXTO, {
       clave: "escribir:p1",
@@ -42,11 +43,11 @@ describe("escribir", () => {
 
   test("turns a refusal, a cut answer, unreadable JSON and a text over 3000 characters into a Falla", async () => {
     const casos: RespuestaDeClaude[] = [
-      { texto: "", detenido: "refusal" },
-      { texto: '{"texto":"Ho', detenido: "max_tokens" },
-      { texto: "no es json", detenido: "end_turn" },
-      { texto: JSON.stringify({ texto: "a".repeat(3001), nota: "" }), detenido: "end_turn" },
-      { texto: JSON.stringify({ texto: "   ", nota: "" }), detenido: "end_turn" },
+      { texto: "", detenido: "refusal", bloques: [] },
+      { texto: '{"texto":"Ho', detenido: "max_tokens", bloques: [] },
+      { texto: "no es json", detenido: "end_turn", bloques: [] },
+      { texto: JSON.stringify({ texto: "a".repeat(3001), nota: "" }), detenido: "end_turn", bloques: [] },
+      { texto: JSON.stringify({ texto: "   ", nota: "" }), detenido: "end_turn", bloques: [] },
     ]
     for (const r of casos) {
       await expect(
@@ -58,7 +59,7 @@ describe("escribir", () => {
 
 describe("reescribir", () => {
   test("sends the current text and the instruction", async () => {
-    const pedir = responde({ texto: JSON.stringify({ texto: "Corto", nota: "" }), detenido: "end_turn" })
+    const pedir = responde({ texto: JSON.stringify({ texto: "Corto", nota: "" }), detenido: "end_turn", bloques: [] })
     await reescribir(pedir, CONTEXTO, {
       clave: "reescribir:p2",
       textoActual: "Largo",
@@ -77,7 +78,7 @@ describe("revisar", () => {
       voz: { ok: false, comentario: "Suena a persona" },
       hallazgos: [{ tipo: "voz", fragmento: "yo creo", comentario: "WAV habla en plural" }],
     }
-    const pedir = responde({ texto: JSON.stringify(veredicto), detenido: "end_turn" })
+    const pedir = responde({ texto: JSON.stringify(veredicto), detenido: "end_turn", bloques: [] })
     expect(await revisar(pedir, CONTEXTO, { clave: "revisar:v1:auto", texto: "yo creo", material: null })).toEqual(
       veredicto,
     )
@@ -91,6 +92,7 @@ describe("revisar", () => {
         hallazgos: [{ tipo: "raro", fragmento: "", comentario: "" }],
       }),
       detenido: "end_turn",
+      bloques: [],
     })
     await expect(revisar(pedir, CONTEXTO, { clave: "k", texto: "x", material: null })).rejects.toBeInstanceOf(Falla)
   })

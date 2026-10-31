@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest"
-import { Falla } from "@/lib/dominio/falla"
 import {
   costoDeVoyage,
   costoReal,
@@ -50,10 +49,23 @@ describe("estimarCosto", () => {
     )
   })
 
-  test("refuses web searches until the research sub-plan bounds the tokens their results bring back", () => {
-    expect(() => estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 10, maxTokens: 10, busquedas: 1 })).toThrow(
-      Falla,
-    )
+  test("estimates a call with searches: each search adds its fee and a 30,000-token bound of results", () => {
+    const sin = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 8000, busquedas: 0 })
+    const con = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 8000, busquedas: 8 })
+    // 8 × (US$0.01 fee + 30,000 tokens at the Opus cache-write price of US$5/M = US$0.15)
+    expect(con - sin).toBe(8 * (10_000 + 150_000))
+  })
+
+  test("the estimate with searches stays above a realistic real cost", () => {
+    const estimado = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 4000, maxTokens: 16_000, busquedas: 8 })
+    const real = costoReal("claude-opus-5-5", {
+      entrada: 60_000,
+      salida: 6_000,
+      escrituraDeCache: 0,
+      lecturaDeCache: 0,
+      busquedas: 8,
+    })
+    expect(estimado).toBeGreaterThan(real)
   })
 
   test("covers every input token as a cache write and the whole max_tokens, for any size and model", () => {
