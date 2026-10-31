@@ -68,7 +68,7 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   if (guardada.error) throw new Error(`No pude guardar la serie: ${guardada.error.message}`)
 
   await entrar(page, request, correo)
-  await page.getByRole("link", { name: "Ideas y series" }).click()
+  await page.getByRole("link", { name: "Ideas", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Ideas y series" })).toBeVisible()
   const serie = page.getByRole("region", { name: tema })
   await expect(serie.getByText("Salieron 2 de las 3 pedidas.")).toBeVisible()
@@ -160,7 +160,7 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
   if (guardada.error) throw new Error(`No pude guardar el cruce: ${guardada.error.message}`)
 
   await entrar(page, request, correo)
-  await page.getByRole("link", { name: "Ideas y series" }).click()
+  await page.getByRole("link", { name: "Ideas", exact: true }).click()
   const cruces = page.getByRole("region", { name: "Cruces" })
   const cruce = cruces.getByRole("article", { name: gancho })
   await expect(cruce).toBeVisible()

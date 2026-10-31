@@ -167,3 +167,13 @@ export const NOMBRE_DEL_ESTADO_DE_INVESTIGACION: Record<EstadoDeInvestigacion, s
   descartada: "Descartada",
   fallo: "No salió",
 }
+
+/** Reports waiting for Federico's approval, for Inicio. */
+export async function informesPorAprobar(db: Db): Promise<number> {
+  const { count, error } = await db
+    .from("investigaciones")
+    .select("id", { count: "exact", head: true })
+    .eq("estado", "informe_por_aprobar")
+  if (error) fallo("No pude contar los informes por aprobar", error)
+  return count ?? 0
+}

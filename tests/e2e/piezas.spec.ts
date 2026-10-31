@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test"
 import { invitar } from "@/lib/equipo/invitar"
-import { rutaDePieza } from "@/lib/sesion/rutas"
+import { semanaDe } from "@/lib/piezas/calendario"
+import { rutaDeCalendario, rutaDePieza } from "@/lib/sesion/rutas"
 import { admin, correoUnico } from "../integration/entorno"
 import { entrar } from "./ingreso"
 import { leerHastaElFinal } from "./lectura"
 import { crearPiezaDeTexto } from "./piezas"
 
-test("an owner creates a text piece, signs it with the proposed date and finds it under Próximas", async ({
+test("an owner creates a text piece, signs it with the proposed date and finds it in the calendar week", async ({
   page,
   request,
 }) => {
@@ -41,16 +42,20 @@ test("an owner creates a text piece, signs it with the proposed date and finds i
   await page.getByRole("button", { name: /^Firmar (?!para).+ · / }).click()
   await expect(page.getByText("Programada", { exact: true })).toBeVisible()
 
+  // Inicio only lists what is due today; the signed piece lives in the week of its date.
+  const { data: firmada, error: errorDeLectura } = await db
+    .from("piezas")
+    .select("programada_para")
+    .eq("id", piezaId)
+    .single()
+  if (errorDeLectura || !firmada.programada_para) throw new Error("La pieza firmada no quedó con fecha")
   // The Next dev indicator floats over the first nav link on a phone viewport, so go by URL.
-  await page.goto("/")
-  const proximas = page.locator("section", { has: page.getByRole("heading", { name: "Próximas" }) })
-  await expect(proximas.getByText("Una idea corta para probar la firma.")).toBeVisible()
+  await page.goto(rutaDeCalendario({ semana: semanaDe(Date.parse(firmada.programada_para)).lunes }))
+  const cuentaEnSemana = page.getByRole("region", { name: "Perfil E2E" })
+  await expect(cuentaEnSemana.getByText("Una idea corta para probar la firma.")).toBeVisible()
 })
 
-test("a new piece arrives planned, signed for the reserve it shows in Inicio and in the calendar", async ({
-  page,
-  request,
-}) => {
+test("a new piece arrives planned and, signed for the reserve, shows in the calendar", async ({ page, request }) => {
   const db = admin()
   const correo = correoUnico("e2e-reserva")
   const { marcaId } = await invitar(db, { correo, marca: `Marca ${correo}`, voz: "yo" })
@@ -78,10 +83,6 @@ test("a new piece arrives planned, signed for the reserve it shows in Inicio and
   await leerHastaElFinal(page)
   await page.getByRole("button", { name: "Firmar para la reserva" }).click()
   await expect(page.getByText(/^En reserva: la app le pone fecha/)).toBeVisible()
-
-  await page.goto("/")
-  const reserva = page.locator("section", { has: page.getByRole("heading", { name: "En reserva" }) })
-  await expect(reserva.getByText("Una pieza para la reserva.")).toBeVisible()
 
   await page.goto("/calendario")
   await expect(page.getByRole("region", { name: "Perfil Reserva" }).getByText("Reserva: 1 de 3")).toBeVisible()

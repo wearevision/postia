@@ -1,7 +1,10 @@
 import Link from "next/link"
+import { PorRevisar } from "@/app/(app)/por-revisar"
+import { informesPorAprobar } from "@/lib/investigacion/lectura"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, type TarjetaDePieza } from "@/lib/piezas/lectura"
-import { RUTA_DE_IDEAS, RUTA_DE_INVESTIGAR, rutaDePieza } from "@/lib/sesion/rutas"
+import { ideasPorRevisar } from "@/lib/series/lectura"
+import { RUTA_DE_CALENDARIO, rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 
 function Seccion({ titulo, tarjetas }: { titulo: string; tarjetas: TarjetaDePieza[] }) {
@@ -30,32 +33,23 @@ function Seccion({ titulo, tarjetas }: { titulo: string; tarjetas: TarjetaDePiez
 }
 
 export default async function Inicio() {
-  const { porFirmar, enReserva, aMano, revisar, proximas, masAdelante } = await bandeja(await createClient())
-  const vacia =
-    porFirmar.length + enReserva.length + aMano.length + revisar.length + proximas.length + masAdelante.length === 0
+  const db = await createClient()
+  const [{ porFirmar, aMano, revisar }, informes, ideas] = await Promise.all([
+    bandeja(db),
+    informesPorAprobar(db),
+    ideasPorRevisar(db),
+  ])
+  const vacia = porFirmar.length + aMano.length + revisar.length + informes + ideas === 0
   return (
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Inicio</h1>
-      <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
-        Investigar
-      </Link>
-      <Link href={RUTA_DE_IDEAS} className="boton w-full py-3">
-        Ideas y series
-      </Link>
       <Seccion titulo="Por firmar" tarjetas={porFirmar} />
+      <PorRevisar informes={informes} ideas={ideas} piezas={revisar} />
       <Seccion titulo="Publicar a mano" tarjetas={aMano} />
-      <Seccion titulo="Revisar" tarjetas={revisar} />
-      <Seccion titulo="Próximas" tarjetas={proximas} />
-      <Seccion titulo="Más adelante" tarjetas={masAdelante} />
-      <Seccion titulo="En reserva" tarjetas={enReserva} />
-      {vacia && (
-        <div className="space-y-3">
-          <p className="text-apagado">No hay nada pendiente.</p>
-          <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
-            Investigar
-          </Link>
-        </div>
-      )}
+      {vacia && <p className="text-apagado">No hay nada pendiente.</p>}
+      <Link href={RUTA_DE_CALENDARIO} className="inline-block min-h-11 py-3 text-sm underline">
+        Ver la semana
+      </Link>
     </div>
   )
 }
