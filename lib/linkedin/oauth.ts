@@ -12,7 +12,7 @@ const BASE_OAUTH = "https://www.linkedin.com"
 const BASE_API = "https://api.linkedin.com"
 const ESPERA_MS = 30_000
 
-export const REFUSADA_LINKEDIN = "LinkedIn no aceptó la conexión. Vuelve a conectarla desde Marcas."
+export const REFUSADA_LINKEDIN = "LinkedIn no aceptó la conexión. Vuelve a conectarla desde Ajustes."
 
 interface App {
   clientId: string

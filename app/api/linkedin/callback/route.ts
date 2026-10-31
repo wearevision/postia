@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { leerAppDeLinkedin, terminarConexionLinkedin } from "@/lib/linkedin/conexion"
 import { COOKIE_DE_ESTADO_LINKEDIN, desempacarEstado, RUTA_DE_LA_COOKIE_LINKEDIN } from "@/lib/linkedin/estado-oauth"
-import { RUTA_DE_INGRESO, RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES, RUTA_DE_INGRESO } from "@/lib/sesion/rutas"
 import { leerSesion } from "@/lib/sesion/sesion"
 import { createActionClient } from "@/lib/supabase/action"
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     },
   )
 
-  const destino = `${RUTA_DE_MARCAS}?linkedin=${resultado.ok ? "conectada" : resultado.motivo}`
+  const destino = `${RUTA_DE_AJUSTES}?linkedin=${resultado.ok ? "conectada" : resultado.motivo}`
   const respuesta = NextResponse.redirect(new URL(destino, request.url), 303)
   respuesta.cookies.set(COOKIE_DE_ESTADO_LINKEDIN, "", { path: RUTA_DE_LA_COOKIE_LINKEDIN, maxAge: 0 })
   return respuesta

@@ -76,7 +76,7 @@ describe("vigilarConexiones", () => {
     expect(de(c.endpoint)).toEqual([])
     const lineas = await lineasDe(c.marca)
     expect(lineas).toHaveLength(1)
-    expect(lineas[0]).toMatchObject({ url: "/marcas" })
+    expect(lineas[0]).toMatchObject({ url: "/ajustes" })
     expect(lineas[0]?.cuerpo).toContain("vence en 14 días")
   })
 

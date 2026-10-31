@@ -13,7 +13,7 @@ describe("revisarConexion", () => {
       urgente: {
         titulo: "Conexión de LinkedIn · Federico",
         cuerpo: "La conexión de LinkedIn de Federico venció. Reconéctala en Marcas.",
-        url: "/marcas",
+        url: "/ajustes",
       },
       lineas: [],
     })
@@ -32,7 +32,7 @@ describe("revisarConexion", () => {
         {
           titulo: "Conexión de LinkedIn · Federico",
           cuerpo: "La conexión de LinkedIn de Federico vence en 14 días. Reconéctala en Marcas.",
-          url: "/marcas",
+          url: "/ajustes",
         },
       ],
     })

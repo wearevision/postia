@@ -20,7 +20,7 @@ test("an owner sends the WAV page out by itself, sees how to connect it, and goe
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
 
   await entrar(page, request, correo)
-  await page.goto("/marcas")
+  await page.goto("/ajustes")
   const fila = page.getByRole("listitem").filter({ hasText: "Página de WAV" })
   const conectar = fila.getByRole("link", { name: "Conectar página de LinkedIn" })
   await expect(fila.getByRole("button", { name: "A mano" })).toHaveAttribute("aria-pressed", "true")
@@ -66,7 +66,7 @@ test("a connected page goes by hand as a pause: it keeps its connection and come
   if (enlazada.error) throw new Error(`No pude enlazar la conexión de prueba: ${enlazada.error.message}`)
 
   await entrar(page, request, correo)
-  await page.goto("/marcas")
+  await page.goto("/ajustes")
   const fila = page.getByRole("listitem").filter({ hasText: "Página en pausa" })
   const chip = fila.getByText("Conectada · vence en 40 días")
   const pausa = fila.getByText("En pausa: las piezas se publican a mano.")
@@ -84,4 +84,16 @@ test("a connected page goes by hand as a pause: it keeps its connection and come
   await expect(pausa).toHaveCount(0)
   await expect(chip).toBeVisible()
   await expect(fila.getByRole("link", { name: "Renovar página" })).toBeVisible()
+})
+
+test("accounts live in Ajustes and adding one is behind a link", async ({ page, request }) => {
+  const correo = correoUnico("e2e-agregar")
+  await invitar(admin(), { correo, marca: `Marca ${correo}`, voz: "nosotros" })
+  await entrar(page, request, correo)
+  await page.goto("/ajustes")
+  await expect(page.getByRole("heading", { name: "Cuentas de LinkedIn" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Agregar cuenta" })).toHaveCount(0)
+  await page.getByRole("link", { name: "Agregar cuenta o marca" }).click()
+  await expect(page).toHaveURL(/\/marcas$/)
+  await expect(page.getByRole("button", { name: "Crear marca" })).toBeVisible()
 })

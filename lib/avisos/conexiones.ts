@@ -1,7 +1,7 @@
 import { seRenuevaSola } from "@/lib/marcas/estado-conexion"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { fechaLarga } from "@/lib/piezas/fechas"
-import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES } from "@/lib/sesion/rutas"
 import type { Db } from "@/lib/supabase/database"
 import { avisarMiembros } from "./a-miembros"
 import type { ServicioPush } from "./push"
@@ -37,7 +37,7 @@ export function revisarConexion(
   const aviso = (cuerpo: string): MensajePush => ({
     titulo: `Conexión de LinkedIn · ${quien}`,
     cuerpo,
-    url: RUTA_DE_MARCAS,
+    url: RUTA_DE_AJUSTES,
   })
   if (Date.parse(d.expiraEn) <= ahora) {
     const dias = diasDeCalendario(d.expiraEn, ahora)

@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache"
 import { agregarCuenta, cambiarRuta, crearMarca, desconectarCuenta, type Resultado } from "@/lib/marcas/acciones"
-import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES, RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
 function despues(resultado: Resultado): Resultado {
-  if (resultado.ok) revalidatePath(RUTA_DE_MARCAS)
+  if (resultado.ok) {
+    revalidatePath(RUTA_DE_MARCAS)
+    revalidatePath(RUTA_DE_AJUSTES)
+  }
   return resultado
 }
 
