@@ -31,12 +31,15 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
       if (error) fallo("No pude tomar el trabajo de investigación", error)
       const trabajo = data[0]
       if (!trabajo) return null
+      // Only a replacement for an idea with no research (4g) has none; 4g's dispatcher routes those jobs.
+      const investigacionId = trabajo.investigacion_id
+      if (investigacionId === null) throw new Error(`El trabajo ${trabajo.id} no tiene investigación.`)
       // 4f's series jobs read their report through lib/series/repositorio.ts.
       if (trabajo.tipo === "serie" || trabajo.tipo === "otra_idea") {
         return {
           id: trabajo.id,
           tipo: trabajo.tipo,
-          investigacionId: trabajo.investigacion_id,
+          investigacionId,
           ideaId: trabajo.idea_id,
         }
       }
@@ -44,13 +47,13 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
         db
           .from("investigaciones")
           .select("tema, cantidad, formato, enfoque, origen")
-          .eq("id", trabajo.investigacion_id)
+          .eq("id", investigacionId)
           .single(),
         trabajo.tipo === "ampliar"
           ? db
               .from("hallazgos")
               .select("enlace")
-              .eq("investigacion_id", trabajo.investigacion_id)
+              .eq("investigacion_id", investigacionId)
               .order("creado_en")
               .limit(ENLACES_YA_GUARDADOS)
           : Promise.resolve({ data: [] as { enlace: string }[], error: null }),
@@ -61,7 +64,7 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
       return {
         id: trabajo.id,
         tipo: z.enum(["investigar", "ampliar"]).parse(trabajo.tipo),
-        investigacionId: trabajo.investigacion_id,
+        investigacionId,
         angulo: trabajo.angulo,
         tema: i.tema,
         cantidad: i.cantidad,

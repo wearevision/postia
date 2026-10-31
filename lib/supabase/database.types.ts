@@ -620,6 +620,7 @@ export type Database = {
           id: string
           investigacion_id: string | null
           orden: number
+          origen: string
           pilar_id: string | null
           razon: string
           reemplaza_a: string | null
@@ -638,6 +639,7 @@ export type Database = {
           id?: string
           investigacion_id?: string | null
           orden?: number
+          origen?: string
           pilar_id?: string | null
           razon: string
           reemplaza_a?: string | null
@@ -656,6 +658,7 @@ export type Database = {
           id?: string
           investigacion_id?: string | null
           orden?: number
+          origen?: string
           pilar_id?: string | null
           razon?: string
           reemplaza_a?: string | null
@@ -1369,7 +1372,7 @@ export type Database = {
           id: string
           idea_id: string | null
           intentos: number
-          investigacion_id: string
+          investigacion_id: string | null
           motivo: string | null
           terminado_en: string | null
           tipo: string
@@ -1382,7 +1385,7 @@ export type Database = {
           id?: string
           idea_id?: string | null
           intentos?: number
-          investigacion_id: string
+          investigacion_id?: string | null
           motivo?: string | null
           terminado_en?: string | null
           tipo: string
@@ -1395,7 +1398,7 @@ export type Database = {
           id?: string
           idea_id?: string | null
           intentos?: number
-          investigacion_id?: string
+          investigacion_id?: string | null
           motivo?: string | null
           terminado_en?: string | null
           tipo?: string
@@ -1587,6 +1590,10 @@ export type Database = {
         Args: { p_pendiente: string; p_siguiente: string }
         Returns: string
       }
+      cuenta_y_pilar_de_idea: {
+        Args: { p_idea: Json }
+        Returns: Record<string, unknown>
+      }
       descartar_hallazgo: { Args: { p_hallazgo: string }; Returns: undefined }
       descartar_idea: { Args: { p_idea: string }; Returns: undefined }
       descartar_informe: {
@@ -1669,6 +1676,10 @@ export type Database = {
           p_vector: string
         }
         Returns: Json
+      }
+      guardar_ideas_sueltas: {
+        Args: { p_ideas: Json; p_origen: string }
+        Returns: string[]
       }
       guardar_linea: {
         Args: {
@@ -1765,6 +1776,22 @@ export type Database = {
         Returns: string
       }
       olvidar_renovacion: { Args: { p_conexion: string }; Returns: undefined }
+      pares_para_cruzar: {
+        Args: {
+          p_desde: string
+          p_investigacion?: string
+          p_limite: number
+          p_maximo: number
+          p_minimo: number
+        }
+        Returns: {
+          a: string
+          b: string
+          similitud: number
+          tema_a: string
+          tema_b: string
+        }[]
+      }
       pedir_ampliacion: {
         Args: { p_angulo: string; p_investigacion: string }
         Returns: string
@@ -1887,6 +1914,15 @@ export type Database = {
       resumen_de_gasto: { Args: never; Returns: Json }
       reubicar_pendientes: { Args: { p_umbral: number }; Returns: number }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
+      similitudes_de_pares: {
+        Args: { p_desde: string; p_limite: number }
+        Returns: {
+          a: string
+          b: string
+          mismo_tema: boolean
+          similitud: number
+        }[]
+      }
       soltar_conexion: { Args: { p_conexion: string }; Returns: undefined }
       tema_de_la_voz: {
         Args: { p_tema: string; p_voz: string }
@@ -2044,7 +2080,7 @@ export type Database = {
           id: string
           idea_id: string | null
           intentos: number
-          investigacion_id: string
+          investigacion_id: string | null
           motivo: string | null
           terminado_en: string | null
           tipo: string

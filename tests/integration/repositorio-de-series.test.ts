@@ -85,6 +85,13 @@ async function informeAprobado(): Promise<{ id: string; hallazgos: string[] }> {
   await admin().rpc("terminar_trabajo_de_investigacion", { p_trabajo: trabajo.id, p_estado: "hecho" })
   const aprobado = await dueno.db.rpc("aprobar_informe", { p_investigacion: id })
   if (aprobado.error) throw aprobado.error
+  // Approving also queues the report's crosses (4g), tested in cruces-y-domingo: here only the series runs.
+  const cruces = await admin()
+    .from("trabajos_de_investigacion")
+    .update({ estado: "fallo", motivo: "Cerrado entre pruebas." })
+    .eq("investigacion_id", id)
+    .eq("tipo", "cruces")
+  if (cruces.error) throw cruces.error
   return { id, hallazgos }
 }
 
@@ -123,6 +130,7 @@ async function trabajosDe(investigacion: string) {
     .from("trabajos_de_investigacion")
     .select("tipo, estado, motivo")
     .eq("investigacion_id", investigacion)
+    .neq("tipo", "cruces")
     .order("creado_en")
   if (error) throw error
   return data

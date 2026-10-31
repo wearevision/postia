@@ -240,9 +240,11 @@ afterAll(async () => {
 describe("the series job", () => {
   test("aprobar_informe queues a series job, and taking it leaves the report approved", async () => {
     const { id } = await informeAprobado()
+    // 4g queues the report's crosses right after its series.
     expect((await trabajosDe(id)).map((t) => [t.tipo, t.estado])).toEqual([
       ["investigar", "hecho"],
       ["serie", "pendiente"],
+      ["cruces", "pendiente"],
     ])
     const { data: tomados } = await admin().rpc("tomar_trabajo_de_investigacion")
     expect(tomados?.map((t) => t.tipo)).toEqual(["serie"])
