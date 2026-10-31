@@ -1,3 +1,4 @@
+import { informesPorAprobar } from "@/lib/investigacion/lectura"
 import { huecosDeLaSemana, semanaDe, semanaDelLunes, sumarDias } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { calendario } from "@/lib/piezas/lectura"
@@ -13,16 +14,6 @@ type PorMarca = Omit<EstadoDelResumen, "lineas" | "informes" | "ideas">
 
 function vacio(): PorMarca {
   return { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [], pilares: [] }
-}
-
-/** Read once: research is not per brand (D17). */
-async function informesPorAprobar(db: Db): Promise<number> {
-  const { count, error } = await db
-    .from("investigaciones")
-    .select("id", { count: "exact", head: true })
-    .eq("estado", "informe_por_aprobar")
-  if (error) throw new Error(`No pude contar los informes por aprobar: ${error.message}`, { cause: error })
-  return count ?? 0
 }
 
 async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMarca>> {
@@ -94,6 +85,7 @@ export async function enviarResumenes(
   if (error) throw new Error(`No pude leer los miembros: ${error.message}`, { cause: error })
   const porMarca = await estadoPorMarca(db, ahora)
   const lineas = await avisosSinEnviar(db, ahora)
+  // Read once: research is not per brand (D17).
   const informes = await informesPorAprobar(db)
   const ideas = await ideasPorRevisar(db)
   const marcasDe = new Map<string, string[]>()
