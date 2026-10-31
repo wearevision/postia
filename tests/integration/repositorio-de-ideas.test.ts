@@ -7,7 +7,7 @@ import { repositorioDeInvestigaciones } from "@/lib/investigacion/repositorio"
 import { atenderInvestigaciones } from "@/lib/investigacion/vigilancia"
 import { repositorioDeSeries } from "@/lib/series/repositorio"
 import type { Db } from "@/lib/supabase/database"
-import { admin, cuentaDe, limpiarMapa, literal, marcaConDueno, personaConSesion, vectorDe } from "./entorno"
+import { admin, cuentaDe, limpiarMapa, literal, marcaConDueno, personaConSesion, piezaDe, vectorDe } from "./entorno"
 
 const SECCIONES = {
   deQueHablamos: "",
@@ -336,5 +336,91 @@ describe("repositorioDeIdeas: crosses", () => {
     )
     expect(ideas.find((i) => i.gancho === "La de reemplazo")?.reemplaza_a).toBe(vieja)
     expect(await trabajo(trabajoId)).toMatchObject({ tipo: "otra_idea", estado: "hecho" })
+  })
+})
+
+// The Sunday engine and the calibration -------------------------------------------------------------------------
+
+const enDias = (dias: number) => new Date(Date.now() + dias * 86_400_000).toISOString()
+
+describe("repositorioDeIdeas: the Sunday engine", () => {
+  test("reads the week's non-discarded findings, newest first", async () => {
+    const vieja = await hallazgo({ vector: vectorDe(0), creado: haceHoras(24 * 10) })
+    const antes = await hallazgo({ vector: vectorDe(1), resumen: "Antes", creado: haceHoras(48) })
+    const ahora = await hallazgo({ vector: vectorDe(2), resumen: "Ahora" })
+    const descartado = await hallazgo({ vector: vectorDe(3) })
+    await admin().from("hallazgos").update({ estado: "descartado" }).eq("id", descartado)
+    const semana = await repo().hallazgosDeLaSemana(Date.now() - 7 * 86_400_000)
+    expect(semana.map((h) => h.id)).toEqual([ahora, antes])
+    expect(semana[0]).toEqual({
+      id: ahora,
+      angulo: "",
+      resumen: "Ahora",
+      medio: "Medio",
+      publicado_en: "2026-10-20",
+      enlace: expect.any(String),
+    })
+    expect(semana.map((h) => h.id)).not.toContain(vieja)
+  })
+
+  test("lists pillars two weeks without a post, by account and pillar name", async () => {
+    const madura = await admin()
+      .from("pilares")
+      .update({ creado_en: haceHoras(24 * 30) })
+      .eq("id", pilar)
+    if (madura.error) throw madura.error
+    const { data: c } = await admin().from("cuentas").select("nombre").eq("id", cuenta).single()
+    expect(await repo().pilaresPendientes(Date.now())).toContainEqual({ cuenta: c?.nombre, pilar: "Oficio" })
+  })
+
+  test("reads the latest idea hooks, newest first, up to the limit", async () => {
+    const a = await hallazgo({ vector: vectorDe(0) })
+    const ids = await repo().guardarIdeasSueltas("domingo", [
+      {
+        gancho: "El gancho más nuevo",
+        resumen: "Algo",
+        formato: "texto",
+        esqueleto: [{ idea: "Uno" }],
+        fuentes: [a],
+        cuenta,
+        razon: "Porque sí.",
+        pilar: null,
+        vector: aleatorio(),
+      },
+    ])
+    for (const id of ids) ideasCreadas.add(id)
+    expect(await repo().ganchosRecientes(1)).toEqual(["El gancho más nuevo"])
+  })
+
+  test("counts each publishing account's open assignments and planned pieces in the span", async () => {
+    const desde = enDias(20)
+    const hasta = enDias(23)
+    const antes = await repo().ocupacionDeLaSemana(desde, hasta)
+    const propia = antes.find((o) => o.cuentaId === cuenta)
+    expect(propia).toMatchObject({ cuentaId: cuenta, ritmo: expect.any(Number) })
+    const pieza = { id: await piezaDe(dueno.db, cuenta) }
+    const { error } = await admin()
+      .from("piezas")
+      .update({ estado: "por_aprobar", planeada_para: enDias(21) })
+      .eq("id", pieza.id)
+    if (error) throw error
+    try {
+      const despues = await repo().ocupacionDeLaSemana(desde, hasta)
+      expect(despues.find((o) => o.cuentaId === cuenta)?.ocupadas).toBe((propia?.ocupadas ?? 0) + 1)
+      const fuera = await repo().ocupacionDeLaSemana(enDias(30), enDias(33))
+      expect(fuera.find((o) => o.cuentaId === cuenta)?.ocupadas).toBe(0)
+    } finally {
+      await admin().from("piezas").delete().eq("id", pieza.id)
+    }
+  })
+
+  test("reads pair similarities for the calibration, with whether both share a topic", async () => {
+    const retail = await tema("Retail")
+    await hallazgo({ vector: vectorDe(0), tema: retail })
+    await hallazgo({ vector: vectorDe(0, { hacia: 1, similitud: 0.7 }), tema: retail, creado: haceHoras(24 * 30) })
+    const pares = await repo().similitudesDePares(0, 10)
+    expect(pares).toHaveLength(1)
+    expect(pares[0]?.similitud).toBeCloseTo(0.7, 4)
+    expect(pares[0]?.mismoTema).toBe(true)
   })
 })
