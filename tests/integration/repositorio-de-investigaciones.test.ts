@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, test, vi } from "vitest"
 import type { Pedir } from "@/lib/ia/claude"
 import { repositorioDeInvestigaciones } from "@/lib/investigacion/repositorio"
 import { atenderInvestigaciones } from "@/lib/investigacion/vigilancia"
+import { repositorioDeSeries } from "@/lib/series/repositorio"
 import type { Db } from "@/lib/supabase/database"
 import { admin, limpiarMapa, marcaConDueno, personaConSesion, vectorDe } from "./entorno"
 
@@ -46,7 +47,12 @@ async function investigacion(id: string) {
   return data
 }
 
-const repo = () => repositorioDeInvestigaciones(admin())
+/** The research queue also runs series jobs (4f): the dispatcher needs their ports, unused here. */
+const repo = () => ({
+  ...repositorioDeInvestigaciones(admin()),
+  ...repositorioDeSeries(admin()),
+  embeberIdeas: async () => [],
+})
 
 /** Claude finds https://medio.cl/<uuid> and sorts it into «Presupuesto». No paid call. */
 function pedirFalso(enlace: string): Pedir {

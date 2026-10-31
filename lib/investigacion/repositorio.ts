@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { repositorioDelMapa } from "@/lib/mapa/repositorio"
 import { UMBRALES } from "@/lib/mapa/umbrales"
+import type { TrabajoDeSerie } from "@/lib/series/armar"
 import type { Db } from "@/lib/supabase/database"
 import type { PuertosDeInvestigacion, Trabajo } from "./investigar"
 import type { PuertosDeAtencionDeInvestigacion, PuertosDeVigilancia } from "./vigilancia"
@@ -25,11 +26,20 @@ type Puertos = Omit<PuertosDeInvestigacion, "pedir" | "embeber"> &
 export function repositorioDeInvestigaciones(db: Db): Puertos {
   const mapa = repositorioDelMapa(db)
   return {
-    async tomar(): Promise<Trabajo | null> {
+    async tomar(): Promise<Trabajo | TrabajoDeSerie | null> {
       const { data, error } = await db.rpc("tomar_trabajo_de_investigacion")
       if (error) fallo("No pude tomar el trabajo de investigación", error)
       const trabajo = data[0]
       if (!trabajo) return null
+      // 4f's series jobs read their report through lib/series/repositorio.ts.
+      if (trabajo.tipo === "serie" || trabajo.tipo === "otra_idea") {
+        return {
+          id: trabajo.id,
+          tipo: trabajo.tipo,
+          investigacionId: trabajo.investigacion_id,
+          ideaId: trabajo.idea_id,
+        }
+      }
       const [investigacion, ya] = await Promise.all([
         db
           .from("investigaciones")

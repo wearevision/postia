@@ -268,6 +268,14 @@ function puertosDeAtencion(over: Partial<PuertosDeAtencionDeInvestigacion> = {})
     cerrar: vi.fn(async () => {}),
     tomar: vi.fn(async () => TRABAJO),
     terminar: vi.fn(async () => {}),
+    embeberIdeas: vi.fn(async () => []),
+    informeDeSerie: vi.fn(async () => ({ tema: "t", cantidad: 1, angulos: [], hallazgos: [] })),
+    cuentasDeSerie: vi.fn(async () => []),
+    noNombrar: vi.fn(async () => []),
+    ideasPrevias: vi.fn(async () => []),
+    ideasParecidas: vi.fn(async () => []),
+    ideaAReemplazar: vi.fn(async () => ({ gancho: "g", resumen: "r", formato: "texto" as const, hermanas: [] })),
+    guardarSerie: vi.fn(async () => []),
     ...over,
   }
 }
