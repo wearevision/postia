@@ -9,7 +9,6 @@ import { TIPOS_DE_LAMINA } from "@/lib/plantillas/laminas"
 import { nombresVetados } from "@/lib/redaccion/instrucciones"
 import { contextoDeRedaccion, repositorioDeRedaccion } from "@/lib/redaccion/repositorio"
 import type { Db } from "@/lib/supabase/database"
-import { lineaDeMarca } from "@/lib/voz/lectura"
 import { fallaDeGuardarSerie, type PuertosDeSerie } from "./armar"
 import type { AsignacionAEscribir, PuertosDeEscritura } from "./escribir"
 import { PREVIAS_EN_EL_MENSAJE } from "./instrucciones"
@@ -49,39 +48,31 @@ export function repositorioDeSeries(db: Db): Omit<PuertosDeSerie, "pedir" | "emb
     },
 
     async cuentasDeSerie() {
+      // One request with the brand, its pillars and its line versions embedded: a filter listing every brand's id
+      // grows with the data until the URL is too long.
       const { data: cuentas, error } = await db
         .from("cuentas")
-        .select("id, nombre, tipo, marca_id")
+        .select(
+          "id, nombre, tipo, marcas!inner(id, nombre, voz, pilares(id, nombre, de_que_habla, activo, orden), lineas_editoriales(version, temas_vetados))",
+        )
         .gt("ritmo_semanal", 0)
         .order("creada_en")
         .order("id")
       if (error) fallo("No pude leer las cuentas de la serie", error)
-      const marcas = [...new Set(cuentas.map((c) => c.marca_id))]
-      const [lineas, pilares] = await Promise.all([
-        Promise.all(marcas.map((m) => lineaDeMarca(db, m))),
-        db
-          .from("pilares")
-          .select("id, marca_id, nombre, de_que_habla")
-          .eq("activo", true)
-          .in("marca_id", marcas)
-          .order("orden"),
-      ])
-      if (pilares.error) fallo("No pude leer los pilares de la serie", pilares.error)
-      return cuentas.flatMap((c): CuentaDeSerie[] => {
-        const linea = lineas.find((l) => l?.marca.id === c.marca_id)
-        if (!linea) return []
-        return [
-          {
-            id: c.id,
-            nombre: c.nombre,
-            tipo: leerTipo(c.tipo),
-            marca: linea.marca,
-            pilares: pilares.data
-              .filter((p) => p.marca_id === c.marca_id)
-              .map((p) => ({ id: p.id, nombre: p.nombre, deQueHabla: p.de_que_habla })),
-            temasVetados: linea.actual?.secciones.temasVetados ?? "",
-          },
-        ]
+      return cuentas.map((c): CuentaDeSerie => {
+        const marca = c.marcas
+        const vigente = [...marca.lineas_editoriales].sort((a, b) => b.version - a.version)[0]
+        return {
+          id: c.id,
+          nombre: c.nombre,
+          tipo: leerTipo(c.tipo),
+          marca: { id: marca.id, nombre: marca.nombre, voz: marca.voz === "nosotros" ? "nosotros" : "yo" },
+          pilares: marca.pilares
+            .filter((p) => p.activo)
+            .sort((a, b) => a.orden - b.orden)
+            .map((p) => ({ id: p.id, nombre: p.nombre, deQueHabla: p.de_que_habla })),
+          temasVetados: vigente?.temas_vetados ?? "",
+        }
       })
     },
 

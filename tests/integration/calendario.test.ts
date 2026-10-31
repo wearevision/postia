@@ -55,6 +55,8 @@ async function asignacion(
       cuenta_sugerida: cuenta,
       razon: "Porque sí.",
       vector: literal(vectorDe(7)),
+      // A loose idea: it needs no research of its own.
+      origen: "domingo",
       estado: "aprobada",
     })
     .select("id, gancho")

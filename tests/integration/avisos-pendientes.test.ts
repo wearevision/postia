@@ -33,6 +33,28 @@ describe("avisos_pendientes", () => {
     expect((await db.from("avisos_pendientes").select("id").eq("marca_id", marca)).data).toHaveLength(0)
   })
 
+  test("marks hundreds of lines sent at once: no request carries every id", async () => {
+    const { userId } = await personaConSesion("cola-masiva")
+    const marca = await marcaConDueno(userId)
+    const db = admin()
+    const { data, error } = await db
+      .from("avisos_pendientes")
+      .insert(Array.from({ length: 400 }, () => ({ marca_id: marca, ...AVISO })))
+      .select("id")
+    if (error) throw error
+    await marcarEnviados(
+      db,
+      data.map((l) => l.id),
+      Date.now(),
+    )
+    const { count } = await db
+      .from("avisos_pendientes")
+      .select("id", { count: "exact", head: true })
+      .eq("marca_id", marca)
+      .is("enviado_en", null)
+    expect(count).toBe(0)
+  })
+
   test("a line only opens a path inside the app", async () => {
     const { userId } = await personaConSesion("cola-url")
     const marca = await marcaConDueno(userId)

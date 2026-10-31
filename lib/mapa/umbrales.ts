@@ -11,6 +11,11 @@ export const UMBRALES = {
   fusion: 0.92,
   /** Two ideas this close are the same idea: the later one is dropped (4f, «Armar la serie»). */
   idea: 0.9,
+  /**
+   * Two findings in this band can cross into an idea (4g): above unrelated pairs (0.35 to 0.54 in the 2026-10-30
+   * calibration) and below where topics form.
+   */
+  cruce: { minimo: 0.56, maximo: 0.74 },
   /** Loose findings form a topic only in groups this big. */
   minimoParaTema: 3,
 } as const

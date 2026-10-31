@@ -4,6 +4,14 @@ import { z } from "zod"
 import { Falla } from "@/lib/dominio/falla"
 import { PasoYaPagado, TopeAlcanzado } from "@/lib/gasto/pagar"
 import type { Pedir } from "@/lib/ia/claude"
+import {
+  cruzar,
+  otraIdeaSuelta,
+  type PuertosDeCruce,
+  type PuertosDeOtraSuelta,
+  type TrabajoDeCruces,
+  type TrabajoDeIdeaSuelta,
+} from "@/lib/ideas/cruzar"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { comoDatos } from "@/lib/redaccion/instrucciones"
 import {
@@ -191,34 +199,61 @@ export async function vigilar(
 
 // The queue worker ---------------------------------------------------------------------------------------------
 
-export interface PuertosDeAtencionDeInvestigacion extends PuertosDeInvestigacion, PuertosDeSerie {
-  /** Leases the oldest open job (research or series), or null. */
-  tomar(): Promise<Trabajo | TrabajoDeSerie | null>
+export type TrabajoDeLaCola = Trabajo | TrabajoDeSerie | TrabajoDeCruces | TrabajoDeIdeaSuelta
+
+export interface PuertosDeAtencionDeInvestigacion
+  extends PuertosDeInvestigacion,
+    PuertosDeSerie,
+    PuertosDeCruce,
+    PuertosDeOtraSuelta {
+  /** Leases the oldest open job (research, series, crosses or another idea), or null. */
+  tomar(): Promise<TrabajoDeLaCola | null>
   terminar(trabajoId: string, estado: "hecho" | "fallo", motivo?: string): Promise<void>
 }
 
-const GENERICO = "No pude terminar la investigación. Pídela de nuevo en un rato."
-const GENERICO_DE_SERIE = "No pude armar la serie. Pídela de nuevo en un rato."
+type Clase = "investigacion" | "serie" | "cruces"
 
-const esDeSerie = (t: Trabajo | TrabajoDeSerie): t is TrabajoDeSerie => t.tipo === "serie" || t.tipo === "otra_idea"
-
-function motivoDe(error: unknown, serie: boolean): string {
-  if (error instanceof TopeAlcanzado) return "Se alcanzó el tope de gasto del mes. Súbelo en Ajustes y pídela de nuevo."
-  if (error instanceof PasoYaPagado)
-    return serie
-      ? "Esta serie ya se había empezado a pagar y no sé si terminó. Pídela de nuevo."
-      : "Esta investigación ya se había empezado a pagar y no sé si terminó. Pídela de nuevo."
-  if (error instanceof Falla) return error.message
-  return serie ? GENERICO_DE_SERIE : GENERICO
+const GENERICO: Record<Clase, string> = {
+  investigacion: "No pude terminar la investigación. Pídela de nuevo en un rato.",
+  serie: "No pude armar la serie. Pídela de nuevo en un rato.",
+  cruces: "No pude cruzar los hallazgos del informe.",
 }
 
-function atenderUno(p: PuertosDeAtencionDeInvestigacion, t: Trabajo | TrabajoDeSerie) {
-  if (!esDeSerie(t)) return investigarUno(p, t)
-  return t.tipo === "serie" ? armarSerie(p, t) : otraIdea(p, t)
+const YA_PAGADO: Record<Clase, string> = {
+  investigacion: "Esta investigación ya se había empezado a pagar y no sé si terminó. Pídela de nuevo.",
+  serie: "Esta serie ya se había empezado a pagar y no sé si terminó. Pídela de nuevo.",
+  cruces: "Estos cruces ya se habían empezado a pagar y no sé si terminaron.",
+}
+
+function claseDe(t: TrabajoDeLaCola): Clase {
+  if (t.tipo === "cruces") return "cruces"
+  return t.tipo === "serie" || t.tipo === "otra_idea" ? "serie" : "investigacion"
+}
+
+function motivoDe(error: unknown, clase: Clase): string {
+  if (error instanceof TopeAlcanzado) return "Se alcanzó el tope de gasto del mes. Súbelo en Ajustes y pídela de nuevo."
+  if (error instanceof PasoYaPagado) return YA_PAGADO[clase]
+  if (error instanceof Falla) return error.message
+  return GENERICO[clase]
+}
+
+function atenderUno(p: PuertosDeAtencionDeInvestigacion, t: TrabajoDeLaCola) {
+  switch (t.tipo) {
+    case "investigar":
+    case "ampliar":
+      return investigarUno(p, t)
+    case "serie":
+      return armarSerie(p, t)
+    case "cruces":
+      // Side A is the report's findings, whatever their date: `desde` does not apply.
+      return cruzar(p, { clave: `cruces:${t.id}`, desde: 0, investigacionId: t.investigacionId })
+    case "otra_idea":
+      return t.investigacionId === null ? otraIdeaSuelta(p, t) : otraIdea(p, t)
+  }
 }
 
 /**
- * One job per run (a search can take minutes); series jobs (4f) run on the same queue. A failure closes the job with
+ * One job per run (a search can take minutes); series jobs (4f) and crosses (4g) run on the same queue. A failure closes the job with
  * a reason Federico can read; an error nobody expected is rethrown after closing it, so the Trigger.dev run shows as
  * failed.
  */
@@ -234,7 +269,7 @@ export async function atenderInvestigaciones(
     const inesperados = esperado(error) ? [] : [error]
     if (inesperados.length > 0) console.error(`La investigación ${trabajo.id} falló`, mensajeDe(error))
     try {
-      await p.terminar(trabajo.id, "fallo", motivoDe(error, esDeSerie(trabajo)))
+      await p.terminar(trabajo.id, "fallo", motivoDe(error, claseDe(trabajo)))
     } catch (errorAlTerminar) {
       inesperados.push(errorAlTerminar)
     }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest"
 import type { Pedir } from "@/lib/ia/claude"
+import { repositorioDeIdeas } from "@/lib/ideas/repositorio"
 import { repositorioDeInvestigaciones } from "@/lib/investigacion/repositorio"
 import { atenderInvestigaciones } from "@/lib/investigacion/vigilancia"
 import { escribirPiezas } from "@/lib/series/escribir"
@@ -85,12 +86,20 @@ async function informeAprobado(): Promise<{ id: string; hallazgos: string[] }> {
   await admin().rpc("terminar_trabajo_de_investigacion", { p_trabajo: trabajo.id, p_estado: "hecho" })
   const aprobado = await dueno.db.rpc("aprobar_informe", { p_investigacion: id })
   if (aprobado.error) throw aprobado.error
+  // Approving also queues the report's crosses (4g), tested in cruces-y-domingo: here only the series runs.
+  const cruces = await admin()
+    .from("trabajos_de_investigacion")
+    .update({ estado: "fallo", motivo: "Cerrado entre pruebas." })
+    .eq("investigacion_id", id)
+    .eq("tipo", "cruces")
+  if (cruces.error) throw cruces.error
   return { id, hallazgos }
 }
 
 const repo = () => ({
   ...repositorioDeInvestigaciones(admin()),
   ...repositorioDeSeries(admin()),
+  ...repositorioDeIdeas(admin()),
   embeber: async () => [],
   embeberIdeas: async (_clave: string, textos: string[]) => textos.map(() => aleatorio()),
 })
@@ -123,6 +132,7 @@ async function trabajosDe(investigacion: string) {
     .from("trabajos_de_investigacion")
     .select("tipo, estado, motivo")
     .eq("investigacion_id", investigacion)
+    .neq("tipo", "cruces")
     .order("creado_en")
   if (error) throw error
   return data
@@ -157,6 +167,17 @@ afterAll(async () => {
   await admin().from("hallazgos").delete().in("investigacion_id", investigaciones)
 })
 
+/** Brands made in bulk, with their accounts, in batches that keep the id filter short. */
+async function borrarMarcas(ids: string[]): Promise<void> {
+  for (let i = 0; i < ids.length; i += 50) {
+    const { error } = await admin()
+      .from("marcas")
+      .delete()
+      .in("id", ids.slice(i, i + 50))
+    if (error) throw error
+  }
+}
+
 describe("repositorioDeSeries", () => {
   test("the research queue hands a series job over as a series job", async () => {
     const { id } = await informeAprobado()
@@ -188,6 +209,40 @@ describe("repositorioDeSeries", () => {
       temasVetados: "Política",
     })
     expect(cuentas.map((c) => c.id)).not.toContain(pausada)
+  })
+
+  test("still lists the accounts when hundreds of brands publish: no request carries every brand's id", async () => {
+    const { data: marcas, error } = await admin()
+      .from("marcas")
+      .insert(
+        Array.from({ length: 400 }, (_, n) => ({
+          nombre: `Marca masiva ${n} ${randomUUID().slice(0, 8)}`,
+          voz: "nosotros",
+        })),
+      )
+      .select("id")
+    if (error) throw error
+    try {
+      const { error: errorDeCuentas } = await admin()
+        .from("cuentas")
+        .insert(
+          marcas.map((m, n) => ({
+            marca_id: m.id,
+            red: "linkedin",
+            tipo: "empresa",
+            ruta: "a_mano",
+            nombre: `C ${n}`,
+          })),
+        )
+      if (errorDeCuentas) throw errorDeCuentas
+      const cuentas = await repo().cuentasDeSerie()
+      expect(cuentas.find((c) => c.id === cuenta)?.pilares).toEqual([
+        { id: pilar, nombre: "Oficio", deQueHabla: "Cómo trabajamos" },
+      ])
+      expect(new Set(cuentas.map((c) => c.marca.id))).toContain(marcas[399]?.id)
+    } finally {
+      await borrarMarcas(marcas.map((m) => m.id))
+    }
   })
 
   test("runs a series job end to end: ideas saved as proposals, the newest first among earlier ones", async () => {

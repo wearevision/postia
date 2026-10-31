@@ -1,10 +1,9 @@
 import { z } from "zod"
 import { repositorioDelMapa } from "@/lib/mapa/repositorio"
 import { UMBRALES } from "@/lib/mapa/umbrales"
-import type { TrabajoDeSerie } from "@/lib/series/armar"
 import type { Db } from "@/lib/supabase/database"
-import type { PuertosDeInvestigacion, Trabajo } from "./investigar"
-import type { PuertosDeAtencionDeInvestigacion, PuertosDeVigilancia } from "./vigilancia"
+import type { PuertosDeInvestigacion } from "./investigar"
+import type { PuertosDeAtencionDeInvestigacion, PuertosDeVigilancia, TrabajoDeLaCola } from "./vigilancia"
 
 // Service role only (Trigger.dev): it reads every brand's line and writes the map.
 
@@ -26,17 +25,25 @@ type Puertos = Omit<PuertosDeInvestigacion, "pedir" | "embeber"> &
 export function repositorioDeInvestigaciones(db: Db): Puertos {
   const mapa = repositorioDelMapa(db)
   return {
-    async tomar(): Promise<Trabajo | TrabajoDeSerie | null> {
+    async tomar(): Promise<TrabajoDeLaCola | null> {
       const { data, error } = await db.rpc("tomar_trabajo_de_investigacion")
       if (error) fallo("No pude tomar el trabajo de investigación", error)
       const trabajo = data[0]
       if (!trabajo) return null
+      const investigacionId = trabajo.investigacion_id
+      // Only a replacement for an idea with no research (a cross or a Sunday idea, 4g) has none.
+      if (investigacionId === null) {
+        if (trabajo.tipo !== "otra_idea" || trabajo.idea_id === null)
+          throw new Error(`El trabajo ${trabajo.id} no tiene investigación.`)
+        return { id: trabajo.id, tipo: "otra_idea", investigacionId: null, ideaId: trabajo.idea_id }
+      }
+      if (trabajo.tipo === "cruces") return { id: trabajo.id, tipo: "cruces", investigacionId }
       // 4f's series jobs read their report through lib/series/repositorio.ts.
       if (trabajo.tipo === "serie" || trabajo.tipo === "otra_idea") {
         return {
           id: trabajo.id,
           tipo: trabajo.tipo,
-          investigacionId: trabajo.investigacion_id,
+          investigacionId,
           ideaId: trabajo.idea_id,
         }
       }
@@ -44,13 +51,13 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
         db
           .from("investigaciones")
           .select("tema, cantidad, formato, enfoque, origen")
-          .eq("id", trabajo.investigacion_id)
+          .eq("id", investigacionId)
           .single(),
         trabajo.tipo === "ampliar"
           ? db
               .from("hallazgos")
               .select("enlace")
-              .eq("investigacion_id", trabajo.investigacion_id)
+              .eq("investigacion_id", investigacionId)
               .order("creado_en")
               .limit(ENLACES_YA_GUARDADOS)
           : Promise.resolve({ data: [] as { enlace: string }[], error: null }),
@@ -61,7 +68,7 @@ export function repositorioDeInvestigaciones(db: Db): Puertos {
       return {
         id: trabajo.id,
         tipo: z.enum(["investigar", "ampliar"]).parse(trabajo.tipo),
-        investigacionId: trabajo.investigacion_id,
+        investigacionId,
         angulo: trabajo.angulo,
         tema: i.tema,
         cantidad: i.cantidad,
