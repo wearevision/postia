@@ -100,4 +100,13 @@ describe("Worker boundary", () => {
     expect([...grafo.archivos].filter((a) => a.startsWith("lib/carrusel/"))).toEqual([])
     expect([...grafo.paquetes].filter((p) => p === "playwright" || p.startsWith("playwright/"))).toEqual([])
   })
+
+  test("the cheap carousel poller does not reach Playwright or the renderer's task", () => {
+    const grafo = recorrerImports(["trigger/vigilar-carruseles.ts"], disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos].filter((a) => a === "trigger/carruseles.ts" || a === "lib/carrusel/render.ts")).toEqual(
+      [],
+    )
+    expect([...grafo.paquetes].filter((p) => p === "playwright" || p.startsWith("playwright/"))).toEqual([])
+  })
 })

@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, test } from "vitest"
 import type { PedidoDeDiseno } from "@/lib/carrusel/armar"
 import { repositorioDeCarruseles } from "@/lib/carrusel/repositorio"
+import { contarPedidosAbiertos } from "@/lib/carrusel/vigilar"
 import { carruselInicial } from "@/lib/plantillas/iniciales"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
@@ -96,5 +97,26 @@ describe("repositorioDeCarruseles", () => {
     await repo().terminar(pedido.id, "fallo", "La lámina 3 no cabe. Acórtala o divídela en dos.")
     const { data } = await admin().from("pedidos_de_diseno").select("estado, motivo").eq("id", pedido.id).single()
     expect(data).toEqual({ estado: "fallo", motivo: "La lámina 3 no cabe. Acórtala o divídela en dos." })
+  })
+
+  test("counts requests the renderer could lease: queued, or working with an expired lease", async () => {
+    expect(await contarPedidosAbiertos(admin())).toBe(0)
+    const pedido = await tomado()
+    expect(await contarPedidosAbiertos(admin())).toBe(0)
+    const { error } = await admin()
+      .from("pedidos_de_diseno")
+      .update({ arrendado_hasta: new Date(Date.now() - 60_000).toISOString() })
+      .eq("id", pedido.id)
+    if (error) throw error
+    expect(await contarPedidosAbiertos(admin())).toBe(1)
+    const { error: errorAlPedir } = await dueno.db.rpc("pedir_diseno", {
+      p_cuenta: cuenta,
+      p_tema: "wav-noche",
+      p_titulo: "Otro",
+      p_texto: "Texto",
+      p_diseno: diseno,
+    })
+    if (errorAlPedir) throw errorAlPedir
+    expect(await contarPedidosAbiertos(admin())).toBe(2)
   })
 })

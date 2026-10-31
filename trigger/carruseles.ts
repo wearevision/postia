@@ -1,4 +1,4 @@
-import { schedules } from "@trigger.dev/sdk"
+import { task } from "@trigger.dev/sdk"
 import { type Browser, chromium } from "playwright"
 import { armarCarruseles } from "@/lib/carrusel/armar"
 import { fuentesEmbebidas } from "@/lib/carrusel/fuentes"
@@ -6,11 +6,10 @@ import { renderizarCarrusel } from "@/lib/carrusel/render"
 import { repositorioDeCarruseles } from "@/lib/carrusel/repositorio"
 import { createAdminClient } from "@/lib/supabase/admin"
 
-// Every 2 minutes, one run at a time, on a 2 GB machine (Chromium). No retries: a failed request stays «fallo» with
-// its reason and Federico asks again. Chromium starts only when there is a request.
-export const armarCarrusel = schedules.task({
+// Woken by vigilar-carruseles only when a request is open; one run at a time, on a 2 GB machine (Chromium). No
+// retries: a failed request stays «fallo» with its reason and Federico asks again. The only file that imports Playwright.
+export const armarCarrusel = task({
   id: "armar-carruseles",
-  cron: { pattern: "*/2 * * * *", timezone: "America/Santiago" },
   machine: "medium-1x",
   queue: { concurrencyLimit: 1 },
   retry: { maxAttempts: 1 },
