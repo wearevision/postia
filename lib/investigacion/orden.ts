@@ -1,3 +1,4 @@
+import { fechaLarga } from "@/lib/piezas/fechas"
 import type { InvestigacionReciente } from "./lectura"
 
 const TERMINADAS = new Set(["aprobada", "descartada"])
@@ -20,4 +21,9 @@ export function ordenarInvestigaciones(recientes: readonly InvestigacionReciente
       null,
     ),
   }
+}
+
+/** A watch also ends approved with no findings when every one of its topics errored, so it says «hallazgos», not «novedades». */
+export function notaDeUltimaVigilancia(instante: string): string {
+  return `Última vigilancia: ${fechaLarga(instante)}, sin hallazgos.`
 }

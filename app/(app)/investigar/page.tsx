@@ -6,7 +6,7 @@ import {
   NOMBRE_DEL_ESTADO_DE_INVESTIGACION,
   sugerencias,
 } from "@/lib/investigacion/lectura"
-import { ordenarInvestigaciones } from "@/lib/investigacion/orden"
+import { notaDeUltimaVigilancia, ordenarInvestigaciones } from "@/lib/investigacion/orden"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { rutaDeInvestigacion } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
@@ -69,7 +69,7 @@ export default async function Investigar() {
         </section>
       )}
       {ultimaVigilanciaVacia && (
-        <p className="text-sm text-apagado">Última vigilancia: {fechaLarga(ultimaVigilanciaVacia)}, sin novedades.</p>
+        <p className="text-sm text-apagado">{notaDeUltimaVigilancia(ultimaVigilanciaVacia)}</p>
       )}
     </section>
   )
