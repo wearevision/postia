@@ -33,6 +33,19 @@ const PIEZAS = [
   },
 ]
 
+const ASIGNACIONES = [
+  {
+    tipo: "asignacion" as const,
+    id: "a1",
+    ideaId: "i1",
+    investigacionId: "inv1",
+    cuentaId: "perfil",
+    estado: "por_escribir" as const,
+    instante: "2026-10-29T14:00:00.000Z",
+    gancho: "Los focus groups no mueren",
+  },
+]
+
 describe("VistaDeSemana", () => {
   test("one section per account with its reserve and what is missing against the rhythm", () => {
     render(<VistaDeSemana lunes="2026-10-26" cuentas={CUENTAS} piezas={PIEZAS} />)
@@ -77,5 +90,18 @@ describe("VistaDeSemana", () => {
   test("does not count what is missing in a week that is already over", () => {
     render(<VistaDeSemana lunes="2026-10-26" cuentas={CUENTAS} piezas={PIEZAS} terminada />)
     expect(screen.queryByText(/^Faltan/)).not.toBeInTheDocument()
+  })
+
+  test("an idea planned but not written shows dashed as «Por escribir», links to its idea and fills the rhythm", () => {
+    render(<VistaDeSemana lunes="2026-10-26" cuentas={CUENTAS} piezas={PIEZAS} asignaciones={ASIGNACIONES} />)
+    const perfil = screen.getByRole("region", { name: "Federico" })
+    expect(within(perfil).queryByText(/^Faltan/)).not.toBeInTheDocument()
+    const enlace = within(perfil).getByRole("link", { name: /Los focus groups no mueren/ })
+    expect(enlace).toHaveAttribute("href", "/ideas?serie=inv1#idea-i1")
+    expect(enlace).toHaveClass("border-dashed")
+    expect(within(enlace).getByText("Por escribir · Los focus groups no mueren")).toBeInTheDocument()
+    expect(within(enlace).getByText("jueves 29 de octubre, 11:00")).toBeInTheDocument()
+    // Ordered by time with the account's pieces: after Tuesday's and Wednesday's.
+    expect(within(perfil).getAllByRole("link").at(-1)).toBe(enlace)
   })
 })

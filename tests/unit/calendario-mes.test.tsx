@@ -45,4 +45,26 @@ describe("VistaDelMes", () => {
       "/calendario?vista=mes&mes=2026-12",
     )
   })
+
+  test("a day with an idea still to be written counts it in its label", () => {
+    render(
+      <VistaDelMes
+        mes="2026-11"
+        piezas={[]}
+        asignaciones={[
+          {
+            tipo: "asignacion",
+            id: "a1",
+            ideaId: "i1",
+            investigacionId: null,
+            cuentaId: "perfil",
+            estado: "por_escribir",
+            instante: "2026-11-04T14:00:00.000Z",
+            gancho: "Gancho",
+          },
+        ]}
+      />,
+    )
+    expect(screen.getByRole("link", { name: /^4 de noviembre/ })).toHaveAccessibleName("4 de noviembre: 1 por escribir")
+  })
 })

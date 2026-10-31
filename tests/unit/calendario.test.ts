@@ -60,6 +60,13 @@ describe("huecosDeLaSemana", () => {
     ]
     expect(huecosDeLaSemana(cuentas, piezas)).toEqual({ perfil: 1, pagina: 0 })
   })
+
+  test("an idea planned for the account but not yet written fills its slot too", () => {
+    const cuentas = [{ id: "perfil", ritmoSemanal: 3 }]
+    const piezas = [{ cuentaId: "perfil", estado: "programada" as const }]
+    const asignaciones = [{ cuentaId: "perfil" }, { cuentaId: "otra" }]
+    expect(huecosDeLaSemana(cuentas, piezas, asignaciones)).toEqual({ perfil: 1 })
+  })
 })
 
 describe("cuadriculaDelMes", () => {

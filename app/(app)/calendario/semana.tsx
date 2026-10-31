@@ -2,8 +2,8 @@ import Link from "next/link"
 import { huecosDeLaSemana, sumarDias } from "@/lib/piezas/calendario"
 import { NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
-import type { CuentaDelCalendario, PiezaDelCalendario } from "@/lib/piezas/lectura"
-import { rutaDeCalendario, rutaDePieza } from "@/lib/sesion/rutas"
+import type { AsignacionDelCalendario, CuentaDelCalendario, PiezaDelCalendario } from "@/lib/piezas/lectura"
+import { rutaDeCalendario, rutaDeIdea, rutaDePieza } from "@/lib/sesion/rutas"
 
 const FORMATO_DEL_LUNES = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long" })
 const ENLACE = "block min-h-11 rounded-lg border border-borde px-3 py-3 text-sm"
@@ -17,12 +17,33 @@ interface Props {
   lunes: string
   cuentas: readonly CuentaDelCalendario[]
   piezas: readonly PiezaDelCalendario[]
+  /** Ideas planned for an account and not written yet (4f). */
+  asignaciones?: readonly AsignacionDelCalendario[]
   /** A week that is over has nothing left to fill, so it counts no gaps. */
   terminada?: boolean
 }
 
-export function VistaDeSemana({ lunes, cuentas, piezas, terminada = false }: Props) {
-  const faltan = huecosDeLaSemana(cuentas, piezas)
+function Pieza({ p }: { p: PiezaDelCalendario }) {
+  return (
+    <Link href={rutaDePieza(p.id)} className={`${ENLACE} space-y-1 ${p.firmada ? "" : "border-dashed text-apagado"}`}>
+      <span className="block">{fechaLarga(p.instante)}</span>
+      <span className="block">{p.extracto}</span>
+      <span className="block text-apagado">{p.firmada ? NOMBRE_DEL_ESTADO[p.estado] : "Planeada, sin firma"}</span>
+    </Link>
+  )
+}
+
+function Asignacion({ a }: { a: AsignacionDelCalendario }) {
+  return (
+    <Link href={rutaDeIdea(a.ideaId, a.investigacionId)} className={`${ENLACE} space-y-1 border-dashed text-apagado`}>
+      <span className="block">{fechaLarga(a.instante)}</span>
+      <span className="block">{`${a.estado === "escribiendo" ? "Escribiendo" : "Por escribir"} · ${a.gancho}`}</span>
+    </Link>
+  )
+}
+
+export function VistaDeSemana({ lunes, cuentas, piezas, asignaciones = [], terminada = false }: Props) {
+  const faltan = huecosDeLaSemana(cuentas, piezas, asignaciones)
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -37,9 +58,9 @@ export function VistaDeSemana({ lunes, cuentas, piezas, terminada = false }: Pro
         </div>
       </div>
       {cuentas.map((cuenta) => {
-        const deLaCuenta = piezas
-          .filter((p) => p.cuentaId === cuenta.id)
-          .sort((a, b) => a.instante.localeCompare(b.instante))
+        const deLaCuenta = [...piezas, ...asignaciones]
+          .filter((e) => e.cuentaId === cuenta.id)
+          .sort((a, b) => Date.parse(a.instante) - Date.parse(b.instante))
         return (
           <section key={cuenta.id} aria-label={cuenta.nombre} className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -59,20 +80,17 @@ export function VistaDeSemana({ lunes, cuentas, piezas, terminada = false }: Pro
               <p className="text-sm text-apagado">Nada esta semana.</p>
             ) : (
               <ul className="space-y-2">
-                {deLaCuenta.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      href={rutaDePieza(p.id)}
-                      className={`${ENLACE} space-y-1 ${p.firmada ? "" : "border-dashed text-apagado"}`}
-                    >
-                      <span className="block">{fechaLarga(p.instante)}</span>
-                      <span className="block">{p.extracto}</span>
-                      <span className="block text-apagado">
-                        {p.firmada ? NOMBRE_DEL_ESTADO[p.estado] : "Planeada, sin firma"}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                {deLaCuenta.map((e) =>
+                  "tipo" in e ? (
+                    <li key={e.id}>
+                      <Asignacion a={e} />
+                    </li>
+                  ) : (
+                    <li key={e.id}>
+                      <Pieza p={e} />
+                    </li>
+                  ),
+                )}
               </ul>
             )}
           </section>
