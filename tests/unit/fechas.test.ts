@@ -1,9 +1,14 @@
 import { describe, expect, test } from "vitest"
-import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { fechaDeFila, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 
 describe("fechas de Chile", () => {
   test("formats an instant as Chile wall time with the weekday and no am/pm", () => {
     expect(fechaLarga("2026-11-03T14:00:00.000Z")).toBe("martes 3 de noviembre, 11:00")
+  })
+
+  test("fechaDeFila is weekday, day and time on one line, in Chile time", () => {
+    expect(fechaDeFila("2026-11-03T14:00:00.000Z")).toBe("mar 3 · 11:00")
+    expect(fechaDeFila("2026-11-05T18:00:00.000Z")).toBe("jue 5 · 15:00")
   })
 
   test("round-trips a datetime-local value in summer time (UTC-3)", () => {

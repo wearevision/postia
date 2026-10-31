@@ -35,6 +35,14 @@ export function fechaCorta(instante: string): string {
   return `${partes.weekday} ${partes.day} ${partes.month}, ${partes.hour}:${partes.minute}`
 }
 
+/** «mar 3 · 11:00»: a calendar row, where the week is already in the heading. */
+export function fechaDeFila(instante: string): string {
+  const partes = Object.fromEntries(
+    FORMATO_CORTO.formatToParts(new Date(instante)).map((parte) => [parte.type, parte.value.replace(/\.$/, "")]),
+  )
+  return `${partes.weekday} ${partes.day} · ${partes.hour}:${partes.minute}`
+}
+
 const PARTES = new Intl.DateTimeFormat("en-CA", {
   timeZone: ZONA,
   hourCycle: "h23",
