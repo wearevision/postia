@@ -20,7 +20,6 @@ export interface CuentaDeSerie {
   marca: { id: string; nombre: string; voz: "yo" | "nosotros" }
   pilares: PilarDeSerie[]
   temasVetados: string
-  noNombrar: string[]
 }
 
 /** A finding of the approved report. */

@@ -13,7 +13,6 @@ const contexto: ContextoDeSerie = {
         { id: "pilar-ideas", nombre: "Ideas", deQueHabla: "Lo que pienso del rubro." },
       ],
       temasVetados: "",
-      noNombrar: [],
     },
     {
       id: "cuenta-wav",
@@ -22,7 +21,6 @@ const contexto: ContextoDeSerie = {
       marca: { id: "marca-wav", nombre: "WAV", voz: "nosotros" },
       pilares: [{ id: "pilar-casos", nombre: "Casos", deQueHabla: "Lo que hicimos." }],
       temasVetados: "Política.",
-      noNombrar: ["Cliente Secreto"],
     },
   ],
   hallazgos: [
