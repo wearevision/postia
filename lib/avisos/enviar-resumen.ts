@@ -1,6 +1,7 @@
 import { huecosDeLaSemana, semanaDe, semanaDelLunes, sumarDias } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { calendario } from "@/lib/piezas/lectura"
+import { ideasPorRevisar } from "@/lib/series/lectura"
 import type { Db } from "@/lib/supabase/database"
 import { balancePorCuenta } from "@/lib/voz/lectura"
 import { avisarPersona } from "./a-miembros"
@@ -8,7 +9,7 @@ import type { ServicioPush } from "./push"
 import { avisosSinEnviar, type LineaPendiente, marcarEnviados } from "./repositorio-de-avisos"
 import { armarResumen, type EstadoDelResumen } from "./resumen"
 
-type PorMarca = Omit<EstadoDelResumen, "lineas" | "informes">
+type PorMarca = Omit<EstadoDelResumen, "lineas" | "informes" | "ideas">
 
 function vacio(): PorMarca {
   return { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [], pilares: [] }
@@ -94,6 +95,7 @@ export async function enviarResumenes(
   const porMarca = await estadoPorMarca(db, ahora)
   const lineas = await avisosSinEnviar(db, ahora)
   const informes = await informesPorAprobar(db)
+  const ideas = await ideasPorRevisar(db)
   const marcasDe = new Map<string, string[]>()
   const duenos = new Set<string>()
   for (const m of miembros) {
@@ -105,8 +107,14 @@ export async function enviarResumenes(
   // Only lines that reached at least one device are marked: a failed or absent device keeps them for the next window.
   const recibidas = new Set<string>()
   for (const [userId, marcas] of marcasDe) {
-    // Only an owner can approve a report (aprobar_informe checks es_dueno_de_alguna).
-    const estado: EstadoDelResumen = { ...vacio(), informes: duenos.has(userId) ? informes : 0, lineas: [] }
+    // Only an owner can approve a report or an idea (both RPCs check es_dueno_de_alguna).
+    const esDueno = duenos.has(userId)
+    const estado: EstadoDelResumen = {
+      ...vacio(),
+      informes: esDueno ? informes : 0,
+      ideas: esDueno ? ideas : 0,
+      lineas: [],
+    }
     const suyas: LineaPendiente[] = []
     for (const marcaId of marcas) {
       const e = porMarca.get(marcaId)
