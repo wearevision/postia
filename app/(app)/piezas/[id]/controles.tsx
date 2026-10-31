@@ -44,8 +44,9 @@ export function Desprogramar({
         onClick={() => ejecutar(() => desprogramar(piezaId))}
         className={BOTON}
       >
-        Desprogramar
+        Deshacer firma
       </button>
+      <p className="text-sm text-apagado">Puedes deshacer la firma hasta que salga.</p>
       <Alerta error={error} />
     </div>
   )

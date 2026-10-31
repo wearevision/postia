@@ -1,6 +1,6 @@
 "use client"
 
-import { Lock } from "lucide-react"
+import { Loader2, Lock } from "lucide-react"
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
@@ -42,6 +42,7 @@ export function FirmaDePieza({
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
+  const [cual, setCual] = useState<"fecha" | "reserva">("fecha")
   const lectura = useLectura()
   const bloqueada = pendiente || !lectura.puedeFirmar
   const instante = instanteDesdeValorLocal(fecha)
@@ -50,6 +51,7 @@ export function FirmaDePieza({
     evento.preventDefault()
     if (!instante) return setError("Elige la fecha y la hora.")
     setError(null)
+    setCual("fecha")
     iniciar(async () => {
       const resultado = await firmar({ piezaId, huella, programadaPara: instante, abiertaEn })
       if (!resultado.ok) setError(resultado.error)
@@ -58,6 +60,7 @@ export function FirmaDePieza({
 
   function paraLaReserva() {
     setError(null)
+    setCual("reserva")
     iniciar(async () => {
       const resultado = await firmarParaReserva({ piezaId, huella, abiertaEn })
       if (!resultado.ok) setError(resultado.error)
@@ -95,28 +98,48 @@ export function FirmaDePieza({
       <button
         type="submit"
         disabled={bloqueada}
+        aria-busy={pendiente && cual === "fecha"}
         aria-describedby={lectura.motivo ? "motivo-de-lectura" : undefined}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-control disabled:bg-borde disabled:text-foreground disabled:shadow-hundido"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-control disabled:bg-borde disabled:text-foreground disabled:shadow-hundido"
       >
-        {ruta === "a_mano" ? "Firmar: te aviso a la hora para publicarla a mano" : "Firmar y programar"}
+        {pendiente && cual === "fecha" ? (
+          <Ocupado />
+        ) : ruta === "a_mano" ? (
+          "Firmar: te aviso a la hora para publicarla a mano"
+        ) : (
+          "Firmar y programar"
+        )}
       </button>
       <button
         type="button"
         disabled={bloqueada}
         onClick={paraLaReserva}
+        aria-busy={pendiente && cual === "reserva"}
         aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
-        className="min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:cursor-not-allowed disabled:border-dashed disabled:border-control disabled:bg-borde disabled:shadow-hundido"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-borde px-4 font-medium disabled:cursor-not-allowed disabled:border-dashed disabled:border-control disabled:bg-borde disabled:shadow-hundido"
       >
-        Firmar para la reserva
+        {pendiente && cual === "reserva" ? <Ocupado /> : "Firmar para la reserva"}
       </button>
       <p id="explicacion-de-reserva" className="text-sm text-apagado">
         {explicacionDeReserva(ruta, cuenta)}
       </p>
+      <output aria-live="polite" className="sr-only">
+        {pendiente ? "Firmando…" : ""}
+      </output>
       {error && (
         <p role="alert" className="text-sm text-peligro">
           {error}
         </p>
       )}
     </form>
+  )
+}
+
+function Ocupado() {
+  return (
+    <>
+      <Loader2 aria-hidden="true" strokeWidth={1.75} className="size-4 animate-spin motion-reduce:animate-none" />
+      Firmando…
+    </>
   )
 }

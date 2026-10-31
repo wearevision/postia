@@ -31,6 +31,7 @@ import {
 } from "./acciones"
 import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
+import { FirmaConfirmada } from "./firmada"
 import { LecturaDePieza } from "./lectura"
 import { PilarDePieza } from "./pilar"
 import { PlanDePieza } from "./plan"
@@ -253,6 +254,7 @@ export default async function Pieza({
           reescribiendo={redaccion?.reescribiendo ?? false}
         />
       )}
+      {(estado === "programada" || estado === "en_reserva") && <FirmaConfirmada huella={version.huella} />}
       {estado === "en_reserva" && (
         <div className="space-y-3">
           <p>{lineaEnReserva(cuenta.ruta, cuenta.nombre)}</p>

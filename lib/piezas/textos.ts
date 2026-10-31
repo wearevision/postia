@@ -13,3 +13,8 @@ export function explicacionDeReserva(ruta: Ruta, cuenta: string): string {
       : "la publica sin volver a preguntarte"
   return `Sin fecha. Cuando a ${cuenta} le falte una pieza firmada, la app le pone fecha y ${resto}.`
 }
+
+/** The first twelve hex digits of a fingerprint in three groups of four: enough to tell versions apart on screen. */
+export function huellaCorta(huella: string): string {
+  return (huella.slice(0, 12).match(/.{1,4}/g) ?? []).join("·")
+}
