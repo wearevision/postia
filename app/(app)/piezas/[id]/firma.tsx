@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2, Lock } from "lucide-react"
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
@@ -25,7 +25,15 @@ interface Props {
   firmarParaReserva: (entrada: { piezaId: string; huella: string; abiertaEn: string }) => Promise<Resultado>
   /** A rewrite is open: signing now keeps this version and Claude's is dropped as obsolete. */
   reescribiendo?: boolean
+  /** Pause between automatic attempts after the connection drops, in milliseconds. */
+  esperaEntreIntentos?: number
 }
+
+/** Attempts made on a dropped connection before the person is asked to decide. */
+const INTENTOS = 3
+const ESPERA_ENTRE_INTENTOS = 3000
+
+const esperar = (milisegundos: number) => new Promise<void>((resolver) => setTimeout(resolver, milisegundos))
 
 export function FirmaDePieza({
   piezaId,
@@ -38,33 +46,61 @@ export function FirmaDePieza({
   firmar,
   firmarParaReserva,
   reescribiendo = false,
+  esperaEntreIntentos = ESPERA_ENTRE_INTENTOS,
 }: Props) {
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
   const [cual, setCual] = useState<"fecha" | "reserva">("fecha")
+  const [intento, setIntento] = useState(1)
+  const [sinRed, setSinRed] = useState(false)
+  const avisoDeRed = useRef<HTMLDivElement>(null)
+  const campoDeFecha = useRef<HTMLInputElement>(null)
   const lectura = useLectura()
   const bloqueada = pendiente || !lectura.puedeFirmar
   const instante = instanteDesdeValorLocal(fecha)
 
-  function enviar(evento: React.FormEvent) {
-    evento.preventDefault()
-    if (!instante) return setError("Elige la fecha y la hora.")
+  useEffect(() => {
+    if (sinRed) avisoDeRed.current?.focus()
+  }, [sinRed])
+
+  // A rejected call means the answer never arrived (the server answers refusals as a value), so only that is retried.
+  async function conReintentos(accion: () => Promise<Resultado>): Promise<Resultado | null> {
+    for (let n = 1; n <= INTENTOS; n++) {
+      setIntento(n)
+      try {
+        return await accion()
+      } catch {
+        if (n < INTENTOS) await esperar(esperaEntreIntentos)
+      }
+    }
+    return null
+  }
+
+  function lanzar(cualDeLas: "fecha" | "reserva") {
+    if (cualDeLas === "fecha" && !instante) return setError("Elige la fecha y la hora.")
     setError(null)
-    setCual("fecha")
+    setSinRed(false)
+    setCual(cualDeLas)
     iniciar(async () => {
-      const resultado = await firmar({ piezaId, huella, programadaPara: instante, abiertaEn })
-      if (!resultado.ok) setError(resultado.error)
+      const resultado = await conReintentos(() =>
+        cualDeLas === "fecha" && instante
+          ? firmar({ piezaId, huella, programadaPara: instante, abiertaEn })
+          : firmarParaReserva({ piezaId, huella, abiertaEn }),
+      )
+      if (resultado === null) setSinRed(true)
+      else if (!resultado.ok) setError(resultado.error)
     })
   }
 
-  function paraLaReserva() {
-    setError(null)
-    setCual("reserva")
-    iniciar(async () => {
-      const resultado = await firmarParaReserva({ piezaId, huella, abiertaEn })
-      if (!resultado.ok) setError(resultado.error)
-    })
+  function enviar(evento: React.FormEvent) {
+    evento.preventDefault()
+    lanzar("fecha")
+  }
+
+  function volverALaPieza() {
+    setSinRed(false)
+    campoDeFecha.current?.focus()
   }
 
   return (
@@ -74,6 +110,7 @@ export function FirmaDePieza({
       <label className="block space-y-1">
         <span className="text-sm">Fecha y hora de publicación</span>
         <input
+          ref={campoDeFecha}
           type="datetime-local"
           value={fecha}
           onChange={(evento) => setFecha(evento.target.value)}
@@ -113,7 +150,7 @@ export function FirmaDePieza({
       <button
         type="button"
         disabled={bloqueada}
-        onClick={paraLaReserva}
+        onClick={() => lanzar("reserva")}
         aria-busy={pendiente && cual === "reserva"}
         aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
         className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-borde px-4 font-medium disabled:cursor-not-allowed disabled:border-dashed disabled:border-control disabled:bg-borde disabled:shadow-hundido"
@@ -124,12 +161,39 @@ export function FirmaDePieza({
         {explicacionDeReserva(ruta, cuenta)}
       </p>
       <output aria-live="polite" className="sr-only">
-        {pendiente ? "Firmando…" : ""}
+        {pendiente ? (intento > 1 ? `Reintentando solo · ${intento} de ${INTENTOS}` : "Firmando…") : ""}
       </output>
       {error && (
         <p role="alert" className="text-sm text-peligro">
           {error}
         </p>
+      )}
+      {sinRed && (
+        <div ref={avisoDeRed} role="alert" tabIndex={-1} className="space-y-3 rounded-lg border border-control p-3">
+          <p className="font-medium">No se pudo guardar tu firma.</p>
+          <p className="text-sm">
+            Todavía no se publicó nada y tu texto está intacto.
+            {cual === "fecha" &&
+              instante &&
+              ` Si la conexión no vuelve antes del ${fechaLarga(instante)}, la pieza no sale y vuelve a pedirte la firma.`}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => lanzar(cual)}
+              className="min-h-11 flex-1 rounded-lg bg-primario px-4 font-medium text-primario-texto"
+            >
+              Reintentar ahora
+            </button>
+            <button
+              type="button"
+              onClick={volverALaPieza}
+              className="min-h-11 flex-1 rounded-lg border border-borde px-4 font-medium"
+            >
+              Volver a la pieza
+            </button>
+          </div>
+        </div>
       )}
     </form>
   )
