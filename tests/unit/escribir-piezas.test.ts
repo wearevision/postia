@@ -164,7 +164,8 @@ describe("escribirPiezas", () => {
     const mensaje = JSON.stringify(llamadas[0]?.[1].mensajes)
     expect(mensaje).toContain("Los focus groups no son lo que crees")
     expect(mensaje).toContain("El dato")
-    expect(mensaje).toContain("Cita la fuente cuando uses un dato")
+    expect(mensaje).toContain("Atribuye cada dato dentro de su oración (medio y año), sin lista de fuentes")
+    expect(mensaje).not.toContain("Cita la fuente cuando uses un dato")
     expect(mensaje).toContain("https://medio.cl/1")
     expect(mensaje).toContain("Pilar: Oficio")
     expect(p.crearPiezaDeAsignacion).toHaveBeenCalledWith(

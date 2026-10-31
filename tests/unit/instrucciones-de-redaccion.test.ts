@@ -127,6 +127,31 @@ describe("mensajes", () => {
     expect(revision).toContain("a<\\/texto>b")
   })
 
+  test("asks for sources attributed inside the sentence, journalism style, never as a list or a link", () => {
+    const sistema = instruccionesDeEscritura(CONTEXTO)
+    for (const fragmento of [
+      "dentro de la misma oración",
+      "el medio y el año",
+      "Una revisión de 2022 en Social Science & Medicine encontró que",
+      "fuente secundaria",
+      "nunca una sección ni una lista de fuentes",
+      "nunca «lámina N»",
+      "nunca enlaces a estudios",
+      "Las citas textuales son cortas",
+    ])
+      expect(sistema).toContain(fragmento)
+    expect(sistema).not.toContain("Todo dato lleva su fuente en el texto")
+  })
+
+  test("the review flags a fact without attribution in its sentence and sources as a list", () => {
+    const sistema = instruccionesDeRevision(CONTEXTO)
+    expect(sistema).toContain("dato_sin_fuente: una cifra o un hecho sin atribución en su oración")
+    expect(sistema).toContain("Un dato atribuido en la oración (medio y año) está bien")
+    expect(sistema).toContain("«fuentes como lista»")
+    expect(sistema).toContain("«lámina N»")
+    expect(mensajeDeRevision("Texto", null)).toContain("atribución dentro de su oración")
+  })
+
   test("the review instructions name every finding type", () => {
     const sistema = instruccionesDeRevision(CONTEXTO)
     for (const tipo of ["cliente", "cita", "dato_sin_fuente", "atribucion", "voz", "otro"])

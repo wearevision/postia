@@ -61,30 +61,40 @@ const campo = (nombre: string, limite: Limite) => `${nombre} (${largo(limite)})`
 
 /** Fields and limits per slide type, as the JSON the schema in lib/plantillas/laminas.ts reads. */
 function camposDeLaminas(): string {
-  const { portada, punto, lista, comparacion, cifra, barras, frase, cierre } = LIMITES
+  const { portada, punto, lista, comparacion, cifra, barras, frase, cierre, fuente } = LIMITES
   const c = comparacion
+  const conFuente = `fuente (opcional; medio y año, como «Social Science & Medicine, 2022»; sin enlaces; ${largo(fuente)})`
   const lineas: Record<TipoDeLamina, string> = {
     portada: [campo("titulo", portada.titulo), campo("bajada", portada.bajada)].join("; "),
     punto: [
       `numero (${largo(punto.numero)}, como «01», o vacío)`,
       campo("titulo", punto.titulo),
       campo("cuerpo", punto.cuerpo),
+      conFuente,
     ].join("; "),
     lista: [
       campo("titulo", lista.titulo),
       `items: ${cuantos(lista.items)} textos, cada uno ${largo(lista.items)}`,
+      conFuente,
     ].join("; "),
     comparacion: [
       campo("titulo", c.titulo),
       `columnas: ${cuantos(c.columnas)} encabezados, cada uno ${largo(c.columnas)}`,
       `filas: ${cuantos(c.filas)}, cada una con ${cuantos(c.celdas)} celdas (el criterio y un valor por columna), cada celda ${largo(c.celdas)}`,
+      conFuente,
     ].join("; "),
-    cifra: [campo("cifra", cifra.cifra), campo("etiqueta", cifra.etiqueta), campo("cuerpo", cifra.cuerpo)].join("; "),
+    cifra: [
+      campo("cifra", cifra.cifra),
+      campo("etiqueta", cifra.etiqueta),
+      campo("cuerpo", cifra.cuerpo),
+      conFuente,
+    ].join("; "),
     barras: [
       campo("titulo", barras.titulo),
       `barras: ${cuantos(barras.barras)}, cada una con ${campo("etiqueta", barras.etiqueta)} y valor (un porcentaje entre 0 y 100, como «40,0 %»)`,
+      conFuente,
     ].join("; "),
-    frase: [campo("titulo", frase.titulo), campo("nota", frase.nota)].join("; "),
+    frase: [campo("titulo", frase.titulo), campo("nota", frase.nota), conFuente].join("; "),
     cierre: [
       campo("titulo", cierre.titulo),
       campo("cuerpo", cierre.cuerpo),
@@ -216,7 +226,7 @@ export function sistemaDeCarrusel(c: ContextoDeRedaccion, temas: readonly IdDeTe
     [
       "# Lo que respondes",
       "- texto: el texto del post que acompaña al carrusel. Tiene su propio papel: invita a abrir el carrusel, no lo repite. Los enlaces van dentro del texto.",
-      "- Todo dato de las láminas cita su fuente en el texto del post.",
+      "- Cada dato va atribuido: la lámina que lo muestra lleva su fuente en el campo fuente (medio y año), y el texto del post atribuye los datos clave dentro de la oración, en breve, sin lista de fuentes, sin «lámina N» y sin enlaces a estudios.",
       `- titulo: el título del documento, hasta ${LARGO_DEL_TITULO_DEL_DOCUMENTO} caracteres.`,
       "- tema: uno de los temas permitidos, por su id.",
       `- antetitulo: la línea sobre el título de cada lámina, ${largo(LIMITES.antetitulo)}.`,
@@ -241,7 +251,7 @@ export function mensajeDeCarrusel(
   return [
     "La idea aprobada, con su esqueleto:",
     `<idea>\n${comoDatos([`Gancho: ${idea.gancho}`, `Resumen: ${idea.resumen}`, "Esqueleto:", ...idea.esqueleto.map(paso)].join("\n"))}\n</idea>`,
-    "Sus hallazgos (el material; cita la fuente cuando uses un dato):",
+    "Sus hallazgos (el material, con medio, fecha y enlace; atribuye el medio y el año cuando uses un dato; los enlaces a estudios no van en el post):",
     `<hallazgos>\n${comoDatos(fuentes.join("\n"))}\n</hallazgos>`,
     "Escribe el carrusel.",
     AVISO_DE_DATOS,
