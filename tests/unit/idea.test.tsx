@@ -177,6 +177,15 @@ describe("TarjetaDeIdea", () => {
     await waitFor(() => expect(screen.queryByLabelText("Gancho")).toBeNull())
   })
 
+  test("while editing, only the form shows: the detail is not repeated above it", () => {
+    tarjeta(PROPUESTA)
+    verDetalle()
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }))
+    expect(screen.getByLabelText("Gancho")).toBeVisible()
+    expect(screen.queryByText("Tres mitos sobre los focus groups.")).toBeNull()
+    expect(screen.queryByRole("list", { name: "Esqueleto" })).toBeNull()
+  })
+
   test("an error shows in an alert and the buttons are disabled while pending", async () => {
     // The test holds the action's promise and settles it itself: nothing depends on how fast the suite runs.
     const descarte = Promise.withResolvers<{ ok: false; error: string }>()

@@ -287,13 +287,7 @@ function Revision({
   const opciones = opcionesDeCuenta(idea, cuentas)
   const nombres = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.nombre)
 
-  if (editando)
-    return (
-      <>
-        {detalle}
-        <Edicion idea={idea} editar={a.editar} alTerminar={() => setEditando(false)} />
-      </>
-    )
+  if (editando) return <Edicion idea={idea} editar={a.editar} alTerminar={() => setEditando(false)} />
 
   function aprobar() {
     const ids = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.id)
