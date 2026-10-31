@@ -34,6 +34,8 @@ create table public.pedidos_de_diseno (
   diseno jsonb not null check (
     jsonb_typeof(diseno) = 'object' and jsonb_typeof(diseno -> 'laminas') = 'array'
     and jsonb_array_length(diseno -> 'laminas') between 3 and 10
+    -- Ten slides at their word limits are under 8 KB; the cap keeps a crafted call from storing megabytes.
+    and octet_length(diseno::text) <= 32768
   ),
   estado text not null default 'pendiente' check (estado in ('pendiente', 'trabajando', 'hecho', 'fallo', 'obsoleto')),
   motivo text check (length(motivo) <= 500),

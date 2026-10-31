@@ -54,6 +54,12 @@ describe("design requests", () => {
     expect(otra.error?.message).toBe("tema_de_otra_marca")
   })
 
+  test("a design far larger than any 10 slides is refused by the table itself", async () => {
+    const enorme = { ...diseno, relleno: "x".repeat(70_000) }
+    const { error } = await dueno.db.rpc("pedir_diseno", { ...pedido(cuenta), p_diseno: enorme })
+    expect(error?.code).toBe("23514")
+  })
+
   test("the worker takes it, saves a carousel piece with its slides and a proposed date", async () => {
     const { data: id } = await dueno.db.rpc("pedir_diseno", pedido(cuenta))
     await tomarSolo(id as string)
