@@ -2,9 +2,10 @@
 import { describe, expect, test, vi } from "vitest"
 import { Falla } from "@/lib/dominio/falla"
 import type { Pedir, RespuestaDeClaude } from "@/lib/ia/claude"
+import { TIPOS_DE_LAMINA } from "@/lib/plantillas/laminas"
 import type { IdDeTema } from "@/lib/plantillas/temas"
 import type { ContextoDeRedaccion } from "@/lib/redaccion/instrucciones"
-import { escribirCarrusel } from "@/lib/series/carrusel"
+import { escribirCarrusel, FORMATO_DE_CARRUSEL } from "@/lib/series/carrusel"
 
 const CONTEXTO: ContextoDeRedaccion = {
   marca: { id: "marca-wav", nombre: "WAV", voz: "nosotros" },
@@ -153,5 +154,39 @@ describe("escribirCarrusel", () => {
     )
     expect(rechazo).toHaveBeenCalledTimes(1)
     expect(cortada).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("FORMATO_DE_CARRUSEL", () => {
+  type Nodo = { [clave: string]: unknown }
+  const esquema = FORMATO_DE_CARRUSEL.schema as Nodo
+
+  function refs(nodo: unknown): string[] {
+    if (Array.isArray(nodo)) return nodo.flatMap(refs)
+    if (nodo === null || typeof nodo !== "object") return []
+    return Object.entries(nodo).flatMap(([clave, valor]) =>
+      clave === "$ref" && typeof valor === "string" ? [valor] : refs(valor),
+    )
+  }
+
+  test("each slide is one of 8 variants whose «tipo» the API itself constrains to a single slide type", () => {
+    const laminas = (esquema.properties as Record<string, Nodo>).laminas
+    const variantes = (laminas.items as Nodo).anyOf as Nodo[]
+    expect(variantes).toHaveLength(8)
+    const tipos = variantes.map((v) => (v.properties as Record<string, Nodo>).tipo)
+    expect(tipos.map((t) => ({ type: t.type, const: t.const }))).toEqual(
+      TIPOS_DE_LAMINA.map((tipo) => ({ type: "string", const: tipo })),
+    )
+    for (const v of variantes) {
+      expect(v.additionalProperties).toBe(false)
+      expect(v.required).toContain("tipo")
+    }
+  })
+
+  test("every $ref points at a definition the schema carries", () => {
+    const defs = Object.keys((esquema.$defs as Nodo | undefined) ?? {})
+    const usados = refs(esquema)
+    expect(usados.length).toBeGreaterThan(0)
+    for (const ref of usados) expect(defs.map((d) => `#/$defs/${d}`)).toContain(ref)
   })
 })

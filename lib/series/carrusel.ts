@@ -27,7 +27,28 @@ const Escrito = z.object({
   laminas: z.array(z.unknown()),
 })
 type Escrito = z.infer<typeof Escrito>
-const FORMATO = zodOutputFormat(Escrito.extend({ laminas: z.array(Lamina) }))
+
+// The SDK (1.3) moves every keyword it does not whitelist into the description, `const` included, so each slide's
+// «tipo» reached the API as a free string. The API does support `const` (structured outputs docs): put it back, so
+// the slide type is constrained by the API and not only checked by revisarCarrusel after a paid answer.
+const SOLO_CONST = /^\{const: ("(?:[^"\\]|\\.)*")\}$/
+
+function conConst(nodo: unknown): unknown {
+  if (Array.isArray(nodo)) return nodo.map(conConst)
+  if (nodo === null || typeof nodo !== "object") return nodo
+  const copia: Record<string, unknown> = {}
+  for (const [clave, valor] of Object.entries(nodo)) copia[clave] = conConst(valor)
+  const constante = typeof copia.description === "string" ? SOLO_CONST.exec(copia.description)?.[1] : undefined
+  if (constante === undefined) return copia
+  const { description: _, ...resto } = copia
+  return { ...resto, const: JSON.parse(constante) }
+}
+
+const formatoDelSdk = zodOutputFormat(Escrito.extend({ laminas: z.array(Lamina) }))
+export const FORMATO_DE_CARRUSEL: typeof formatoDelSdk = {
+  ...formatoDelSdk,
+  schema: conConst(formatoDelSdk.schema) as typeof formatoDelSdk.schema,
+}
 
 export interface CarruselEscrito {
   texto: string
@@ -70,7 +91,7 @@ export async function escribirCarrusel(
   const primera = leer(
     await pedir(
       { clave: e.clave, paso: "carrusel", marcaId: c.marca.id },
-      { ...PEDIDO, sistema, mensajes: [{ role: "user", content: encargo }], formato: FORMATO },
+      { ...PEDIDO, sistema, mensajes: [{ role: "user", content: encargo }], formato: FORMATO_DE_CARRUSEL },
     ),
     Escrito,
   )
@@ -92,7 +113,7 @@ export async function escribirCarrusel(
               ],
             },
           ],
-          formato: FORMATO,
+          formato: FORMATO_DE_CARRUSEL,
         },
       ),
       Escrito,
