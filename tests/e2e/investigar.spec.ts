@@ -29,11 +29,14 @@ test("an owner asks for research, and approves its report after discarding a fin
   await entrar(page, request, correo)
   await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Investigar" }).click()
   await expect(page.getByRole("heading", { name: "Investigar" })).toBeVisible()
+  // The form sits behind «Nueva investigación» unless the list is empty.
+  const nueva = page.getByRole("button", { name: "Nueva investigación" })
+  if (await nueva.isVisible()) await nueva.click()
   await expect(page.getByText("Cada investigación busca en la web y cuesta cerca de US$1.")).toBeVisible()
   await page.getByLabel("¿Qué quieres investigar?").fill(tema)
   await page.getByRole("button", { name: "Investigar", exact: true }).click()
   const lista = page.locator("section", { has: page.getByRole("heading", { name: "Investigaciones" }) })
-  const item = lista.getByRole("link", { name: new RegExp(tema) })
+  const item = page.getByRole("link", { name: new RegExp(tema) })
   await expect(item).toContainText("En cola")
   await expect(lista.getByText("Se está investigando. Esta página se actualiza sola.")).toBeVisible()
 
@@ -74,7 +77,9 @@ test("an owner asks for research, and approves its report after discarding a fin
   if (fin.error) throw new Error(`No pude terminar el trabajo: ${fin.error.message}`)
 
   await page.reload()
-  await expect(item).toContainText("Informe listo")
+  // A report waiting for approval leads the page, above the form and the list.
+  const porAprobar = page.locator("section", { has: page.getByRole("heading", { name: "Por aprobar" }) })
+  await expect(porAprobar.getByRole("link", { name: new RegExp(tema) })).toContainText("Informe listo")
   await expect(item).toContainText("2 hallazgos")
   await item.click()
   await expect(page.getByRole("heading", { name: tema })).toBeVisible()
