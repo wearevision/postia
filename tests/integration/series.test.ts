@@ -255,6 +255,27 @@ describe("the series job", () => {
     expect(despues?.estado).toBe("aprobada")
   })
 
+  test("aprobar_informe queues no series job for a watch report, as pedir_serie refuses one", async () => {
+    // A watch report is approved on close; one left waiting is approved by hand, and still has no series of its own.
+    const dia = new Date(Date.UTC(1990, 0, 1) + Math.floor(Math.random() * 3000) * 86_400_000)
+    const { data: vigilancia, error } = await admin()
+      .from("investigaciones")
+      .insert({
+        origen: "vigilancia",
+        tema: "Vigilancia",
+        estado: "informe_por_aprobar",
+        dia: dia.toISOString().slice(0, 10),
+      })
+      .select("id")
+      .single()
+    if (error) throw error
+    expect((await dueno.db.rpc("aprobar_informe", { p_investigacion: vigilancia.id })).error).toBeNull()
+    expect(await trabajosDe(vigilancia.id)).toEqual([])
+    expect((await dueno.db.rpc("pedir_serie", { p_investigacion: vigilancia.id })).error?.message).toBe(
+      "serie_no_disponible",
+    )
+  })
+
   test("pedir_serie queues one for an approved report without ideas or an open job, owners only", async () => {
     const { id, hallazgos } = await informeAprobado()
     const abierto = await dueno.db.rpc("pedir_serie", { p_investigacion: id })

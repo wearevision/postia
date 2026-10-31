@@ -150,19 +150,25 @@ $$;
 
 -- People's actions --------------------------------------------------------------------------------------------
 
--- 4e's body plus the series job: approving a report is what asks for its series.
+-- 4e's body plus the series job: approving a commissioned report is what asks for its series (only those have one,
+-- as in pedir_serie).
 create or replace function public.aprobar_informe(p_investigacion uuid) returns void
 language plpgsql security definer set search_path = '' as $$
+declare
+  v_origen text;
 begin
   if not public.es_dueno_de_alguna() then
     raise exception using errcode = '42501', message = 'solo_duenos_investigan';
   end if;
   update public.investigaciones set estado = 'aprobada'
-   where id = p_investigacion and estado = 'informe_por_aprobar';
+   where id = p_investigacion and estado = 'informe_por_aprobar'
+  returning origen into v_origen;
   if not found then
     raise exception using errcode = '22023', message = 'informe_no_esta_por_aprobar';
   end if;
-  insert into public.trabajos_de_investigacion (investigacion_id, tipo) values (p_investigacion, 'serie');
+  if v_origen = 'encargo' then
+    insert into public.trabajos_de_investigacion (investigacion_id, tipo) values (p_investigacion, 'serie');
+  end if;
 end $$;
 
 -- 4e's body; only research jobs count as «en curso»: a series job of the same research is not an extension.
