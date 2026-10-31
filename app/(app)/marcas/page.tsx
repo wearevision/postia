@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { RUTA_DE_AJUSTES } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
+import { agregarCuentaAccion } from "./acciones"
 import { FormularioCuenta } from "./formulario-cuenta"
 import { FormularioMarca } from "./formulario-marca"
 
@@ -21,7 +22,7 @@ export default async function Marcas() {
             <h2 className="text-lg font-medium">{marca.nombre}</h2>
             <p className="text-sm text-apagado">Habla como «{marca.voz}»</p>
           </header>
-          <FormularioCuenta marcaId={marca.id} />
+          <FormularioCuenta marcaId={marca.id} agregar={agregarCuentaAccion} />
         </article>
       ))}
       <FormularioMarca />
