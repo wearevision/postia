@@ -28,12 +28,20 @@ export function useAccionDiferida(espera = ESPERA_PARA_DESHACER_MS) {
     [cancelar, espera],
   )
 
-  useEffect(
-    () => () => {
+  // An iPhone PWA freezes JS in the background without unmounting: the expired timer would fire on return and
+  // approve with no countdown on screen, so leaving the app cancels.
+  useEffect(() => {
+    const alSalir = () => {
+      if (document.visibilityState === "hidden") cancelar()
+    }
+    document.addEventListener("visibilitychange", alSalir)
+    window.addEventListener("pagehide", cancelar)
+    return () => {
+      document.removeEventListener("visibilitychange", alSalir)
+      window.removeEventListener("pagehide", cancelar)
       if (temporizador.current) clearTimeout(temporizador.current)
-    },
-    [],
-  )
+    }
+  }, [cancelar])
 
   return { esperando, programar, cancelar }
 }

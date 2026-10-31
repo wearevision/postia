@@ -361,6 +361,52 @@ describe("approving one idea", () => {
     expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
   })
 
+  test("sending the app to the background cancels it, so coming back never approves without the 10 s on screen", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    const original = Object.getOwnPropertyDescriptor(Document.prototype, "visibilityState")
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" })
+    try {
+      fireEvent(document, new Event("visibilitychange"))
+      await act(() => vi.advanceTimersByTimeAsync(20_000))
+    } finally {
+      Reflect.deleteProperty(document, "visibilityState")
+      if (original) Object.defineProperty(Document.prototype, "visibilityState", original)
+    }
+    expect(a.aprobar).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
+  })
+
+  test("becoming visible again does not cancel a countdown", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    fireEvent(document, new Event("visibilitychange"))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(a.aprobar).toHaveBeenCalledOnce()
+  })
+
+  test("pagehide cancels it too", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    fireEvent(window, new Event("pagehide"))
+    await act(() => vi.advanceTimersByTimeAsync(20_000))
+    expect(a.aprobar).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
+  })
+
+  test("removes its page listeners on unmount", () => {
+    const quitarDocumento = vi.spyOn(document, "removeEventListener")
+    const quitarVentana = vi.spyOn(window, "removeEventListener")
+    const { unmount } = render(<TarjetaDeIdea idea={PROPUESTA} cuentas={[PERFIL, PAGINA]} {...acciones()} />)
+    unmount()
+    expect(quitarDocumento).toHaveBeenCalledWith("visibilitychange", expect.any(Function))
+    expect(quitarVentana).toHaveBeenCalledWith("pagehide", expect.any(Function))
+    vi.restoreAllMocks()
+  })
+
   test("leaving the page before the countdown ends approves nothing", async () => {
     vi.useFakeTimers()
     const a = acciones()
