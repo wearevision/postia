@@ -2,7 +2,7 @@
 import { describe, expect, test, vi } from "vitest"
 import { Falla } from "@/lib/dominio/falla"
 import type { Pedir, RespuestaDeClaude } from "@/lib/ia/claude"
-import { TIPOS_DE_LAMINA } from "@/lib/plantillas/laminas"
+import { LIMITES, TIPOS_DE_LAMINA } from "@/lib/plantillas/laminas"
 import type { IdDeTema } from "@/lib/plantillas/temas"
 import type { ContextoDeRedaccion } from "@/lib/redaccion/instrucciones"
 import { escribirCarrusel, FORMATO_DE_CARRUSEL } from "@/lib/series/carrusel"
@@ -181,6 +181,27 @@ describe("FORMATO_DE_CARRUSEL", () => {
       expect(v.additionalProperties).toBe(false)
       expect(v.required).toContain("tipo")
     }
+  })
+
+  test("data slides accept an optional «fuente» string of up to LIMITES.fuente characters; cover and closing do not", () => {
+    const laminas = (esquema.properties as Record<string, Nodo>).laminas
+    const variantes = (laminas.items as Nodo).anyOf as Nodo[]
+    const defs = (esquema.$defs as Record<string, Nodo> | undefined) ?? {}
+    const resolver = (n: Nodo): Nodo =>
+      typeof n.$ref === "string" ? (defs[n.$ref.replace("#/$defs/", "")] as Nodo) : n
+    variantes.forEach((v, i) => {
+      const tipo = TIPOS_DE_LAMINA[i]
+      const fuente = (v.properties as Record<string, Nodo>).fuente
+      if (tipo === "portada" || tipo === "cierre") {
+        expect(fuente, tipo).toBeUndefined()
+        return
+      }
+      expect(fuente, tipo).toBeDefined()
+      expect(v.required, tipo).not.toContain("fuente")
+      const nodo = resolver(fuente as Nodo)
+      expect(nodo.type, tipo).toBe("string")
+      expect(JSON.stringify(nodo), tipo).toContain(`maxLength: ${LIMITES.fuente.caracteres}`)
+    })
   })
 
   test("every $ref points at a definition the schema carries", () => {

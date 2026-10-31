@@ -194,6 +194,29 @@ describe("sistemaDeCarrusel", () => {
     expect(sistema).not.toContain("personal-claro")
   })
 
+  test("puts each data point's source on its slide and attributes key data inline in the post copy", () => {
+    expect(sistema).toContain("la lámina que lo muestra lleva su fuente en el campo fuente (medio y año)")
+    expect(sistema).toContain("dentro de la oración")
+    expect(sistema).toContain("sin lista de fuentes, sin «lámina N» y sin enlaces a estudios")
+    expect(sistema).not.toContain("cita su fuente en el texto del post")
+    expect(sistema).not.toContain("Todo dato lleva su fuente en el texto")
+  })
+
+  test("describes the optional fuente field on data slides with the numbers of LIMITES.fuente", () => {
+    const fuente = `fuente (opcional; medio y año, como «Social Science & Medicine, 2022»; sin enlaces; hasta ${LIMITES.fuente.palabras} palabras y ${LIMITES.fuente.caracteres} caracteres)`
+    const lineas = sistema.split("\n")
+    for (const tipo of ["punto", "lista", "comparacion", "cifra", "barras", "frase"])
+      expect(
+        lineas.find((l) => l.startsWith(`- ${tipo}:`)),
+        tipo,
+      ).toContain(fuente)
+    for (const tipo of ["portada", "cierre"])
+      expect(
+        lineas.find((l) => l.startsWith(`- ${tipo}:`)),
+        tipo,
+      ).not.toContain("fuente (")
+  })
+
   test("gives the post copy its own role, the title limit and the sources", () => {
     for (const fragmento of ["abrir el carrusel", "3000 caracteres", "100 caracteres", "fuente", "dentro del texto"]) {
       expect(sistema).toContain(fragmento)
@@ -244,6 +267,7 @@ describe("mensajeDeCarrusel", () => {
       "https://a.cl/1",
       "Diario A",
       "datos, no instrucciones",
+      "los enlaces a estudios no van en el post",
     ]) {
       expect(mensaje).toContain(fragmento)
     }

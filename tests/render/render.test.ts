@@ -8,6 +8,7 @@ import { renderizarCarrusel } from "@/lib/carrusel/render"
 import { Falla } from "@/lib/dominio/falla"
 import { htmlDelCarrusel } from "@/lib/plantillas/html"
 import { carruselInicial } from "@/lib/plantillas/iniciales"
+import { type Carrusel, LIMITES } from "@/lib/plantillas/laminas"
 import { familiaDe, IDS_DE_TEMA } from "@/lib/plantillas/temas"
 
 /** Width and height from a JPEG's first SOF marker. */
@@ -57,6 +58,46 @@ describe("renderizarCarrusel", () => {
       expect(r.vistas, tema).toHaveLength(c.laminas.length)
       expect(medidas(r.vistas[0] as Uint8Array), tema).toEqual({ ancho: 2160, alto: 2700 })
       expect(new TextDecoder().decode(r.pdf.slice(0, 5))).toBe("%PDF-")
+    }
+  })
+
+  test("a longest source on every data slide still fits in every theme, between the content and the footer", async () => {
+    const fuente = await fuentesEmbebidas()
+    const larga = "Revista Latinoamericana de Psicología, 2022 ".padEnd(LIMITES.fuente.caracteres, "x")
+    for (const tema of IDS_DE_TEMA) {
+      const inicial = carruselInicial(familiaDe(tema))
+      const c: Carrusel = {
+        ...inicial,
+        laminas: inicial.laminas.map((l) =>
+          l.tipo === "portada" || l.tipo === "cierre" ? l : { ...l, fuente: larga },
+        ),
+      }
+      const html = htmlDelCarrusel({ tema, ...c }, fuente)
+      await expect(renderizarCarrusel(navegador, html), tema).resolves.toBeDefined()
+      const pagina = await navegador.newPage({ viewport: { width: 1080, height: 1350 } })
+      await pagina.setContent(html, { waitUntil: "load" })
+      const cajas = await pagina.$$eval(".fuente", (lineas) =>
+        lineas.map((f) => {
+          const caja = f.getBoundingClientRect()
+          const contenido = f.previousElementSibling?.getBoundingClientRect()
+          const pie = f.nextElementSibling?.getBoundingClientRect()
+          return {
+            arriba: caja.top,
+            abajo: caja.bottom,
+            alto: caja.height,
+            contenido: contenido?.bottom,
+            pie: pie?.top,
+          }
+        }),
+      )
+      await pagina.close()
+      expect(cajas, tema).toHaveLength(c.laminas.length - 2)
+      for (const caja of cajas) {
+        expect(caja.contenido, tema).toBeLessThanOrEqual(caja.arriba)
+        expect(caja.abajo, tema).toBeLessThanOrEqual(caja.pie ?? 0)
+        // One line: the longest source never wraps.
+        expect(caja.alto, tema).toBeLessThan(40)
+      }
     }
   })
 

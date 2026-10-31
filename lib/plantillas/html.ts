@@ -48,6 +48,10 @@ function cuerpo(l: Lamina, antetitulo: string, marca: Marca): string {
   }
 }
 
+// Outside .content, so the line sits above the footer whatever the content's height.
+const lineaDeFuente = (l: Lamina) =>
+  "fuente" in l && l.fuente ? `\n  <p class="fuente">Fuente: ${esc(l.fuente)}</p>` : ""
+
 /** The carousel as one HTML page: one .slide section per slide, 1080x1350, in the theme's tokens. Pure. */
 export function htmlDelCarrusel(c: { tema: IdDeTema } & Carrusel, fuente: UrlDeFuente): string {
   const tema = TEMAS[c.tema]
@@ -57,7 +61,7 @@ export function htmlDelCarrusel(c: { tema: IdDeTema } & Carrusel, fuente: UrlDeF
     .map(
       (l, i) => `<section class="slide slide--${MODIFICADOR[l.tipo]}">
   <header class="top">${marca.marca}</header>
-  <div class="content">${cuerpo(l, c.antetitulo, marca)}</div>
+  <div class="content">${cuerpo(l, c.antetitulo, marca)}</div>${lineaDeFuente(l)}
   <footer class="foot"><div class="progress"><div style="width:${((i + 1) / n) * 100}%"></div></div><span class="kick">${i === 0 ? "" : esc(c.antetitulo)}</span><span class="count">${dos(i + 1)} / ${dos(n)}</span></footer>
 </section>`,
     )

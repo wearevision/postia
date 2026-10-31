@@ -44,7 +44,8 @@ export function reglasDeLaCasa(c: ContextoDeRedaccion): string {
     "Nunca precios ni presupuestos.",
     "«+20 años» y «+200 proyectos» son la trayectoria de Federico, no de WAV.",
     "Un caso anterior a agosto de 2025 es trayectoria de Federico; nunca escribas que «WAV hizo» ese caso.",
-    "Todo dato lleva su fuente en el texto. Las citas textuales son cortas, entre comillas y aparecen literalmente en el material; si no están ahí, no las uses.",
+    "Cada dato se atribuye dentro de la misma oración, como en periodismo: quién lo dice o qué tipo de fuente es, el medio y el año («Una revisión de 2022 en Social Science & Medicine encontró que…»). Una fuente secundaria, como el blog de una empresa, se nombra como lo que es en esa oración, sin párrafos de advertencia. Y nunca una sección ni una lista de fuentes, nunca «lámina N», nunca enlaces a estudios: el único enlace es la invitación o el sitio de la marca.",
+    "Las citas textuales son cortas, entre comillas y aparecen literalmente en el material; si no están ahí, no las uses.",
     "No inventes cifras, clientes, casos ni frases de nadie.",
   ]
   if (c.cuenta.tipo === "empresa") reglas.push("En la página de WAV no se nombra a la competencia.")
@@ -75,10 +76,10 @@ export function instruccionesDeRevision(c: ContextoDeRedaccion): string {
       "Dices si la voz calza con la línea y listas los hallazgos, cada uno con el fragmento exacto del texto. Tipos:",
       "- cliente: nombra o alude a un cliente de la lista vetada, aunque sea de forma indirecta.",
       "- cita: una cita que no está en el material o que es demasiado larga.",
-      "- dato_sin_fuente: una cifra o un hecho sin su fuente.",
+      "- dato_sin_fuente: una cifra o un hecho sin atribución en su oración. Un dato atribuido en la oración (medio y año) está bien, aunque no lleve enlace.",
       "- atribucion: la trayectoria de Federico o un caso anterior a agosto de 2025 contado como de WAV.",
       "- voz: algo que no suena a la marca.",
-      "- otro: cualquier otra regla rota.",
+      "- otro: cualquier otra regla rota; también las fuentes juntas en una sección o lista, o las referencias a «lámina N» (anótalo como «fuentes como lista»).",
       "Si no hay hallazgos, la lista va vacía. No inventes problemas.",
     ].join("\n"),
   ].join("\n\n")
@@ -128,7 +129,7 @@ export function mensajeDeRevision(texto: string, material: string | null): strin
     `<texto>\n${comoDatos(texto)}\n</texto>`,
     material
       ? `<material>\n${comoDatos(material)}\n</material>`
-      : "No hubo material: toda cita o cifra necesita fuente en el texto.",
+      : "No hubo material: toda cita o cifra necesita su atribución dentro de su oración.",
     AVISO_DE_DATOS,
   ].join("\n\n")
 }

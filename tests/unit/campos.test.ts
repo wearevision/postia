@@ -38,6 +38,35 @@ describe("editor fields", () => {
     })
   })
 
+  test("data slides offer an optional source line; the cover and the closing do not", () => {
+    for (const tipo of ["punto", "lista", "comparacion", "cifra", "barras", "frase"] as const)
+      expect(CAMPOS[tipo].find((c) => c.clave === "fuente")).toEqual({
+        clave: "fuente",
+        etiqueta: "Fuente (opcional)",
+        forma: "linea",
+        ayuda: "Medio y año, como «Field Methods, 2006».",
+        opcional: true,
+      })
+    for (const tipo of ["portada", "cierre"] as const)
+      expect(CAMPOS[tipo].some((c) => c.clave === "fuente")).toBe(false)
+  })
+
+  test("an empty source is left out of the slide", () => {
+    expect(deBorrador("frase", { titulo: "F", nota: "N", fuente: "  " })).toEqual({
+      tipo: "frase",
+      titulo: "F",
+      nota: "N",
+    })
+    expect(deBorrador("frase", { titulo: "F", nota: "N", fuente: "Field Methods, 2006" })).toMatchObject({
+      fuente: "Field Methods, 2006",
+    })
+  })
+
+  test("a slide with a source survives a round trip through its draft", () => {
+    const l: Lamina = { tipo: "cifra", cifra: "40 %", etiqueta: "E", cuerpo: "C", fuente: "Field Methods, 2006" }
+    expect(deBorrador(l.tipo, aBorrador(l))).toEqual(l)
+  })
+
   test("a slide survives a round trip through its draft", () => {
     const ejemplos: Lamina[] = [
       { tipo: "portada", titulo: "T", bajada: "B" },

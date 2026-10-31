@@ -59,6 +59,36 @@ describe("htmlDelCarrusel", () => {
   })
 })
 
+describe("source line", () => {
+  const conFuente: Carrusel = {
+    antetitulo: "A",
+    laminas: [
+      { tipo: "portada", titulo: "T", bajada: "B" },
+      { tipo: "cifra", cifra: "40 %", etiqueta: "E", cuerpo: "C", fuente: "Social Science & Medicine, 2022" },
+      { tipo: "frase", titulo: "F", nota: "N", fuente: "" },
+      { tipo: "punto", numero: "", titulo: "T", cuerpo: "C" },
+      { tipo: "cierre", titulo: "Fin", cuerpo: "c", enlace: "a.cl" },
+    ],
+  }
+  const html = htmlDelCarrusel({ tema: "oscura", ...conFuente }, url)
+
+  test("a slide with a source prints it escaped, after the content and before the footer", () => {
+    expect(html).toContain(
+      '</div>\n  <p class="fuente">Fuente: Social Science &amp; Medicine, 2022</p>\n  <footer class="foot">',
+    )
+  })
+
+  test("an empty or absent source prints no line", () => {
+    expect(html.match(/class="fuente"/g)).toHaveLength(1)
+  })
+
+  test("the base styles set the source in small mono print in the muted color", () => {
+    expect(html).toMatch(
+      /\.fuente \{ font-family: var\(--mono\); font-size: 18px; letter-spacing: \.08em; color: var\(--mute\); margin: 0 0 18px; \}/,
+    )
+  })
+})
+
 describe("textoDeLasLaminas", () => {
   test("joins every text of every slide, for the client review", () => {
     const t = textoDeLasLaminas(carrusel)
@@ -66,5 +96,31 @@ describe("textoDeLasLaminas", () => {
     expect(t).toContain("Criterio cuatro")
     expect(t).toContain("Tercera etapa")
     expect(t).toContain("wearevision.cl")
+  })
+
+  test("includes each slide's source, which the client review reads too", () => {
+    const conFuente: Carrusel = {
+      antetitulo: "A",
+      laminas: [
+        { tipo: "portada", titulo: "T", bajada: "B" },
+        { tipo: "frase", titulo: "F", nota: "N", fuente: "Field Methods, 2006" },
+        { tipo: "cifra", cifra: "40 %", etiqueta: "E", cuerpo: "C", fuente: "" },
+        { tipo: "cierre", titulo: "Fin", cuerpo: "c", enlace: "a.cl" },
+      ],
+    }
+    expect(textoDeLasLaminas(conFuente).split("\n")).toEqual([
+      "A",
+      "T",
+      "B",
+      "F",
+      "N",
+      "Field Methods, 2006",
+      "40 %",
+      "E",
+      "C",
+      "Fin",
+      "c",
+      "a.cl",
+    ])
   })
 })

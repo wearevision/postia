@@ -106,6 +106,7 @@ body { color: var(--paper); font-family: var(--text); -webkit-font-smoothing: an
 .content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .foot { display: grid; grid-template-columns: 1fr auto; row-gap: 22px; font-family: var(--mono); font-size: 20px;
   letter-spacing: .16em; text-transform: uppercase; color: var(--mute); }
+.fuente { font-family: var(--mono); font-size: 18px; letter-spacing: .08em; color: var(--mute); margin: 0 0 18px; }
 .progress { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--hair); }
 .progress div { height: 100%; border-radius: 2px; background: var(--pink); }
 .kicker { font-family: var(--mono); font-size: 24px; letter-spacing: .2em; text-transform: uppercase; color: var(--pink); margin-bottom: 40px; }
