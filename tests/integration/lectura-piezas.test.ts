@@ -351,6 +351,17 @@ describe("detalle of a carousel built from the templates", () => {
     expect(new Uint8Array(await primera.arrayBuffer())).toEqual(new Uint8Array([0xff, 0xd8, 0xff, 1]))
   })
 
+  test("a carousel whose previews were never uploaded opens without them and keeps its PDF link", async () => {
+    const diseno = carruselInicial("wav")
+    const { db, piezaId } = await carruselGuardado("lec-carrusel-sin-vistas", diseno, 0)
+
+    const d = await detalle(db, piezaId)
+
+    expect(d?.version.diseno).toEqual(diseno)
+    expect(d?.version.vistas).toEqual([])
+    expect(d?.version.archivoUrl).not.toBeNull()
+  })
+
   test("a stored design that no longer parses keeps its raw value for the client review", async () => {
     const viejo = {
       antetitulo: "Serie",

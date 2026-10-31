@@ -253,16 +253,27 @@ function disenoGuardado(piezaId: string, valor: unknown): Carrusel | null {
   return null
 }
 
-/** Previews live next to the PDF: <marca>/<archivo>/01.jpg … (lib/carrusel/armar.ts). */
+/**
+ * Previews live next to the PDF: <marca>/<archivo>/01.jpg … (lib/carrusel/armar.ts). A missing one must not take
+ * gate 1 down: it logs and returns none, and the page falls back to the PDF link.
+ */
 async function vistasDelCarrusel(db: Db, archivoRuta: string, laminas: number): Promise<string[]> {
   const base = archivoRuta.replace(/\.pdf$/, "")
   const rutas = Array.from({ length: laminas }, (_, i) => `${base}/${String(i + 1).padStart(2, "0")}.jpg`)
   const { data, error } = await db.storage.from("piezas").createSignedUrls(rutas, 600)
-  if (error) throw new Error(`No pude preparar las láminas: ${error.message}`, { cause: error })
-  return data.map((f) => {
-    if (f.error || !f.signedUrl) throw new Error(`No pude preparar la lámina ${f.path}: ${f.error ?? "sin enlace"}`)
-    return f.signedUrl
-  })
+  if (error) {
+    console.error("No pude preparar las láminas", archivoRuta, error.message)
+    return []
+  }
+  const urls: string[] = []
+  for (const f of data) {
+    if (f.error || !f.signedUrl) {
+      console.error("No pude preparar una lámina", f.path, f.error ?? "sin enlace")
+      return []
+    }
+    urls.push(f.signedUrl)
+  }
+  return urls
 }
 
 export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<DetalleDePieza | null> {
