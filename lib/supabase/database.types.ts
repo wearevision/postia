@@ -620,6 +620,7 @@ export type Database = {
           id: string
           investigacion_id: string | null
           orden: number
+          origen: string
           pilar_id: string | null
           razon: string
           reemplaza_a: string | null
@@ -638,6 +639,7 @@ export type Database = {
           id?: string
           investigacion_id?: string | null
           orden?: number
+          origen?: string
           pilar_id?: string | null
           razon: string
           reemplaza_a?: string | null
@@ -656,6 +658,7 @@ export type Database = {
           id?: string
           investigacion_id?: string | null
           orden?: number
+          origen?: string
           pilar_id?: string | null
           razon?: string
           reemplaza_a?: string | null
@@ -846,6 +849,39 @@ export type Database = {
             columns: ["marca_id"]
             isOneToOne: false
             referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pares_descartados: {
+        Row: {
+          a: string
+          b: string
+          creado_en: string
+        }
+        Insert: {
+          a: string
+          b: string
+          creado_en?: string
+        }
+        Update: {
+          a?: string
+          b?: string
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pares_descartados_a_fkey"
+            columns: ["a"]
+            isOneToOne: false
+            referencedRelation: "hallazgos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pares_descartados_b_fkey"
+            columns: ["b"]
+            isOneToOne: false
+            referencedRelation: "hallazgos"
             referencedColumns: ["id"]
           },
         ]
@@ -1369,7 +1405,7 @@ export type Database = {
           id: string
           idea_id: string | null
           intentos: number
-          investigacion_id: string
+          investigacion_id: string | null
           motivo: string | null
           terminado_en: string | null
           tipo: string
@@ -1382,7 +1418,7 @@ export type Database = {
           id?: string
           idea_id?: string | null
           intentos?: number
-          investigacion_id: string
+          investigacion_id?: string | null
           motivo?: string | null
           terminado_en?: string | null
           tipo: string
@@ -1395,7 +1431,7 @@ export type Database = {
           id?: string
           idea_id?: string | null
           intentos?: number
-          investigacion_id?: string
+          investigacion_id?: string | null
           motivo?: string | null
           terminado_en?: string | null
           tipo?: string
@@ -1587,6 +1623,10 @@ export type Database = {
         Args: { p_pendiente: string; p_siguiente: string }
         Returns: string
       }
+      cuenta_y_pilar_de_idea: {
+        Args: { p_idea: Json }
+        Returns: Record<string, unknown>
+      }
       descartar_hallazgo: { Args: { p_hallazgo: string }; Returns: undefined }
       descartar_idea: { Args: { p_idea: string }; Returns: undefined }
       descartar_informe: {
@@ -1670,6 +1710,10 @@ export type Database = {
         }
         Returns: Json
       }
+      guardar_ideas_sueltas: {
+        Args: { p_ideas: Json; p_origen: string }
+        Returns: string[]
+      }
       guardar_linea: {
         Args: {
           p_autor: string
@@ -1724,6 +1768,16 @@ export type Database = {
           vector: string
         }[]
       }
+      histograma_de_similitudes: {
+        Args: { p_desde: string; p_maximo: number; p_minimo: number }
+        Returns: {
+          cubeta: number
+          en_la_banda: number
+          en_la_banda_mismo_tema: number
+          mismo_tema: number
+          pares: number
+        }[]
+      }
       ideas_parecidas: {
         Args: { p_excepto?: string[]; p_umbral: number; p_vector: string }
         Returns: {
@@ -1765,6 +1819,22 @@ export type Database = {
         Returns: string
       }
       olvidar_renovacion: { Args: { p_conexion: string }; Returns: undefined }
+      pares_para_cruzar: {
+        Args: {
+          p_desde: string
+          p_investigacion?: string
+          p_limite: number
+          p_maximo: number
+          p_minimo: number
+        }
+        Returns: {
+          a: string
+          b: string
+          similitud: number
+          tema_a: string
+          tema_b: string
+        }[]
+      }
       pedir_ampliacion: {
         Args: { p_angulo: string; p_investigacion: string }
         Returns: string
@@ -2044,7 +2114,7 @@ export type Database = {
           id: string
           idea_id: string | null
           intentos: number
-          investigacion_id: string
+          investigacion_id: string | null
           motivo: string | null
           terminado_en: string | null
           tipo: string

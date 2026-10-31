@@ -105,8 +105,15 @@ async function contexto(p: PuertosDeSerie, investigacionId: string) {
   return { informe, cuentas, noNombrar }
 }
 
-/** Vectors for the ideas (one paid call), then the ones not too close to a kept one or to an earlier idea. */
-async function distintas(p: PuertosDeSerie, clave: string, ideas: IdeaValidada[]): Promise<IdeaAGuardar[]> {
+/**
+ * Vectors for the ideas (one paid call), then the ones not too close to a kept one or to an earlier idea. Shared with
+ * 4g's crosses and Sunday ideas (lib/ideas).
+ */
+export async function distintas(
+  p: Pick<PuertosDeSerie, "embeberIdeas" | "ideasParecidas">,
+  clave: string,
+  ideas: IdeaValidada[],
+): Promise<IdeaAGuardar[]> {
   const vectores = await p.embeberIdeas(
     clave,
     ideas.map((i) => `${i.gancho}\n${i.resumen}`),

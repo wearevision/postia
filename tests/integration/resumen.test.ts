@@ -275,6 +275,8 @@ describe("enviarResumenes", () => {
           cuenta_sugerida: cuenta,
           razon: "Porque sí.",
           vector: `[${Array.from({ length: 1024 }, (_, j) => (j === 900 + i ? 1 : 0)).join(",")}]`,
+          // A loose idea: it needs no research of its own.
+          origen: "domingo",
         })),
       )
     if (error) throw error

@@ -32,13 +32,17 @@ export async function avisosSinEnviar(db: Db, ahora = Date.now()): Promise<Linea
   return data.map((f) => ({ id: f.id, marcaId: f.marca_id, titulo: f.titulo, cuerpo: f.cuerpo, url: f.url }))
 }
 
+/** Ids per request: the id filter travels in the URL, which has a size limit. */
+const IDS_POR_LOTE = 100
+
 export async function marcarEnviados(db: Db, ids: readonly string[], ahora: number): Promise<void> {
-  if (ids.length === 0) return
-  const { error } = await db
-    .from("avisos_pendientes")
-    .update({ enviado_en: new Date(ahora).toISOString() })
-    .in("id", [...ids])
-  if (error) fallo("No pude marcar los avisos como enviados", error)
+  for (let i = 0; i < ids.length; i += IDS_POR_LOTE) {
+    const { error } = await db
+      .from("avisos_pendientes")
+      .update({ enviado_en: new Date(ahora).toISOString() })
+      .in("id", ids.slice(i, i + IDS_POR_LOTE))
+    if (error) fallo("No pude marcar los avisos como enviados", error)
+  }
 }
 
 export async function borrarAvisosEnviados(db: Db, ahora: number): Promise<void> {

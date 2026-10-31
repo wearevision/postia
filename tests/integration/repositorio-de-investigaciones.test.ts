@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import type Anthropic from "@anthropic-ai/sdk"
 import { afterAll, beforeEach, describe, expect, test, vi } from "vitest"
 import type { Pedir } from "@/lib/ia/claude"
+import { repositorioDeIdeas } from "@/lib/ideas/repositorio"
 import { repositorioDeInvestigaciones } from "@/lib/investigacion/repositorio"
 import { atenderInvestigaciones } from "@/lib/investigacion/vigilancia"
 import { repositorioDeSeries } from "@/lib/series/repositorio"
@@ -51,6 +52,7 @@ async function investigacion(id: string) {
 const repo = () => ({
   ...repositorioDeInvestigaciones(admin()),
   ...repositorioDeSeries(admin()),
+  ...repositorioDeIdeas(admin()),
   embeberIdeas: async () => [],
 })
 

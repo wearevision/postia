@@ -55,7 +55,7 @@ function ultimaVersion<V extends { numero: number }>(versiones: V[]): V | undefi
 }
 
 // The states that hold a slot: the plan of an unsigned piece, or the signed date (planeada_para follows it while signed).
-const CON_HORARIO = ["por_aprobar", "programada", "publicando", "publicada"] as const
+export const CON_HORARIO = ["por_aprobar", "programada", "publicando", "publicada"] as const
 // What the calendar shows (a_mano, envio_dudoso and error show here by their old slot but hold none): anything with a slot that is out, may still go out, or needs a person.
 const EN_EL_CALENDARIO = [
   "por_aprobar",
@@ -74,7 +74,7 @@ function extractoDe(versiones: { numero: number; texto: string; titulo: string |
 }
 
 // An idea planned for an account but not yet written (4f) holds its slot like a planned piece.
-const ASIGNACION_ABIERTA = ["por_escribir", "escribiendo"] as const
+export const ASIGNACION_ABIERTA = ["por_escribir", "escribiendo"] as const
 
 /**
  * The slots an account holds from `desde` on: signed and planned pieces, and open assignments (plano: huecosLibres

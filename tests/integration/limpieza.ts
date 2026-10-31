@@ -38,7 +38,21 @@ async function limpiarDatosDePrueba(): Promise<void> {
     if (errorDeExcepciones) throw new Error(`No pude borrar excepciones de prueba: ${errorDeExcepciones.message}`)
     const { error: errorDeTopesPuestos } = await db.from("topes").delete().in("puesto_por", lote)
     if (errorDeTopesPuestos) throw errorDeTopesPuestos
-    // Research requests are not per brand (D17): they hang from their author, with no cascade.
+    // Research requests are not per brand (D17): they hang from their author, with no cascade. A series idea must keep
+    // its research (serie_con_investigacion), so the ideas go first.
+    const { data: investigaciones, error: errorAlLeerInvestigaciones } = await db
+      .from("investigaciones")
+      .select("id")
+      .in("pedida_por", lote)
+    if (errorAlLeerInvestigaciones) throw errorAlLeerInvestigaciones
+    const idsDeInvestigaciones = investigaciones.map((i) => i.id)
+    for (let j = 0; j < idsDeInvestigaciones.length; j += 50) {
+      const { error: errorDeIdeas } = await db
+        .from("ideas")
+        .delete()
+        .in("investigacion_id", idsDeInvestigaciones.slice(j, j + 50))
+      if (errorDeIdeas) throw errorDeIdeas
+    }
     const { error: errorDeInvestigaciones } = await db.from("investigaciones").delete().in("pedida_por", lote)
     if (errorDeInvestigaciones) throw errorDeInvestigaciones
     const { error: errorDeConexiones } = await db.from("conexiones").delete().in("conectada_por", lote)
