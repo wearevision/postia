@@ -19,7 +19,8 @@ alter table public.conexiones
   add constraint conexiones_app_titular_organizacion_key unique nulls not distinct (app, titular, organizacion);
 
 -- A page publishes by API now: which app an account may use is checked when it connects (cuenta_y_app_no_calzan).
-alter table public.cuentas drop constraint api_solo_perfil;
+-- An account «a mano» may keep its connection: that is a pause (cambiar_ruta), and only route 'api' publishes.
+alter table public.cuentas drop constraint api_solo_perfil, drop constraint conexion_solo_api;
 
 -- Not callable by anyone: only the security definer functions below, running as the owner, write secrets.
 create function public.guardar_secreto(p_nombre text, p_valor text) returns void
@@ -140,7 +141,8 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- Marcas «a mano» ↔ «sale sola». Signed pieces keep their content and date: the publisher reads the route when it
--- sends. Going back to «a mano» unlinks the connection, like desconectar_cuenta.
+-- sends. «A mano» is a pause: the connection stays (and keeps renewing), so «sale sola» reuses it without a new login.
+-- Disconnecting is its own action, desconectar_cuenta.
 create function public.cambiar_ruta(p_cuenta uuid, p_ruta text) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -154,14 +156,12 @@ begin
   if p_ruta is null or p_ruta not in ('api', 'a_mano') then
     raise exception using errcode = '22023', message = 'ruta_invalida';
   end if;
-  if p_ruta = 'a_mano' then
-    perform public.desconectar_cuenta(p_cuenta);
-  end if;
   update public.cuentas set ruta = p_ruta where id = p_cuenta;
 end $$;
 
 -- Daily refresh task (service role): page connections that serve at least one account, whose access token runs out
--- before p_hasta and whose refresh token is still valid, with the refresh token decrypted.
+-- before p_hasta and whose refresh token is still valid, with the refresh token decrypted. A paused account («a mano»)
+-- counts: renewing costs nothing and keeps the connection ready for when it goes back to «sale sola».
 create function public.renovaciones_pendientes(p_hasta timestamptz)
 returns table (conexion uuid, renovacion text, expira_en timestamptz, renovacion_expira_en timestamptz)
 language sql stable security definer set search_path = '' as $$

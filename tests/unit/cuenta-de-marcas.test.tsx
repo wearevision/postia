@@ -59,9 +59,20 @@ describe("RutaDeCuenta", () => {
     expect(cambiar).not.toHaveBeenCalled()
   })
 
-  test("warns that going by hand unlinks LinkedIn when connected", () => {
+  test("going by hand no longer warns about unlinking: it only pauses", () => {
     montar("api", true)
-    expect(screen.getByText("Pasar a mano desconecta LinkedIn.")).toBeVisible()
+    expect(screen.queryByText(/desconecta/)).toBeNull()
+    expect(screen.queryByText(/En pausa/)).toBeNull()
+  })
+
+  test("a connected account by hand says it is paused", () => {
+    montar("a_mano", true)
+    expect(screen.getByText("En pausa: las piezas se publican a mano.")).toBeVisible()
+  })
+
+  test("an account by hand without a connection is not paused, just by hand", () => {
+    montar("a_mano", false)
+    expect(screen.queryByText(/En pausa/)).toBeNull()
   })
 
   test("shows the action's error", async () => {

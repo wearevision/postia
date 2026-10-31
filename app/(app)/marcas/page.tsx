@@ -48,10 +48,17 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
                   conectada={cuenta.conexiones !== null}
                   cambiar={cambiarRutaAccion}
                 />
-                {cuenta.ruta === "api" && (
+                {/* A paused account («a mano» with its connection) keeps its chip and its disconnect button. */}
+                {(cuenta.ruta === "api" || cuenta.conexiones) && (
                   <div className="flex flex-wrap items-center gap-2">
                     <EstadoDeConexionChip estado={estadoDeCuenta(cuenta.conexiones, ahora)} />
-                    <ConectarLinkedin cuentaId={cuenta.id} tipo={cuenta.tipo} conectada={cuenta.conexiones !== null} />
+                    {cuenta.ruta === "api" && (
+                      <ConectarLinkedin
+                        cuentaId={cuenta.id}
+                        tipo={cuenta.tipo}
+                        conectada={cuenta.conexiones !== null}
+                      />
+                    )}
                     {cuenta.conexiones && (
                       <form action={desconectarCuentaAccion}>
                         <input type="hidden" name="cuentaId" value={cuenta.id} />

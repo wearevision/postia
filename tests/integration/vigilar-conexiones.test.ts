@@ -127,4 +127,14 @@ describe("vigilarConexiones", () => {
     expect(de(c.endpoint)[0]?.mensaje.titulo).toContain(nombreApi)
     expect(de(c.endpoint)[0]?.mensaje.titulo).not.toContain(nombreMano)
   })
+
+  test("a paused account keeps its connection but the watch says nothing about it", async () => {
+    const c = await conConexion(-1)
+    const pausa = await admin().from("cuentas").update({ ruta: "a_mano" }).eq("id", c.cuenta)
+    expect(pausa.error).toBeNull()
+    const { falso, de } = servicio()
+    await vigilarConexiones(admin(), falso, Date.now())
+    expect(de(c.endpoint)).toEqual([])
+    expect(await lineasDe(c.marca)).toEqual([])
+  })
 })

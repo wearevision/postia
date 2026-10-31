@@ -51,7 +51,9 @@ export function RutaDeCuenta({ cuentaId, nombre, ruta, conectada, cambiar }: Pro
           )
         })}
       </fieldset>
-      {conectada && ruta === "api" && <p className="text-xs text-apagado">Pasar a mano desconecta LinkedIn.</p>}
+      {conectada && ruta === "a_mano" && (
+        <p className="text-xs text-apagado">En pausa: las piezas se publican a mano.</p>
+      )}
       {error && (
         <p role="alert" className="text-sm text-peligro">
           {error}

@@ -52,7 +52,7 @@ export async function desconectarCuenta(db: Db, cuentaId: string): Promise<Resul
   return falla(error, { "42501": "Solo el dueño de la marca puede desconectar." })
 }
 
-/** «Sale sola» ↔ «a mano». Going by hand unlinks the LinkedIn connection (the RPC does it). */
+/** «Sale sola» ↔ «a mano». Going by hand pauses the account: its LinkedIn connection stays for the way back. */
 export async function cambiarRuta(db: Db, entrada: unknown): Promise<Resultado> {
   const leida = CambioDeRuta.safeParse(entrada)
   if (!leida.success) return { ok: false, error: RUTA_INVALIDA }

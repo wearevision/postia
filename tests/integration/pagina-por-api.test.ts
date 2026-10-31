@@ -221,19 +221,35 @@ describe("the account's route", () => {
     expect(error).toBeNull()
   })
 
-  test("an owner switches «a mano» to API and back, and going back unlinks and forgets the connection", async () => {
+  test("going «a mano» pauses the account: the connection and its secrets stay, and back to API reuses them", async () => {
     const { db, cuenta } = await duenoCon("empresa", "a_mano")
     expect((await db.rpc("cambiar_ruta", { p_cuenta: cuenta, p_ruta: "api" })).error).toBeNull()
     expect((await conexionDe(cuenta)).ruta).toBe("api")
-    const { data: conexion } = await conectarPagina(db, cuenta)
+    const { data: conexion } = await conectarPagina(db, cuenta, {
+      p_expira_en: EN_DIAS(5),
+      p_renovacion: "renovacion-en-pausa",
+      p_renovacion_expira_en: EN_DIAS(365),
+    })
 
     expect((await db.rpc("cambiar_ruta", { p_cuenta: cuenta, p_ruta: "a_mano" })).error).toBeNull()
+    expect(await conexionDe(cuenta)).toEqual({ ruta: "a_mano", conexion_id: conexion })
+    expect(secretosLlamados(`conexion:${conexion}`)).toBe(1)
+    // A paused connection keeps renewing, so going back to API needs no new login.
+    const { data: pendientes } = await admin().rpc("renovaciones_pendientes", { p_hasta: EN_DIAS(10) })
+    expect(pendientes?.some((p) => p.conexion === conexion)).toBe(true)
+
+    expect((await db.rpc("cambiar_ruta", { p_cuenta: cuenta, p_ruta: "api" })).error).toBeNull()
+    expect(await conexionDe(cuenta)).toEqual({ ruta: "api", conexion_id: conexion })
+    const { data: credencial } = await admin().rpc("credencial_de_cuenta", { p_cuenta: cuenta }).single()
+    expect(credencial?.token).toBe("token-de-pagina")
+  })
+
+  test("a paused account can still be disconnected", async () => {
+    const { db, cuenta } = await duenoCon("empresa")
+    const { data: conexion } = await conectarPagina(db, cuenta)
+    await db.rpc("cambiar_ruta", { p_cuenta: cuenta, p_ruta: "a_mano" })
+    expect((await db.rpc("desconectar_cuenta", { p_cuenta: cuenta })).error).toBeNull()
     expect(await conexionDe(cuenta)).toEqual({ ruta: "a_mano", conexion_id: null })
-    const { count } = await admin()
-      .from("conexiones")
-      .select("*", { count: "exact", head: true })
-      .eq("id", conexion ?? "")
-    expect(count).toBe(0)
     expect(secretosLlamados(`conexion:${conexion}`)).toBe(0)
   })
 
