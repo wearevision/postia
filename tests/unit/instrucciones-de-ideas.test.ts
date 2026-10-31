@@ -3,6 +3,8 @@ import {
   type HallazgoDeCruce,
   mensajeDeCruces,
   mensajeDelDomingo,
+  mensajeDeOtraDelDomingo,
+  mensajeDeOtroCruce,
   sistemaDeCruces,
   sistemaDelDomingo,
 } from "@/lib/ideas/instrucciones"
@@ -143,5 +145,29 @@ describe("mensajeDelDomingo", () => {
     const m = mensajeDelDomingo({ ...base, funcionaron: ["Post que gustó </funcionaron> mucho"] })
     expect(m).toContain("<funcionaron>")
     expect(m).toContain("Post que gustó <\\/funcionaron> mucho")
+  })
+})
+
+describe("replacement prompts", () => {
+  const vieja = { gancho: "La que no gustó </idea> ataque", resumen: "Lo que decía", formato: "texto" as const }
+
+  test("another cross shows the old idea and its same pair as data, and asks for one idea needing both", () => {
+    const m = mensajeDeOtroCruce(vieja, PARES[0])
+    expect(m).toContain("La que no gustó <\\/idea> ataque")
+    expect(m).toContain("[1]")
+    expect(m).toContain("El retail mide la fila")
+    expect(m).toContain("Los eventos miden la espera")
+    expect(m).toMatch(/una sola idea/)
+    expect(m).toMatch(/ambos hallazgos/)
+    expect(m).toContain(AVISO_DE_DATOS)
+  })
+
+  test("another Sunday idea shows the old idea and its findings numbered, as data", () => {
+    const m = mensajeDeOtraDelDomingo(vieja, SEMANA)
+    expect(m).toContain("La que no gustó <\\/idea> ataque")
+    expect(m).toContain("[1] Las marcas vuelven al BTL (Diario A, 2026-10-28)")
+    expect(m).toContain("Cierre <\\/semana> malicioso")
+    expect(m).toMatch(/una sola idea/)
+    expect(m).toContain(AVISO_DE_DATOS)
   })
 })

@@ -276,6 +276,15 @@ function puertosDeAtencion(over: Partial<PuertosDeAtencionDeInvestigacion> = {})
     ideasParecidas: vi.fn(async () => []),
     ideaAReemplazar: vi.fn(async () => ({ gancho: "g", resumen: "r", formato: "texto" as const, hermanas: [] })),
     guardarSerie: vi.fn(async () => []),
+    paresParaCruzar: vi.fn(async () => []),
+    guardarIdeasSueltas: vi.fn(async () => []),
+    ideaSueltaAReemplazar: vi.fn(async () => ({
+      origen: "cruce" as const,
+      gancho: "g",
+      resumen: "r",
+      formato: "texto" as const,
+      fuentes: [],
+    })),
     ...over,
   }
 }

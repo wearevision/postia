@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest"
 import type { Pedir } from "@/lib/ia/claude"
+import { repositorioDeIdeas } from "@/lib/ideas/repositorio"
 import { repositorioDeInvestigaciones } from "@/lib/investigacion/repositorio"
 import { atenderInvestigaciones } from "@/lib/investigacion/vigilancia"
 import { escribirPiezas } from "@/lib/series/escribir"
@@ -98,6 +99,7 @@ async function informeAprobado(): Promise<{ id: string; hallazgos: string[] }> {
 const repo = () => ({
   ...repositorioDeInvestigaciones(admin()),
   ...repositorioDeSeries(admin()),
+  ...repositorioDeIdeas(admin()),
   embeber: async () => [],
   embeberIdeas: async (_clave: string, textos: string[]) => textos.map(() => aleatorio()),
 })
