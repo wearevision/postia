@@ -302,6 +302,64 @@ describe("pedirPagando with web searches", () => {
     ).toBe(estimarCosto("claude-opus-5-5", { caracteresDeEntrada: caracteres, maxTokens: 1024, busquedas: 2 }))
   })
 
+  test("estimates and sends a continuation carrying thinking and server-side code execution blocks", async () => {
+    const turno: Anthropic.ContentBlockParam[] = [
+      { type: "thinking", thinking: "Primero busco y luego filtro.", signature: "firma".repeat(40) },
+      { type: "redacted_thinking", data: "opaco".repeat(20) },
+      { type: "server_tool_use", id: "s1", name: "web_search", input: { query: "focus groups" } },
+      {
+        type: "web_search_tool_result",
+        tool_use_id: "s1",
+        content: [{ type: "web_search_result", url: "https://a.cl/x", title: "A", encrypted_content: "x".repeat(500) }],
+      },
+      { type: "server_tool_use", id: "c1", name: "bash_code_execution", input: { command: "grep -i focus r.txt" } },
+      {
+        type: "bash_code_execution_tool_result",
+        tool_use_id: "c1",
+        content: { type: "bash_code_execution_result", content: [], return_code: 0, stderr: "", stdout: "focus" },
+      },
+      {
+        type: "text",
+        text: "Según A.",
+        citations: [
+          {
+            type: "web_search_result_location",
+            url: "https://a.cl/x",
+            title: "A",
+            cited_text: "c",
+            encrypted_index: "i",
+          },
+        ],
+      },
+    ]
+    const libro = libroQueReserva()
+    const crear = vi.fn(async () => RESPUESTA_CORTA)
+    await pedirPagando(
+      { libro, avisar: async () => {}, crear },
+      { clave: "continuacion:1", paso: "probar", marcaId: null },
+      {
+        sistema: "Breve.",
+        mensajes: [
+          { role: "user", content: "Investiga" },
+          { role: "assistant", content: turno },
+        ],
+        maxTokens: 1024,
+        esfuerzo: "low",
+        herramientas: [busqueda(2)],
+      },
+    )
+    const largo = turno.reduce((n, b) => n + JSON.stringify(b).length, 0)
+    const caracteres = "Breve.".length + "Investiga".length + largo
+    expect(crear).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(libro.reservar).mock.calls[0]?.[0]).toMatchObject({
+      estimadoMicro: estimarCosto("claude-opus-5-5", {
+        caracteresDeEntrada: caracteres,
+        maxTokens: 1024,
+        busquedas: 2,
+      }),
+    })
+  })
+
   test("still refuses a document block", async () => {
     const libro = libroQueReserva()
     await expect(

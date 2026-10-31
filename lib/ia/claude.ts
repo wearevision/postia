@@ -96,16 +96,17 @@ export function crearReal(entorno: Record<string, string | undefined> = process.
 }
 
 /**
- * Text is sized by its length. Search blocks sent back in a continuation (and text carrying citations) by their JSON
- * length, which is above the tokens they bill. An image or document would be estimated by its base64 size: refused.
+ * Plain text is sized by its length. Every other block sent back in a continuation (thinking, search results, the
+ * filtering code web search runs server-side, text carrying citations) by its JSON length, which is above the tokens it
+ * bills. An image or document would be estimated by its base64 size, not its real token count: refused.
  */
 function caracteresDe(mensaje: Anthropic.MessageParam): number {
   if (typeof mensaje.content === "string") return mensaje.content.length
   return mensaje.content.reduce((n, bloque) => {
+    if (bloque.type === "image" || bloque.type === "document")
+      throw new Falla(`Todavía no sé calcular el costo de un bloque «${bloque.type}».`)
     if (bloque.type === "text" && !bloque.citations) return n + bloque.text.length
-    if (bloque.type === "text" || bloque.type === "server_tool_use" || bloque.type === "web_search_tool_result")
-      return n + JSON.stringify(bloque).length
-    throw new Falla(`Todavía no sé calcular el costo de un bloque «${bloque.type}»; solo texto y búsquedas web.`)
+    return n + JSON.stringify(bloque).length
   }, 0)
 }
 
