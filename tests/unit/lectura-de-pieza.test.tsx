@@ -64,7 +64,7 @@ function montar(vistas: string[] = VISTAS, clave = "v1") {
   return render(pieza)
 }
 
-const botonDeFirma = () => screen.getByRole("button", { name: "Firmar y programar" })
+const botonDeFirma = () => screen.getByRole("button", { name: /^Firmar \S+ · / })
 const botonDeReserva = () => screen.getByRole("button", { name: "Firmar para la reserva" })
 
 function verTodas(de: number) {

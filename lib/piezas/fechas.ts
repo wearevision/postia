@@ -17,6 +17,24 @@ export function fechaLarga(instante: string): string {
   return FORMATO_LARGO.format(new Date(instante)).replace(/^(\p{L}+),/u, "$1")
 }
 
+const FORMATO_CORTO = new Intl.DateTimeFormat("es-CL", {
+  timeZone: ZONA,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+})
+
+/** «mar 3 nov, 15:00»: the short form for buttons, in Chile time. */
+export function fechaCorta(instante: string): string {
+  const partes = Object.fromEntries(
+    FORMATO_CORTO.formatToParts(new Date(instante)).map((parte) => [parte.type, parte.value.replace(/\.$/, "")]),
+  )
+  return `${partes.weekday} ${partes.day} ${partes.month}, ${partes.hour}:${partes.minute}`
+}
+
 const PARTES = new Intl.DateTimeFormat("en-CA", {
   timeZone: ZONA,
   hourCycle: "h23",

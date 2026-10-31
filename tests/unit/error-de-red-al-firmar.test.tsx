@@ -26,7 +26,7 @@ function montar(firmar: () => Promise<Resultado>, firmarParaReserva: () => Promi
   return { alFirmar, alFirmarReserva }
 }
 
-const firmar = () => fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+const firmar = () => fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
 const alerta = () => screen.findByRole("alert")
 
 describe("when the connection drops while signing", () => {
@@ -85,7 +85,7 @@ describe("when the connection drops while signing", () => {
     })
     firmar()
     await waitFor(() => expect(alFirmar).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled())
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
@@ -119,7 +119,7 @@ describe("when the connection drops while signing", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     expect(campo.value).toBe(valor)
     expect(campo).toHaveFocus()
-    expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled()
   })
 
   test("does not retry when the server answers with a reason", async () => {

@@ -28,8 +28,8 @@ test("an owner creates a text piece, signs it with the proposed date and finds i
   await expect(page.getByText("36 / 3000")).toBeVisible()
   await page.getByRole("button", { name: "Crear pieza" }).click()
 
-  await expect(page.getByRole("button", { name: "Firmar y programar" })).toBeVisible()
-  await page.getByRole("button", { name: "Firmar y programar" }).click()
+  await expect(page.getByRole("button", { name: /^Firmar (?!para)\S+ · / })).toBeVisible()
+  await page.getByRole("button", { name: /^Firmar (?!para)\S+ · / }).click()
   await expect(page.getByText("Programada", { exact: true })).toBeVisible()
 
   // The Next dev indicator floats over the first nav link on a phone viewport, so go by URL.
@@ -100,7 +100,7 @@ test("an owner uploads a carousel PDF, and the piece keeps the file the server h
   await page.getByRole("textbox", { name: "Texto" }).fill("Un carrusel para probar la subida.")
   await page.getByRole("button", { name: "Crear pieza" }).click()
 
-  await expect(page.getByRole("button", { name: /^Firmar: te aviso/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /^Firmar (?!para)\S+ · / })).toBeVisible()
   await expect(page.getByRole("link", { name: "Ver el PDF" })).toBeVisible()
   const { data: version } = await db
     .from("versiones")

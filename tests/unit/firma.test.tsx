@@ -33,7 +33,7 @@ describe("FirmaDePieza", () => {
     expect(screen.getByText(/Primera línea\s+Segunda línea/)).toBeInTheDocument()
     expect(screen.getByText("martes 3 de noviembre, 11:00")).toBeInTheDocument()
     expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
-    expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeInTheDocument()
   })
 
   test("warns that signing now drops the rewrite Claude is working on, only while it is", () => {
@@ -56,7 +56,7 @@ describe("FirmaDePieza", () => {
   test("signs with the ISO instant of the field read as Chile time", async () => {
     const firmar = montar()
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:30" } })
-    fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
     await waitFor(() =>
       expect(firmar).toHaveBeenCalledWith({
         piezaId: PIEZA,
@@ -70,23 +70,21 @@ describe("FirmaDePieza", () => {
   test("shows the error from signing as an alert", async () => {
     const firmar = vi.fn(async () => ({ ok: false as const, error: "Elige una fecha y hora futuras." }))
     montar({ firmar })
-    fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
   })
 
   test("does not call firmar while the date field is incomplete", () => {
     const firmar = montar()
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "" } })
-    fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar (?!para)/ }))
     expect(firmar).not.toHaveBeenCalled()
     expect(screen.getByRole("alert")).toHaveTextContent("Elige la fecha y la hora.")
   })
 
   test("tells the person a page account is published by hand", () => {
     montar({ ruta: "a_mano" })
-    expect(
-      screen.getByRole("button", { name: "Firmar: te aviso a la hora para publicarla a mano" }),
-    ).toBeInTheDocument()
+    expect(screen.getByText("Te aviso a la hora para publicarla a mano.")).toBeInTheDocument()
   })
 })
 

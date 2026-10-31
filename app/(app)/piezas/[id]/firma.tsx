@@ -3,7 +3,7 @@
 import { Loader2, Lock } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
 import { FinDelTexto, useLectura } from "./lectura"
 
@@ -141,12 +141,11 @@ export function FirmaDePieza({
       >
         {pendiente && cual === "fecha" ? (
           <Ocupado />
-        ) : ruta === "a_mano" ? (
-          "Firmar: te aviso a la hora para publicarla a mano"
         ) : (
-          "Firmar y programar"
+          `Firmar ${cuenta}${instante ? ` · ${fechaCorta(instante)}` : ""}`
         )}
       </button>
+      {ruta === "a_mano" && <p className="text-sm text-apagado">Te aviso a la hora para publicarla a mano.</p>}
       <button
         type="button"
         disabled={bloqueada}

@@ -45,7 +45,7 @@ function montar() {
 describe("while signing", () => {
   test("shows the pressed button as busy and blocks the other one", () => {
     montar()
-    fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
     const ocupado = screen.getByRole("button", { name: "Firmando…" })
     expect(ocupado).toHaveAttribute("aria-busy", "true")
     expect(ocupado).toBeDisabled()
@@ -56,7 +56,7 @@ describe("while signing", () => {
     montar()
     fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
     expect(screen.getByRole("button", { name: "Firmando…" })).toHaveAttribute("aria-busy", "true")
-    expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeDisabled()
   })
 
   test("announces it politely in a region that is never replaced", () => {
@@ -64,17 +64,17 @@ describe("while signing", () => {
     const region = screen.getByRole("status")
     expect(region).toHaveAttribute("aria-live", "polite")
     expect(region).toBeEmptyDOMElement()
-    fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
     expect(screen.getByRole("status")).toBe(region)
     expect(region).toHaveTextContent("Firmando…")
   })
 
   test("goes back to the normal buttons when signing fails, and says so in the alert", async () => {
     const salida = montar()
-    fireEvent.click(screen.getByRole("button", { name: "Firmar y programar" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
     act(() => salida.terminar({ ok: false, error: "Elige una fecha y hora futuras." }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
-    await waitFor(() => expect(screen.getByRole("button", { name: "Firmar y programar" })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled())
     expect(screen.queryByRole("button", { name: "Firmando…" })).not.toBeInTheDocument()
     expect(screen.getByRole("status")).toBeEmptyDOMElement()
   })
