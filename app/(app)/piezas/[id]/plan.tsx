@@ -48,7 +48,7 @@ export function PlanDePieza({ piezaId, planeadaPara, planear, sinPlanAlCrear = f
               type="datetime-local"
               value={fecha}
               onChange={(evento) => setFecha(evento.target.value)}
-              className="campo w-full"
+              className="campo block min-h-12 w-full min-w-0 max-w-full appearance-none"
             />
           </label>
           <button type="submit" disabled={pendiente} className="boton-primario w-full">

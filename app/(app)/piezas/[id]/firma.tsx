@@ -114,7 +114,7 @@ export function FirmaDePieza({
           type="datetime-local"
           value={fecha}
           onChange={(evento) => setFecha(evento.target.value)}
-          className="campo w-full"
+          className="campo block min-h-12 w-full min-w-0 max-w-full appearance-none"
         />
       </label>
       {instante && (
