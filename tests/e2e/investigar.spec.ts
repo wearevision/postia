@@ -27,7 +27,7 @@ test("an owner asks for research, and approves its report after discarding a fin
   const tema = `Focus groups ${crypto.randomUUID().slice(0, 8)}`
 
   await entrar(page, request, correo)
-  await page.getByRole("link", { name: "Investigar" }).click()
+  await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Investigar" }).click()
   await expect(page.getByRole("heading", { name: "Investigar" })).toBeVisible()
   await expect(page.getByText("Cada investigación busca en la web y cuesta cerca de US$1.")).toBeVisible()
   await page.getByLabel("¿Qué quieres investigar?").fill(tema)

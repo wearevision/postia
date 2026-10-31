@@ -23,14 +23,11 @@ describe("Navegacion", () => {
     expect(marcado()).toEqual(["Inicio"])
   })
 
-  test.each(["/piezas/nueva", "/piezas/pedir", "/piezas/carrusel", "/investigar", "/investigar/abc"])(
-    "marks Nueva on the creation flow %s",
-    (destino) => {
-      ruta.actual = destino
-      render(<Navegacion />)
-      expect(marcado()).toEqual(["Nueva"])
-    },
-  )
+  test.each(["/investigar", "/investigar/abc"])("marks Investigar on %s", (destino) => {
+    ruta.actual = destino
+    render(<Navegacion />)
+    expect(marcado()).toEqual(["Investigar"])
+  })
 
   test.each(["/marcas", "/voz", "/voz/abc"])("marks Marcas on %s", (destino) => {
     ruta.actual = destino
@@ -54,7 +51,13 @@ describe("Navegacion", () => {
     ruta.actual = "/"
     render(<Navegacion />)
     const enlaces = screen.getAllByRole("link")
-    expect(enlaces.map((enlace) => enlace.textContent)).toEqual(["Inicio", "Nueva", "Calendario", "Marcas", "Ajustes"])
+    expect(enlaces.map((enlace) => enlace.textContent)).toEqual([
+      "Inicio",
+      "Investigar",
+      "Calendario",
+      "Marcas",
+      "Ajustes",
+    ])
     for (const enlace of enlaces) {
       const icono = enlace.querySelector("svg")
       expect(icono, enlace.textContent ?? "").not.toBeNull()

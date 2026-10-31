@@ -1,17 +1,14 @@
 "use client"
 
-import { CalendarDays, CirclePlus, House, Layers, type LucideIcon, SlidersHorizontal } from "lucide-react"
+import { CalendarDays, House, Layers, type LucideIcon, Search, SlidersHorizontal } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   RUTA_DE_AJUSTES,
   RUTA_DE_CALENDARIO,
-  RUTA_DE_CARRUSEL,
   RUTA_DE_INICIO,
   RUTA_DE_INVESTIGAR,
   RUTA_DE_MARCAS,
-  RUTA_DE_NUEVA_PIEZA,
-  RUTA_DE_PEDIR_TEXTO,
   RUTA_DE_VOZ,
 } from "@/lib/sesion/rutas"
 
@@ -21,13 +18,7 @@ const dentroDe = (base: string) => (ruta: string) => ruta === base || ruta.start
 
 const ENLACES: Enlace[] = [
   { href: RUTA_DE_INICIO, texto: "Inicio", icono: House, activa: (ruta) => ruta === RUTA_DE_INICIO },
-  {
-    href: RUTA_DE_NUEVA_PIEZA,
-    texto: "Nueva",
-    icono: CirclePlus,
-    activa: (ruta) =>
-      [RUTA_DE_NUEVA_PIEZA, RUTA_DE_PEDIR_TEXTO, RUTA_DE_CARRUSEL].includes(ruta) || dentroDe(RUTA_DE_INVESTIGAR)(ruta),
-  },
+  { href: RUTA_DE_INVESTIGAR, texto: "Investigar", icono: Search, activa: dentroDe(RUTA_DE_INVESTIGAR) },
   { href: RUTA_DE_CALENDARIO, texto: "Calendario", icono: CalendarDays, activa: dentroDe(RUTA_DE_CALENDARIO) },
   {
     href: RUTA_DE_MARCAS,

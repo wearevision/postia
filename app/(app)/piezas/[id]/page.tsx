@@ -50,20 +50,8 @@ const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva
 // The states pedir_diseno accepts an edit in.
 const SE_PUEDE_REARMAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano"]
 
-/** Set by the new-piece form when the plan or the pillar could not be set right after creating (rutaDePieza). */
-function avisosAlCrear(aviso: string | string[] | undefined): Set<string> {
-  return new Set(typeof aviso === "string" ? aviso.split(",") : [])
-}
-
-export default async function Pieza({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ aviso?: string | string[] }>
-}) {
+export default async function Pieza({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const avisos = avisosAlCrear((await searchParams).aviso)
   const db = await createClient()
   const pieza = await detalle(db, id)
   if (!pieza) notFound()
@@ -191,7 +179,6 @@ export default async function Pieza({
           pilarNombre={pieza.pilarNombre}
           pilares={pilares}
           poner={ponerPilarAccion}
-          sinPilarAlCrear={avisos.has("pilar") && pieza.pilarId === null}
         />
       )}
 
@@ -213,12 +200,7 @@ export default async function Pieza({
       {rearmable && estadoDelCarrusel()}
 
       {estado === "por_aprobar" && (
-        <PlanDePieza
-          piezaId={pieza.id}
-          planeadaPara={pieza.planeadaPara}
-          planear={planearAccion}
-          sinPlanAlCrear={avisos.has("plan")}
-        />
+        <PlanDePieza piezaId={pieza.id} planeadaPara={pieza.planeadaPara} planear={planearAccion} />
       )}
       {estado === "por_aprobar" && <Veredicto hallazgos={hallazgos} />}
       {conClaude && !redaccion && <p className="text-sm">No pude leer lo que hizo Claude. Recarga en un rato.</p>}

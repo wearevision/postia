@@ -10,15 +10,12 @@ interface Props {
   /** The active pillars of the piece's brand. */
   pilares: { id: string; nombre: string }[]
   poner: (entrada: { piezaId: string; pilarId: string | null }) => Promise<Resultado>
-  /** The piece was just created and its chosen pillar could not be set. */
-  sinPilarAlCrear?: boolean
 }
 
 const CAMPO = "campo w-full"
 
-export function PilarDePieza({ piezaId, pilarId, pilarNombre, pilares, poner, sinPilarAlCrear = false }: Props) {
+export function PilarDePieza({ piezaId, pilarId, pilarNombre, pilares, poner }: Props) {
   const [guardado, setGuardado] = useState(pilarId ?? "")
-  const [avisar, setAvisar] = useState(sinPilarAlCrear)
   const [valor, setValor] = useState(pilarId ?? "")
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -34,7 +31,6 @@ export function PilarDePieza({ piezaId, pilarId, pilarNombre, pilares, poner, si
         return setError(resultado.error)
       }
       setGuardado(nuevo)
-      setAvisar(false)
     })
   }
 
@@ -57,9 +53,6 @@ export function PilarDePieza({ piezaId, pilarId, pilarNombre, pilares, poner, si
           ))}
         </select>
       </label>
-      <output className="block text-sm">
-        {avisar && "La pieza se creó, pero no pude ponerle el pilar. Elígelo aquí."}
-      </output>
       {error && (
         <p role="alert" className="text-sm text-peligro">
           {error}
