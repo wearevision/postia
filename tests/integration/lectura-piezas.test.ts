@@ -289,6 +289,16 @@ describe("detalle and pillars", () => {
   })
 })
 
+/** Seconds a signed storage URL lives: its token is a JWT with iat and exp. */
+function vidaDelEnlace(url: string): number {
+  const token = new URL(url).searchParams.get("token") ?? ""
+  const { iat, exp } = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString()) as {
+    iat: number
+    exp: number
+  }
+  return exp - iat
+}
+
 /** A carousel saved through the worker's RPCs, with the first `vistas` previews uploaded next to its PDF. */
 async function carruselGuardado(nombre: string, diseno: unknown, vistas: number) {
   const { db, userId } = await personaConSesion(nombre)
@@ -346,6 +356,9 @@ describe("detalle of a carousel built from the templates", () => {
     vistas.forEach((url, i) => {
       expect(new URL(url).pathname).toMatch(new RegExp(`/${String(i + 1).padStart(2, "0")}\\.jpg$`))
     })
+    // An hour: Federico may leave gate 1 open while he reads the slides.
+    for (const url of [...vistas, d?.version.archivoUrl, d?.version.archivoDescarga])
+      expect(vidaDelEnlace(url ?? "")).toBe(3600)
     const primera = await fetch(vistas[0] ?? "")
     expect(primera.ok).toBe(true)
     expect(new Uint8Array(await primera.arrayBuffer())).toEqual(new Uint8Array([0xff, 0xd8, 0xff, 1]))

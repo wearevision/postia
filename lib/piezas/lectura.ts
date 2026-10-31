@@ -244,6 +244,9 @@ export interface DetalleDePieza {
   fechaPropuesta: string
 }
 
+/** Previews and PDF links alike: gate 1 may stay open an hour while Federico reads the slides. */
+const VIDA_DE_LOS_ENLACES_S = 3600
+
 /** A stored design that no longer parses still opens gate 1: it falls back to the PDF link. */
 function disenoGuardado(piezaId: string, valor: unknown): Carrusel | null {
   if (valor === null) return null
@@ -260,7 +263,7 @@ function disenoGuardado(piezaId: string, valor: unknown): Carrusel | null {
 async function vistasDelCarrusel(db: Db, archivoRuta: string, laminas: number): Promise<string[]> {
   const base = archivoRuta.replace(/\.pdf$/, "")
   const rutas = Array.from({ length: laminas }, (_, i) => `${base}/${String(i + 1).padStart(2, "0")}.jpg`)
-  const { data, error } = await db.storage.from("piezas").createSignedUrls(rutas, 600)
+  const { data, error } = await db.storage.from("piezas").createSignedUrls(rutas, VIDA_DE_LOS_ENLACES_S)
   if (error) {
     console.error("No pude preparar las láminas", archivoRuta, error.message)
     return []
@@ -294,8 +297,8 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   if (v.archivo_ruta) {
     const bucket = db.storage.from("piezas")
     const [vista, descarga] = await Promise.all([
-      bucket.createSignedUrl(v.archivo_ruta, 600),
-      bucket.createSignedUrl(v.archivo_ruta, 600, { download: true }),
+      bucket.createSignedUrl(v.archivo_ruta, VIDA_DE_LOS_ENLACES_S),
+      bucket.createSignedUrl(v.archivo_ruta, VIDA_DE_LOS_ENLACES_S, { download: true }),
     ])
     if (vista.error) throw new Error(`No pude preparar el PDF: ${vista.error.message}`, { cause: vista.error })
     if (descarga.error) throw new Error(`No pude preparar el PDF: ${descarga.error.message}`, { cause: descarga.error })
