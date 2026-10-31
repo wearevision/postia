@@ -174,6 +174,30 @@ describe("reconnecting an account", () => {
     expect(secretosLlamados(`conexion:${vieja}`)).toBe(0)
   })
 
+  test("the owner of another brand cannot overwrite a connection with a made-up token", async () => {
+    const a = await duenoCon("empresa")
+    const titular = `urn:li:person:vic${crypto.randomUUID().slice(0, 8)}`
+    const { data: conexion } = await conectarPagina(a.db, a.cuenta, { p_titular: titular })
+    const b = await duenoCon("empresa")
+    const intruso = await conectarPagina(b.db, b.cuenta, { p_titular: titular, p_token: "token-inventado" })
+    expect(intruso.error).toMatchObject({ code: "42501", message: "conexion_de_otra_marca" })
+    const { data: credencial } = await admin().rpc("credencial_de_cuenta", { p_cuenta: a.cuenta }).single()
+    expect(credencial?.token).toBe("token-de-pagina")
+    expect((await conexionDe(b.cuenta)).conexion_id).toBeNull()
+    expect((await conexionDe(a.cuenta)).conexion_id).toBe(conexion)
+  })
+
+  test("a connection no account uses can be taken by anyone who connects the same page", async () => {
+    const a = await duenoCon("empresa")
+    const titular = `urn:li:person:lib${crypto.randomUUID().slice(0, 8)}`
+    const { data: conexion } = await conectarPagina(a.db, a.cuenta, { p_titular: titular })
+    await admin().from("cuentas").update({ conexion_id: null }).eq("id", a.cuenta)
+    const b = await duenoCon("empresa")
+    const { data, error } = await conectarPagina(b.db, b.cuenta, { p_titular: titular, p_token: "token-de-b" })
+    expect(error).toBeNull()
+    expect(data).toBe(conexion)
+  })
+
   test("a connection no account uses is not renewed", async () => {
     const { db, cuenta } = await duenoCon("empresa")
     const { data: conexion } = await conectarPagina(db, cuenta, {

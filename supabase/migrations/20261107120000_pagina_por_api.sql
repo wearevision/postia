@@ -75,15 +75,21 @@ begin
     raise exception using errcode = '22023', message = 'conexion_incompleta';
   end if;
 
-  insert into public.conexiones (red, app, titular, organizacion, nombre, scopes, expira_en, renovacion_expira_en,
-                                 conectada_por)
+  insert into public.conexiones as c (red, app, titular, organizacion, nombre, scopes, expira_en,
+                                      renovacion_expira_en, conectada_por)
   values ('linkedin', p_app, p_titular, p_organizacion, nullif(btrim(p_nombre), ''), p_scopes, p_expira_en,
           case when v_renovacion is not null then p_renovacion_expira_en end, auth.uid())
   on conflict on constraint conexiones_app_titular_organizacion_key do update
     set nombre = excluded.nombre, scopes = excluded.scopes, expira_en = excluded.expira_en,
         renovacion_expira_en = excluded.renovacion_expira_en,
         conectada_en = now(), conectada_por = excluded.conectada_por
+    -- The member and page say nothing about who calls: an existing connection is replaced only when no account uses
+    -- it or every account that does belongs to a brand the caller owns. Checked under the conflict's row lock.
+    where not exists (select 1 from public.cuentas a where a.conexion_id = c.id and not public.es_dueno(a.marca_id))
   returning id into v_conexion;
+  if v_conexion is null then
+    raise exception using errcode = '42501', message = 'conexion_de_otra_marca';
+  end if;
 
   perform public.guardar_secreto('conexion:' || v_conexion, btrim(p_token));
   -- A reconnect without a refresh token forgets the previous one: it belonged to an older grant.

@@ -240,10 +240,11 @@ describe("repositorioDePublicacion", () => {
     const c = await vencida()
     expect(await repo().credencial(c.cuenta)).toBeNull()
     const expira = new Date(Date.now() + 60 * 86_400_000).toISOString()
+    const titular = `urn:li:person:abc${crypto.randomUUID().slice(0, 8)}`
     const { error } = await c.db.rpc("conectar_linkedin", {
       p_cuenta: c.cuenta,
       p_token: "token-de-prueba",
-      p_titular: "urn:li:person:abc123",
+      p_titular: titular,
       p_nombre: "Federico Elgueta",
       p_scopes: ["openid", "profile", "w_member_social"],
       p_expira_en: expira,
@@ -252,8 +253,8 @@ describe("repositorioDePublicacion", () => {
     const credencial = await repo().credencial(c.cuenta)
     expect(credencial).toMatchObject({
       token: "token-de-prueba",
-      titular: "urn:li:person:abc123",
-      autor: "urn:li:person:abc123",
+      titular,
+      autor: titular,
     })
     expect(new Date(credencial?.expiraEn ?? "").toISOString()).toBe(expira)
   })

@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest"
 import { admin, marcaConDueno, personaConSesion } from "./entorno"
 
+// One member per run: a fixed member would be another brand's connection on the next run (conexion_de_otra_marca).
+const TITULAR = `urn:li:person:abc${crypto.randomUUID().slice(0, 8)}`
+
 const EN_60_DIAS = () => new Date(Date.now() + 60 * 86_400_000).toISOString()
 
 async function duenoConCuenta(ruta: "api" | "a_mano" = "api") {
@@ -15,11 +18,7 @@ async function duenoConCuenta(ruta: "api" | "a_mano" = "api") {
   return { ...dueno, marca, cuenta: data.id }
 }
 
-function conectar(
-  db: Awaited<ReturnType<typeof duenoConCuenta>>["db"],
-  cuenta: string,
-  titular = "urn:li:person:abc123",
-) {
+function conectar(db: Awaited<ReturnType<typeof duenoConCuenta>>["db"], cuenta: string, titular = TITULAR) {
   return db.rpc("conectar_linkedin", {
     p_cuenta: cuenta,
     p_token: "token-secreto",
@@ -57,7 +56,7 @@ describe("accounts and connections", () => {
       .select("conexiones(titular, expira_en)")
       .eq("id", cuenta)
       .single()
-    expect(visible?.conexiones?.titular).toBe("urn:li:person:abc123")
+    expect(visible?.conexiones?.titular).toBe(TITULAR)
     expect(JSON.stringify(visible)).not.toContain("token-secreto")
 
     const { error: denegado } = await db.rpc("credencial_de_cuenta", { p_cuenta: cuenta })
