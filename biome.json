@@ -14,6 +14,7 @@
       "!dist",
       "!build",
       "!data",
+      "!docs/maquetas",
       "!lib/supabase/database.types.ts",
       "!.open-next",
       "!.wrangler",
