@@ -15,6 +15,11 @@ import type { FormatoDeIdea, HallazgoDeSerie, PasoDeEsqueleto } from "./propuest
 /** Plano «Escribir texto»: 3 days before. The plano says «ajustable en Ajustes»; there is no settings table yet. */
 export const DIAS_ANTES_DE_ESCRIBIR = 3
 const ASIGNACIONES_POR_CORRIDA = 3
+/**
+ * No new piece starts after this: a carousel with its repair takes a few minutes, and the task's maxDuration (840 s)
+ * and the 15-minute lease must outlast the last one.
+ */
+const PRESUPUESTO_DE_LA_CORRIDA_MS = 600_000
 const DIA_MS = 86_400_000
 /** A piece written closer than this to its date moves on: a late write never forces a rushed signature. */
 const MARGEN_PARA_FIRMAR_MS = 2 * 60 * 60_000
@@ -149,20 +154,26 @@ async function escribirUna(p: PuertosDeEscritura, a: AsignacionAEscribir, ahora:
 }
 
 /**
- * Writes what is due in the next 3 days, each piece in its account's voice and charged to its brand. A failure closes
- * that assignment with a reason; the others still run. Errors nobody expected leave the lease to expire (the
- * two-attempt guard decides when to stop) and are rethrown together at the end so the run shows as failed.
+ * Writes what is due in the next 3 days, each piece in its account's voice and charged to its brand. It leases one
+ * assignment at a time, so the ones it will not reach stay free for the next run instead of waiting out a lease. A
+ * failure closes that assignment with a reason; the others still run. Errors nobody expected leave the lease to expire
+ * (the two-attempt guard decides when to stop) and are rethrown together at the end so the run shows as failed.
  */
 export async function escribirPiezas(
   p: PuertosDeEscritura,
   ahora: number,
+  reloj: () => number = Date.now,
 ): Promise<{ escritas: number; fallidas: number }> {
-  const asignaciones = await p.tomarAsignaciones(ahora + DIAS_ANTES_DE_ESCRIBIR * DIA_MS, ASIGNACIONES_POR_CORRIDA)
+  const inicio = reloj()
   const inesperados: unknown[] = []
+  let escritas = 0
   let fallidas = 0
-  for (const a of asignaciones) {
+  for (let n = 0; n < ASIGNACIONES_POR_CORRIDA && reloj() - inicio < PRESUPUESTO_DE_LA_CORRIDA_MS; n++) {
+    const [a] = await p.tomarAsignaciones(ahora + DIAS_ANTES_DE_ESCRIBIR * DIA_MS, 1)
+    if (!a) break
     try {
       await escribirUna(p, a, ahora)
+      escritas++
     } catch (error) {
       fallidas++
       if (!esperado(error)) {
@@ -179,5 +190,5 @@ export async function escribirPiezas(
   }
   if (inesperados.length === 1) throw inesperados[0]
   if (inesperados.length > 1) throw new AggregateError(inesperados, "Hubo piezas con errores inesperados")
-  return { escritas: asignaciones.length - fallidas, fallidas }
+  return { escritas, fallidas }
 }

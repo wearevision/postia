@@ -97,10 +97,16 @@ function pedirFalso(): Pedir {
   })
 }
 
+/** The database leases one assignment per call, as tomar_asignaciones(p_hasta, 1) does. */
+function unaPorVez(asignaciones: AsignacionAEscribir[]) {
+  const cola = [...asignaciones]
+  return vi.fn(async (_hasta: number, limite: number) => cola.splice(0, limite))
+}
+
 function puertos(asignaciones: AsignacionAEscribir[], over: Partial<PuertosDeEscritura> = {}): PuertosDeEscritura {
   return {
     pedir: pedirFalso(),
-    tomarAsignaciones: vi.fn(async () => asignaciones),
+    tomarAsignaciones: unaPorVez(asignaciones),
     contextoDeCuenta: vi.fn(async (cuentaId: string) => contexto(cuentaId === "cuenta-fede" ? "yo" : "nosotros")),
     horariosDeCuenta: vi.fn(async () => []),
     crearPiezaDeAsignacion: vi.fn(async () => ({ piezaId: "p1", versionId: "v1" })),
@@ -113,11 +119,37 @@ function puertos(asignaciones: AsignacionAEscribir[], over: Partial<PuertosDeEsc
 }
 
 describe("escribirPiezas", () => {
-  test("takes at most 3 assignments due within the next 3 days", async () => {
+  test("leases one assignment due within the next 3 days at a time, so another run can take the rest", async () => {
     const p = puertos([])
     expect(await escribirPiezas(p, AHORA)).toEqual({ escritas: 0, fallidas: 0 })
     expect(DIAS_ANTES_DE_ESCRIBIR).toBe(3)
-    expect(p.tomarAsignaciones).toHaveBeenCalledWith(AHORA + 3 * 86_400_000, 3)
+    expect(p.tomarAsignaciones).toHaveBeenCalledWith(AHORA + 3 * 86_400_000, 1)
+
+    const dos = puertos([TEXTO, CARRUSEL])
+    expect(await escribirPiezas(dos, AHORA)).toEqual({ escritas: 2, fallidas: 0 })
+    expect(vi.mocked(dos.tomarAsignaciones).mock.calls.map(([, limite]) => limite)).toEqual([1, 1, 1])
+    // The second lease is only taken once the first piece is written.
+    expect(vi.mocked(dos.tomarAsignaciones).mock.invocationCallOrder[1]).toBeGreaterThan(
+      vi.mocked(dos.crearPiezaDeAsignacion).mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    )
+  })
+
+  test("writes at most 3 pieces per run", async () => {
+    const p = puertos([TEXTO, { ...TEXTO, id: "a2" }, { ...TEXTO, id: "a3" }, { ...TEXTO, id: "a4" }])
+    expect(await escribirPiezas(p, AHORA)).toEqual({ escritas: 3, fallidas: 0 })
+    expect(p.tomarAsignaciones).toHaveBeenCalledTimes(3)
+  })
+
+  test("starts no new piece once the run has spent its time budget", async () => {
+    let reloj = 0
+    const p = puertos([TEXTO, { ...TEXTO, id: "a2" }, { ...TEXTO, id: "a3" }], {
+      crearPiezaDeAsignacion: vi.fn(async () => {
+        reloj += 400_000
+        return { piezaId: "p1", versionId: "v1" }
+      }),
+    })
+    expect(await escribirPiezas(p, AHORA, () => reloj)).toEqual({ escritas: 2, fallidas: 0 })
+    expect(p.tomarAsignaciones).toHaveBeenCalledTimes(2)
   })
 
   test("a text post is written with 4c's writer under the assignment's key, saved on its date and reviewed", async () => {
