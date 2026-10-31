@@ -241,10 +241,16 @@ describe("TarjetaDeIdea", () => {
     expect(pasos.map((p) => p.textContent)).toEqual(["El dato", "La pregunta"])
   })
 
-  test("a discarded idea says so and offers nothing", () => {
+  test("a discarded idea says so and only offers to read its detail, with no actions", () => {
     tarjeta({ ...PROPUESTA, estado: "descartada" })
     expect(screen.getByText("Descartada")).toBeVisible()
-    expect(screen.queryByRole("button")).toBeNull()
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Ver detalle"])
+    verDetalle()
+    expect(screen.getByText("Tres mitos sobre los focus groups.")).toBeVisible()
+    expect(within(screen.getByRole("list", { name: "Esqueleto" })).getAllByRole("listitem")).toHaveLength(3)
+    expect(screen.getByRole("link", { name: "La Tercera · 20 de octubre de 2026" })).toBeVisible()
+    expect(screen.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toBeVisible()
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Ocultar detalle"])
   })
 
   test("a cross shows «Nace de:» with both sources, each with its outlet, date, link and excerpt", () => {

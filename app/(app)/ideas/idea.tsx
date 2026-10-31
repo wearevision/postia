@@ -417,7 +417,7 @@ export function TarjetaDeIdea({
           {...acciones}
         />
       )}
-      {idea.estado === "aprobada" && (
+      {(idea.estado === "aprobada" || idea.estado === "descartada") && (
         <>
           <BotonDeDetalle abierta={abierta} alternar={() => setAbierta(!abierta)} />
           {abierta && <Detalle idea={idea} />}
