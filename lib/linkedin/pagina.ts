@@ -39,7 +39,6 @@ interface Acceso {
   p_renovacion_expira_en?: string
 }
 
-export type ArgsDeConexionDePagina = Acceso & { p_app: "estudio_wav"; p_organizacion: string }
 export type ArgsDeEleccion = Acceso & { p_paginas: { urn: string; nombre: string }[] }
 
 type ErrorDeLaBase = { message: string } | null
@@ -47,9 +46,10 @@ type ErrorDeLaBase = { message: string } | null
 export interface DepsDePagina {
   app: AppDeLinkedin | null
   ahora: () => number
-  /** `conectar_linkedin` with the person's session: the database checks they own the brand and the account is a page. */
-  guardar: (args: ArgsDeConexionDePagina) => Promise<{ error: ErrorDeLaBase }>
-  /** `guardar_eleccion`, same session: the token waits in Vault while the owner picks one of several pages. */
+  /**
+   * `guardar_eleccion` with the person's session (the database checks they own the brand and the account is a page):
+   * the token waits in Vault until the owner taps the page that publishes.
+   */
   guardarEleccion: (args: ArgsDeEleccion) => Promise<{ data: string | null; error: ErrorDeLaBase }>
 }
 
@@ -62,7 +62,7 @@ export type MotivoDeFalloDePagina =
   | "sin_app_pagina"
   | "fallo"
 
-export type ResultadoDePagina = { ok: true; eleccion: string | null } | { ok: false; motivo: MotivoDeFalloDePagina }
+export type ResultadoDePagina = { ok: true; eleccion: string } | { ok: false; motivo: MotivoDeFalloDePagina }
 
 const URN_DE_ORGANIZACION = /^urn:li:organization:([0-9]+)$/
 
@@ -118,13 +118,7 @@ export async function terminarConexionDePagina(deps: DepsDePagina, llegada: Lleg
         : {}),
     }
 
-    const [unica] = paginas
-    if (paginas.length === 1 && unica) {
-      const { error } = await deps.guardar({ ...comun, p_app: "estudio_wav", p_organizacion: unica })
-      if (error) throw new Error(`No pude guardar la conexión de la página: ${error.message}`)
-      return { ok: true, eleccion: null }
-    }
-
+    // Even a single page is confirmed by name: the owner sees which page will publish before it is linked.
     const { data, error } = await deps.guardarEleccion({ ...comun, p_paginas: await conNombres(acceso.token, paginas) })
     if (error || !data) throw new Error(`No pude guardar la elección de página: ${error?.message ?? "sin id"}`)
     return { ok: true, eleccion: data }
@@ -143,7 +137,6 @@ export async function terminarConexionDePagina(deps: DepsDePagina, llegada: Lleg
 /** Where the callback sends the owner: always a path inside the app, with only a fixed word or a uuid in it. */
 export function destinoDeLaPagina(resultado: ResultadoDePagina): string {
   if (!resultado.ok) return `${RUTA_DE_MARCAS}?linkedin=${resultado.motivo}`
-  if (resultado.eleccion === null) return `${RUTA_DE_MARCAS}?linkedin=conectada`
   return esUuid(resultado.eleccion)
     ? `${RUTA_DE_ELEGIR_PAGINA}?eleccion=${resultado.eleccion}`
     : `${RUTA_DE_MARCAS}?linkedin=fallo`
@@ -151,7 +144,7 @@ export function destinoDeLaPagina(resultado: ResultadoDePagina): string {
 
 const Eleccion = z.object({ eleccion: z.uuid(), organizacion: z.string().regex(URN_DE_ORGANIZACION) })
 
-/** The owner tapped one of several pages. The database checks the choice is theirs, recent and lists that page. */
+/** The owner tapped the page that publishes. The database checks the choice is theirs, recent and lists that page. */
 export async function elegirPagina(db: Db, entrada: unknown): Promise<"conectada" | "estado" | "fallo"> {
   const leida = Eleccion.safeParse(entrada)
   if (!leida.success) return "fallo"

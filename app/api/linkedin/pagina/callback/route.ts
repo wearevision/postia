@@ -21,10 +21,6 @@ export async function GET(request: NextRequest) {
     {
       app: leerAppDePagina(process.env),
       ahora: () => Date.now(),
-      guardar: async (args) => {
-        const { error } = await db.rpc("conectar_linkedin", args)
-        return { error }
-      },
       guardarEleccion: async (args) => {
         const { data, error } = await db.rpc("guardar_eleccion", args)
         return { data, error }

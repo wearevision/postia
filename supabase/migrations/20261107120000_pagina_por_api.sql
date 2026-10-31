@@ -189,7 +189,7 @@ begin
   delete from vault.secrets where name = 'conexion:' || p_conexion || ':renovacion';
 end $$;
 
--- An administrator of several pages picks one. The list holds page names only for this short flow: it is ignored
+-- The owner confirms the page that publishes, even when they administer only one. The list holds page names only for this short flow: it is ignored
 -- after 10 minutes and deleted when a page is picked or by the nightly sweep (LinkedIn: organization data ≤ 8 weeks).
 -- The token waits in Vault as 'eleccion:<id>' (and 'eleccion:<id>:renovacion').
 create table public.elecciones_de_pagina (

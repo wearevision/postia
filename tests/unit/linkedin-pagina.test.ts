@@ -49,7 +49,6 @@ function deps() {
   return {
     app: APP,
     ahora: () => AHORA,
-    guardar: vi.fn(async () => ({ error: null as { message: string } | null })),
     guardarEleccion: vi.fn(async () => ({
       data: ELECCION as string | null,
       error: null as { message: string } | null,
@@ -109,7 +108,7 @@ describe("terminarConexionDePagina", () => {
       ok: false,
       motivo: "estado",
     })
-    expect(d.guardar).not.toHaveBeenCalled()
+    expect(d.guardarEleccion).not.toHaveBeenCalled()
   })
 
   test("a cancelled consent is reported as cancelled", async () => {
@@ -122,32 +121,40 @@ describe("terminarConexionDePagina", () => {
     linkedin(["urn:li:organization:123"], { scope: "r_basicprofile,w_organization_social" })
     const d = deps()
     expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "permisos" })
-    expect(d.guardar).not.toHaveBeenCalled()
+    expect(d.guardarEleccion).not.toHaveBeenCalled()
   })
 
   test("a member who administers no page saves nothing", async () => {
     linkedin([])
     const d = deps()
     expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "sin_pagina" })
-    expect(d.guardar).not.toHaveBeenCalled()
     expect(d.guardarEleccion).not.toHaveBeenCalled()
   })
 
-  test("one page is connected straight away as that organization, without asking LinkedIn for its name", async () => {
+  test("even a single page becomes a choice with its name, so the owner confirms the page that publishes", async () => {
     const consultas = linkedin(["urn:li:organization:123"])
     const d = deps()
-    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: true, eleccion: null })
-    expect(d.guardar).toHaveBeenCalledWith({
+    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: true, eleccion: ELECCION })
+    expect(d.guardarEleccion).toHaveBeenCalledWith({
       p_cuenta: CUENTA,
-      p_token: "tok",
       p_titular: "urn:li:person:abc",
       p_nombre: "",
+      p_paginas: [{ urn: "urn:li:organization:123", nombre: "Página 123" }],
+      p_token: "tok",
       p_scopes: ["r_basicprofile", "rw_organization_admin", "w_organization_social"],
       p_expira_en: SESENTA_DIAS,
-      p_app: "estudio_wav",
-      p_organizacion: "urn:li:organization:123",
     })
-    expect(consultas).toEqual([])
+    expect(consultas).toEqual(["123"])
+  })
+
+  test("a single page whose name cannot be read is offered by its number", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    linkedin(["urn:li:organization:999"])
+    const d = deps()
+    await terminarConexionDePagina(d, llegadaValida)
+    expect(d.guardarEleccion).toHaveBeenCalledWith(
+      expect.objectContaining({ p_paginas: [{ urn: "urn:li:organization:999", nombre: "Página n.º 999" }] }),
+    )
   })
 
   test("a refresh token, when LinkedIn sends one, is saved with its own expiry", async () => {
@@ -158,7 +165,7 @@ describe("terminarConexionDePagina", () => {
     })
     const d = deps()
     await terminarConexionDePagina(d, llegadaValida)
-    expect(d.guardar).toHaveBeenCalledWith(
+    expect(d.guardarEleccion).toHaveBeenCalledWith(
       expect.objectContaining({
         p_renovacion: "ren",
         p_renovacion_expira_en: new Date(AHORA + 31_536_000_000).toISOString(),
@@ -170,7 +177,6 @@ describe("terminarConexionDePagina", () => {
     linkedin(["urn:li:organization:123", "urn:li:organization:999"])
     const d = deps()
     expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: true, eleccion: ELECCION })
-    expect(d.guardar).not.toHaveBeenCalled()
     expect(d.guardarEleccion).toHaveBeenCalledWith({
       p_cuenta: CUENTA,
       p_titular: "urn:li:person:abc",
@@ -205,14 +211,16 @@ describe("terminarConexionDePagina", () => {
   test("a database refusal is a failure, logged", async () => {
     linkedin(["urn:li:organization:123"])
     vi.spyOn(console, "error").mockImplementation(() => undefined)
-    const d = { ...deps(), guardar: vi.fn(async () => ({ error: { message: "cuenta_y_app_no_calzan" } })) }
+    const d = {
+      ...deps(),
+      guardarEleccion: vi.fn(async () => ({ data: null, error: { message: "solo_el_dueno_conecta" } })),
+    }
     expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "fallo" })
   })
 })
 
 describe("destinoDeLaPagina", () => {
   test("every outcome goes back inside the app", () => {
-    expect(destinoDeLaPagina({ ok: true, eleccion: null })).toBe("/marcas?linkedin=conectada")
     expect(destinoDeLaPagina({ ok: true, eleccion: ELECCION })).toBe(`/marcas/pagina?eleccion=${ELECCION}`)
     expect(destinoDeLaPagina({ ok: false, motivo: "sin_pagina" })).toBe("/marcas?linkedin=sin_pagina")
   })

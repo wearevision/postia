@@ -25,7 +25,9 @@ export default async function ElegirPagina({ searchParams }: { searchParams: Pro
       <h1 className="text-2xl font-semibold">¿Qué página conecto?</h1>
       {eleccion ? (
         <>
-          <p className="text-sm text-apagado">Tu cuenta de LinkedIn administra varias páginas. Elige la que publica.</p>
+          <p className="text-sm text-apagado">
+            Toca la página que publica esta cuenta. Hasta que la elijas, no queda conectada.
+          </p>
           <ul className="space-y-2">
             {eleccion.paginas.map((pagina) => (
               <li key={pagina.urn}>
