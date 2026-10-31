@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
-import { AprobarSerie, TarjetaDeIdea } from "@/app/(app)/ideas/idea"
+import { AprobarSerie, SerieEnCurso, TarjetaDeIdea } from "@/app/(app)/ideas/idea"
 import type { IdeaDeSerie, IdeaSuelta } from "@/lib/series/lectura"
 
 const PERFIL = { id: "c-perfil", nombre: "Federico" }
@@ -336,6 +336,55 @@ describe("AprobarSerie", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
     expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeInTheDocument()
     expect(aprobar).not.toHaveBeenCalled()
+  })
+})
+
+describe("a series while one of its cards counts down", () => {
+  test("blocks approving the whole series until the countdown ends or is undone", () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    render(
+      <SerieEnCurso>
+        <AprobarSerie
+          investigacionId="inv1"
+          formatos={["texto"]}
+          aprobar={vi.fn(async () => ({ ok: true as const }))}
+        />
+        <TarjetaDeIdea idea={PROPUESTA} cuentas={[PERFIL, PAGINA]} {...a} />
+      </SerieEnCurso>,
+    )
+    expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeEnabled()
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeDisabled()
+    expect(screen.getByText("Espera a que termine la aprobación en curso.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
+    expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeEnabled()
+    expect(screen.queryByText("Espera a que termine la aprobación en curso.")).not.toBeInTheDocument()
+  })
+
+  test("also disables Confirmar when the countdown starts after opening the confirmation", () => {
+    vi.useFakeTimers()
+    render(
+      <SerieEnCurso>
+        <AprobarSerie
+          investigacionId="inv1"
+          formatos={["texto"]}
+          aprobar={vi.fn(async () => ({ ok: true as const }))}
+        />
+        <TarjetaDeIdea idea={PROPUESTA} cuentas={[PERFIL, PAGINA]} {...acciones()} />
+      </SerieEnCurso>,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled()
+    expect(screen.getByText("Espera a que termine la aprobación en curso.")).toBeInTheDocument()
+  })
+
+  test("a card outside any series works as before", () => {
+    vi.useFakeTimers()
+    tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    expect(screen.getByRole("button", { name: "Deshacer" })).toBeInTheDocument()
   })
 })
 

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useTransition } from "react"
+import { createContext, useContext, useEffect, useState, useTransition } from "react"
 import { enDolares } from "@/lib/gasto/precios"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
@@ -19,6 +19,26 @@ import type {
 import type { FormatoDeIdea } from "@/lib/series/propuestas"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 import { useAccionDiferida } from "./aprobacion-diferida"
+
+interface ConteoDeSerie {
+  /** Cards of the series whose single approval is counting down. */
+  enCurso: number
+  contar: (delta: number) => void
+}
+
+/** Cards outside a series (crosses, Sunday ideas) have nothing to block. */
+const SIN_SERIE: ConteoDeSerie = { enCurso: 0, contar: () => {} }
+
+const ConteoDeSerieContexto = createContext<ConteoDeSerie>(SIN_SERIE)
+
+/** Lets «Aprobar la serie» know when a card of the series has an approval counting down. */
+export function SerieEnCurso({ children }: { children: React.ReactNode }) {
+  const [enCurso, setEnCurso] = useState(0)
+  const [valor] = useState(() => ({ contar: (delta: number) => setEnCurso((n) => n + delta) }))
+  return <ConteoDeSerieContexto.Provider value={{ enCurso, ...valor }}>{children}</ConteoDeSerieContexto.Provider>
+}
+
+const ESPERA_EN_CURSO = "Espera a que termine la aprobación en curso."
 
 const BOTON = "boton w-full"
 const PRIMARIO = "boton-primario w-full"
@@ -198,6 +218,12 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
   const [editando, setEditando] = useState(false)
   const { error, setError, pendiente, ejecutar } = useAccion()
   const diferida = useAccionDiferida()
+  const { contar } = useContext(ConteoDeSerieContexto)
+  useEffect(() => {
+    if (!diferida.esperando) return
+    contar(1)
+    return () => contar(-1)
+  }, [diferida.esperando, contar])
   // While an approval counts down nothing else may run: a discard would land before the approval it cannot undo.
   const ocupada = pendiente || diferida.esperando
   // The suggested account always shows, even if it is not among the person's own.
@@ -332,15 +358,19 @@ export function AprobarSerie({
   aprobar: (investigacionId: string) => Promise<Resultado>
 }) {
   const { error, pendiente, ejecutar } = useAccion()
+  const { enCurso } = useContext(ConteoDeSerieContexto)
   const [confirmando, setConfirmando] = useState(false)
+  const esperaAprobacion = enCurso > 0
   const piezas = formatos.length === 1 ? "1 pieza" : `${formatos.length} piezas`
   if (!confirmando)
     return (
       <div className="space-y-1">
-        <button type="button" onClick={() => setConfirmando(true)} className={PRIMARIO}>
+        <button type="button" disabled={esperaAprobacion} onClick={() => setConfirmando(true)} className={PRIMARIO}>
           Aprobar la serie
         </button>
-        <p className="text-sm text-apagado">Aprueba {piezas} con su cuenta sugerida.</p>
+        <p className="text-sm text-apagado">
+          {esperaAprobacion ? ESPERA_EN_CURSO : `Aprueba ${piezas} con su cuenta sugerida.`}
+        </p>
       </div>
     )
   return (
@@ -352,7 +382,7 @@ export function AprobarSerie({
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          disabled={pendiente}
+          disabled={pendiente || esperaAprobacion}
           onClick={() => ejecutar(() => aprobar(investigacionId))}
           className={PRIMARIO}
         >
@@ -362,6 +392,7 @@ export function AprobarSerie({
           Cancelar
         </button>
       </div>
+      {esperaAprobacion && <p className="text-sm text-apagado">{ESPERA_EN_CURSO}</p>}
       <Alerta error={error} />
     </fieldset>
   )

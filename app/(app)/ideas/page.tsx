@@ -18,7 +18,7 @@ import {
   moverAsignacionAccion,
   pedirOtraIdeaAccion,
 } from "./acciones"
-import { AprobarSerie, TarjetaDeIdea } from "./idea"
+import { AprobarSerie, SerieEnCurso, TarjetaDeIdea } from "./idea"
 
 type Parametros = Record<string, string | string[] | undefined>
 
@@ -110,14 +110,16 @@ function Serie({ serie, estado, cuentas }: { serie: SerieDeIdeas; estado: Estado
           </p>
         )}
       </div>
-      {formatos.length > 0 && (
-        <AprobarSerie investigacionId={serie.investigacionId} formatos={formatos} aprobar={aprobarSerieAccion} />
-      )}
-      {visibles.length > 0 ? (
-        <Tarjetas ideas={visibles} cuentas={cuentas} />
-      ) : (
-        serie.ideas.length > 0 && <p className="text-sm text-apagado">Nada con este filtro.</p>
-      )}
+      <SerieEnCurso>
+        {formatos.length > 0 && (
+          <AprobarSerie investigacionId={serie.investigacionId} formatos={formatos} aprobar={aprobarSerieAccion} />
+        )}
+        {visibles.length > 0 ? (
+          <Tarjetas ideas={visibles} cuentas={cuentas} />
+        ) : (
+          serie.ideas.length > 0 && <p className="text-sm text-apagado">Nada con este filtro.</p>
+        )}
+      </SerieEnCurso>
     </section>
   )
 }
