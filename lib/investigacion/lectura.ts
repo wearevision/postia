@@ -152,3 +152,12 @@ export async function sugerencias(db: Db): Promise<Sugerencia[]> {
   if (error) fallo("No pude leer las sugerencias", error)
   return data
 }
+
+export const NOMBRE_DEL_ESTADO_DE_INVESTIGACION: Record<EstadoDeInvestigacion, string> = {
+  en_cola: "En cola",
+  investigando: "Investigando",
+  informe_por_aprobar: "Informe listo",
+  aprobada: "Aprobada",
+  descartada: "Descartada",
+  fallo: "No salió",
+}
