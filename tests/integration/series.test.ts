@@ -31,6 +31,8 @@ let marcaAjena: string
 let pilarWav: string
 let pilarYo: string
 const hallazgosCreados: string[] = []
+/** Reports this file saved ideas for: its leftover proposals are set aside so other files' counts stay theirs. */
+const seriesCreadas = new Set<string>()
 
 /** Research jobs are taken globally, oldest first: each test starts with none open. Local test database only. */
 async function cerrarTrabajosAbiertos(): Promise<void> {
@@ -155,6 +157,7 @@ function idea(i: IdeaDePrueba) {
 }
 
 async function guardarSerie(investigacion: string, ideas: ReturnType<typeof idea>[]): Promise<string[]> {
+  seriesCreadas.add(investigacion)
   const { data, error } = await admin().rpc("guardar_serie", { p_investigacion: investigacion, p_ideas: ideas })
   if (error) throw error
   return data as string[]
@@ -223,6 +226,14 @@ beforeEach(cerrarTrabajosAbiertos)
 afterAll(async () => {
   await cerrarTrabajosAbiertos()
   await cerrarAsignacionesAbiertas()
+  if (seriesCreadas.size > 0) {
+    const { error } = await admin()
+      .from("ideas")
+      .update({ estado: "descartada" })
+      .eq("estado", "propuesta")
+      .in("investigacion_id", [...seriesCreadas])
+    if (error) throw error
+  }
   if (hallazgosCreados.length > 0) await admin().from("hallazgos").delete().in("id", hallazgosCreados)
 })
 

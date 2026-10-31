@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import { describe, expect, test, vi } from "vitest"
+import { beforeEach, describe, expect, test, vi } from "vitest"
 import { enviarResumenes } from "@/lib/avisos/enviar-resumen"
 import type { ServicioPush, SuscripcionPush } from "@/lib/avisos/push"
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
@@ -51,6 +51,12 @@ async function sinIdeasPorRevisar() {
   const { error } = await admin().from("ideas").update({ estado: "descartada" }).eq("estado", "propuesta")
   if (error) throw error
 }
+
+// Reports and ideas waiting are counted across every brand: each test starts with none left by other files.
+beforeEach(async () => {
+  await sinInformesPorAprobar()
+  await sinIdeasPorRevisar()
+})
 
 const lineaSinEnviar = async (marca: string) =>
   (await admin().from("avisos_pendientes").select("enviado_en").eq("marca_id", marca)).data?.map((l) => l.enviado_en)

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 import { TarjetaDeIdea } from "@/app/(app)/ideas/idea"
 import type { IdeaDeSerie } from "@/lib/series/lectura"
@@ -132,19 +132,25 @@ describe("TarjetaDeIdea", () => {
   })
 
   test("an error shows in an alert and the buttons are disabled while pending", async () => {
-    let terminar: (r: { ok: false; error: string }) => void = () => {}
+    // The test holds the action's promise and settles it itself: nothing depends on how fast the suite runs.
+    const descarte = Promise.withResolvers<{ ok: false; error: string }>()
     const a = acciones()
-    a.descartar.mockReturnValue(
-      new Promise((listo) => {
-        terminar = listo
-      }),
-    )
+    a.descartar.mockReturnValue(descarte.promise)
     tarjeta(PROPUESTA, a)
-    fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
-    await waitFor(() => expect(screen.getByRole("button", { name: "Aprobar" })).toBeDisabled())
-    terminar({ ok: false, error: "Esta idea ya no se puede descartar." })
-    expect(await screen.findByRole("alert")).toHaveTextContent("Esta idea ya no se puede descartar.")
-    expect(screen.getByRole("button", { name: "Aprobar" })).toBeEnabled()
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
+    })
+    expect(a.descartar).toHaveBeenCalledWith("i1")
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeDisabled()
+    expect(screen.queryByRole("alert")).toBeNull()
+    await act(async () => {
+      descarte.resolve({ ok: false, error: "Esta idea ya no se puede descartar." })
+      await descarte.promise
+    })
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Esta idea ya no se puede descartar.")
+      expect(screen.getByRole("button", { name: "Aprobar" })).toBeEnabled()
+    })
   })
 
   test("an approved idea shows each slot with its account, date and state; no review buttons", () => {
