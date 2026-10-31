@@ -34,6 +34,18 @@ async function cuentaConRitmo(marca: string, ritmo: number) {
   return cuenta
 }
 
+/**
+ * Reports waiting are counted across every brand, so a test that expects silence sets aside the ones earlier files
+ * left. Local test database only.
+ */
+async function sinInformesPorAprobar() {
+  const { error } = await admin()
+    .from("investigaciones")
+    .update({ estado: "descartada" })
+    .eq("estado", "informe_por_aprobar")
+  if (error) throw error
+}
+
 const lineaSinEnviar = async (marca: string) =>
   (await admin().from("avisos_pendientes").select("enviado_en").eq("marca_id", marca)).data?.map((l) => l.enviado_en)
 
@@ -106,6 +118,7 @@ describe("enviarResumenes", () => {
   })
 
   test("a person with nothing pending and no weekly rhythm gets nothing", async () => {
+    await sinInformesPorAprobar()
     const { userId } = await personaConSesion("resumen-vacio")
     const marca = await marcaConDueno(userId)
     await cuentaConRitmo(marca, 0)
@@ -197,5 +210,35 @@ describe("enviarResumenes", () => {
     expect(cuerpo).toContain(`«Olvidado» no ha salido en ${cuentaLeida?.nombre} en más de dos semanas.`)
     expect(cuerpo).not.toContain("En camino")
     expect(de(endpointAjeno)[0]?.mensaje.cuerpo).not.toContain("Olvidado")
+  })
+
+  test("every owner hears how many research reports wait, whatever the brand", async () => {
+    await sinInformesPorAprobar()
+    const pide = await personaConSesion("resumen-informes-pide")
+    await marcaConDueno(pide.userId)
+    const otro = await personaConSesion("resumen-informes-otro")
+    const marcaDelOtro = await marcaConDueno(otro.userId)
+    await cuentaConRitmo(marcaDelOtro, 0)
+    const { error } = await admin()
+      .from("investigaciones")
+      .insert(
+        ["Uno", "Dos"].map((tema) => ({
+          origen: "encargo",
+          tema,
+          cantidad: 3,
+          formato: "texto",
+          pedida_por: pide.userId,
+          estado: "informe_por_aprobar",
+        })),
+      )
+    if (error) throw error
+    const endpoint = await aparato(otro.userId)
+    const { falso, de } = servicio()
+
+    await enviarResumenes(admin(), falso, Date.now())
+
+    expect(de(endpoint)).toHaveLength(1)
+    expect(de(endpoint)[0]?.mensaje.cuerpo).toBe("2 informes esperan tu revisión.")
+    await sinInformesPorAprobar()
   })
 })
