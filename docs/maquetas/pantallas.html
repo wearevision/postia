@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PostIA · pantallas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400&display=swap">
+<style>/* Tokens del sistema de diseño PostIA (claro / oscuro). Solo se definen aquí; el resto usa var(). */
+:root, .tel {
+  --background: #e4e5e8; --superficie: #f0f0f2; --superficie-elevada: #fbfbfd;
+  --foreground: #1c1c20; --apagado: #5a5b63; --borde: #cfd0d5;
+  --control: #767986; /* borde de controles: 3.4:1 sobre background */
+  --primario: #c2007a; --primario-texto: #fbfbfd;
+  --exito: #006d94; --atencion: #c2007a; --peligro: #c2007a; --logo-globo: #ff00aa;
+  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --radius-sm: 10px; --radius-md: 16px; --radius-lg: 22px; --radius-full: 9999px;
+  /* Neumorfismo: luz arriba-izquierda y sombra abajo-derecha sobre el mismo color de fondo. */
+  --neu-sombra: rgba(120, 124, 135, .45); --neu-luz: rgba(255, 255, 255, .92);
+  --relieve: 6px 6px 14px var(--neu-sombra), -6px -6px 14px var(--neu-luz);
+  --relieve-sm: 3px 3px 8px var(--neu-sombra), -3px -3px 8px var(--neu-luz);
+  --hundido: inset 3px 3px 7px var(--neu-sombra), inset -3px -3px 7px var(--neu-luz);
+}
+.tel.oscuro {
+  --background: #17171a; --superficie: #1f1f23; --superficie-elevada: #2a2a30;
+  --foreground: #ededf0; --apagado: #a3a4ad; --borde: #2c2d33;
+  --control: #6b6d78;
+  --primario: #ff7ac8; --primario-texto: #1a0a14;
+  --exito: #5cd0f2; --atencion: #ff7ac8; --peligro: #ff7ac8;
+  --neu-sombra: rgba(0, 0, 0, .9); --neu-luz: rgba(255, 255, 255, .14);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; padding: 32px; background: #c9cacf; font-family: var(--font-sans); color: #1c1c20; }
+.pagina-t { font: 700 28px/34px var(--font-sans); letter-spacing: -.02em; margin: 0 0 4px; }
+.pagina-s { margin: 0 0 24px; color: #46474f; font-size: 14px; }
+.rejilla { display: flex; flex-wrap: wrap; gap: 40px 32px; align-items: flex-start; }
+
+.tel { margin: 0; width: 390px; }
+.tel figcaption { font: 600 13px/18px var(--font-sans); color: #46474f; margin: 0 0 10px 6px; }
+.pantalla { position: relative; width: 390px; height: var(--h, 844px); overflow: hidden; border-radius: 40px; background: var(--background); color: var(--foreground); }
+.contenido { position: absolute; inset: 0 0 100px 0; padding: 16px 24px 12px; overflow: hidden; display: flex; flex-direction: column; gap: 16px; }
+.contenido > * { flex: none; }
+
+/* tipografía */
+.display { font: 700 30px/34px var(--font-sans); letter-spacing: -.03em; margin: 0; }
+.titulo { font: 700 20px/24px var(--font-sans); letter-spacing: -.01em; margin: 0; }
+.subtitulo { font: 600 16px/22px var(--font-sans); margin: 0; }
+.cuerpo { font: 400 15px/22px var(--font-sans); margin: 0; }
+.etiqueta { font: 500 13px/18px var(--font-sans); display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.micro { font: 400 12px/16px var(--font-sans); margin: 0; }
+.texto-sm { font: 400 13px/18px var(--font-sans); margin: 0; }
+.dato { font: 400 13px/18px var(--font-mono); margin: 0; }
+.apagado { color: var(--apagado); }
+.centro { text-align: center; }
+.i { width: 18px; height: 18px; flex: none; }
+.enlace { color: var(--primario); font: 600 14px/20px var(--font-sans); text-decoration: underline; min-height: 44px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* estados interactivos */
+a, button, input { -webkit-tap-highlight-color: transparent; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--primario); outline-offset: 3px; }
+button { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.btn:active, .nav-i:active, .seg a:active, .fila:active, .icb:active, .gasto:active, .tags button:active { box-shadow: var(--hundido); }
+.btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; background: var(--borde); color: var(--foreground); box-shadow: var(--hundido); border: 1px dashed var(--control); }
+.btn[aria-busy="true"] { cursor: progress; }
+
+/* encabezado */
+.top { display: flex; align-items: center; justify-content: space-between; min-height: 52px; gap: 12px; }
+.logo { height: 48px; width: 111px; color: var(--foreground); }
+.atras { display: flex; align-items: center; gap: 10px; }
+.icb { width: 44px; height: 44px; border-radius: var(--radius-full); display: grid; place-items: center; box-shadow: var(--relieve-sm); border: 1px solid var(--control); color: var(--foreground); }
+.gasto { height: 44px; padding: 0 14px; border-radius: var(--radius-full); display: flex; align-items: center; gap: 8px; box-shadow: var(--relieve-sm); border: 1px solid var(--control); }
+.tope { display: block; position: relative; width: 56px; height: 8px; border-radius: 4px; box-shadow: var(--hundido); border: 1px solid var(--control); overflow: visible; }
+.tope b { display: block; height: 100%; width: var(--w); background: var(--foreground); border-radius: 3px; }
+.tope::after { content: ""; position: absolute; top: -6px; bottom: -6px; left: 80%; width: 3px; background: var(--primario); box-shadow: 0 0 0 2px var(--background); border-radius: 1px; z-index: 2; }
+
+/* secciones y filas */
+section { display: flex; flex-direction: column; }
+.sec-t { font: 600 13px/18px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; margin: 0 4px 12px; display: flex; justify-content: space-between; color: var(--apagado); }
+.sec-t.sin { margin: 0; }
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.fila { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: var(--radius-lg); box-shadow: var(--relieve); color: inherit; text-decoration: none; }
+.meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cuenta { font: 600 14px/18px var(--font-sans); }
+.fila .cuerpo { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.pie .i { color: var(--apagado); }
+.fija { gap: 8px; }
+
+/* estado: palabra + marca con forma propia */
+.est { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/18px var(--font-sans); color: var(--foreground); }
+.est .i { width: 16px; height: 16px; }
+.est.pend { color: var(--primario); }
+.est.pend .pt { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--primario); }
+.est.ok { color: var(--exito); }
+.est.mal { color: var(--foreground); font-weight: 700; padding: 8px 12px; border-radius: var(--radius-sm); box-shadow: var(--hundido); align-self: flex-start; }
+.est.mal .i { color: var(--primario); }
+.est.neutro { color: var(--apagado); }
+.aviso, .nota { display: flex; align-items: flex-start; gap: 8px; margin: 0; font: 400 13px/18px var(--font-sans); }
+.nota { color: var(--foreground); }
+.aviso { color: var(--foreground); }
+.ayuda { display: flex; align-items: flex-start; gap: 8px; margin: 0; font: 400 13px/18px var(--font-sans); color: var(--apagado); }
+.ayuda .i { width: 16px; height: 16px; }
+
+/* botones */
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: var(--radius-md); font: 600 15px/20px var(--font-sans); width: 100%; }
+.btn.prim { background: var(--primario); color: var(--primario-texto); box-shadow: var(--relieve); }
+.btn.sec { color: var(--foreground); padding: 0 12px; font-size: 14px; box-shadow: var(--relieve-sm); border: 1px solid var(--control); }
+.btn.chico { width: auto; align-self: flex-start; min-height: 44px; padding: 0 16px; }
+.btn.grande { min-height: 56px; font-size: 16px; }
+.dos { display: flex; gap: 14px; }
+.dos .btn { flex: 1; }
+.descartar { min-height: 44px; margin-top: 16px; text-align: center; color: var(--foreground); font: 500 14px/20px var(--font-sans); text-decoration: underline; }
+
+/* inicio */
+.ventana { display: flex; flex-direction: column; gap: 12px; }
+.vacio { border-radius: var(--radius-lg); box-shadow: var(--hundido); padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.reserva { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.reserva li { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--borde); padding-top: 8px; }
+
+/* pieza */
+.h-pieza { font-size: 28px; line-height: 32px; }
+.laminas { display: flex; gap: 12px; margin: 0 -24px; padding: 8px 24px 14px; overflow: hidden; scroll-snap-type: x mandatory; scroll-padding-inline: 24px; }
+.lamina { flex: none; width: 168px; aspect-ratio: 4/5; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; border-radius: var(--radius-sm); box-shadow: var(--relieve-sm); border: 1px solid var(--control); font: 700 16px/20px var(--font-sans); letter-spacing: -.01em; scroll-snap-align: start; }
+.lamina.l1 { background: var(--foreground); color: var(--background); border-color: transparent; }
+.texto { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--radius-md); box-shadow: var(--hundido); }
+.datos { margin: 0; padding: 4px 16px; border-radius: var(--radius-md); box-shadow: var(--hundido); display: flex; flex-direction: column; }
+.datos > div { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; gap: 12px; }
+.datos > div + div { border-top: 1px solid var(--borde); }
+.datos dt { font: 500 13px/18px var(--font-sans); color: var(--apagado); display: inline-flex; gap: 6px; align-items: center; }
+.datos dd { margin: 0; display: flex; align-items: center; gap: 12px; }
+.aviso-ok { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--relieve); }
+.confirmar { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--radius-lg); box-shadow: var(--relieve); border: 1px solid var(--control); }
+
+/* calendario */
+.seg { display: flex; padding: 4px; gap: 4px; border-radius: var(--radius-md); box-shadow: var(--hundido); border: 1px solid var(--control); }
+.seg a { flex: 1; min-height: 44px; display: grid; place-items: center; border-radius: 12px; font: 600 14px/20px var(--font-sans); color: var(--apagado); text-decoration: none; padding: 0 12px; }
+.seg a.on { background: var(--primario); color: var(--primario-texto); box-shadow: var(--relieve-sm); }
+.seg.chico { padding: 3px; }
+.seg.chico a { min-height: 44px; font-size: 13px; }
+.semana-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dias { display: flex; flex-direction: column; gap: 14px; }
+.dia { display: flex; gap: 12px; padding: 10px 14px; border-radius: var(--radius-lg); box-shadow: var(--relieve); }
+.dia-n { width: 32px; display: flex; flex-direction: column; align-items: flex-start; }
+.cal-l { list-style: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.cal-i { display: flex; flex-direction: column; gap: 3px; }
+.cal-i + .cal-i { padding-top: 8px; border-top: 1px solid var(--borde); }
+.cal-i .corto { font-size: 14px; line-height: 20px; }
+.pilares { gap: 10px; }
+.barra { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; }
+.barra i { grid-column: 1 / -1; height: 10px; border-radius: 5px; box-shadow: var(--hundido); border: 1px solid var(--control); position: relative; overflow: visible; }
+.barra i::after, .progreso i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--foreground); border-radius: 5px; opacity: .78; }
+.barra i::before { content: ""; position: absolute; top: -5px; bottom: -5px; left: var(--m); width: 3px; background: var(--primario); box-shadow: 0 0 0 2px var(--background); border-radius: 1px; z-index: 2; }
+
+/* investigar */
+.form { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.campo { width: 100%; padding: 11px 16px; border-radius: var(--radius-md); box-shadow: var(--hundido); border: 1px solid var(--control); background: transparent; color: var(--foreground); font: 400 15px/22px var(--font-sans); min-height: 48px; }
+.par2 { display: grid; grid-template-columns: 90px 1fr; gap: 12px; }
+.par2 > div { display: flex; flex-direction: column; gap: 6px; }
+.tags { display: flex; flex-wrap: wrap; gap: 10px; padding: 2px 2px 4px; }
+.tags button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font: 500 13px/18px var(--font-sans); padding: 0 14px; border-radius: var(--radius-sm); box-shadow: var(--relieve-sm); border: 1px solid var(--control); }
+.tags button.sel { box-shadow: var(--hundido); color: var(--foreground); font-weight: 700; }
+.tags button.sel .i { color: var(--primario); }
+.tags .i { width: 16px; height: 16px; }
+.costo { color: var(--apagado); }
+.progreso { height: 10px; border-radius: 5px; box-shadow: var(--hundido); border: 1px solid var(--control); position: relative; }
+.progreso i { display: block; height: 100%; }
+
+/* navegación */
+.nav { position: absolute; left: 14px; right: 14px; bottom: calc(16px + env(safe-area-inset-bottom)); height: 72px; display: flex; gap: 4px; padding: 6px; border-radius: 28px; box-shadow: var(--relieve); border: 1px solid var(--control); }
+.nav-i { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 22px; font: 500 12px/14px var(--font-sans); color: var(--apagado); text-decoration: none; }
+.nav-i.on { color: var(--primario); font-weight: 600; box-shadow: var(--hundido); }
+
+.tel.oscuro .texto, .tel.oscuro .datos, .tel.oscuro .vacio, .tel.oscuro .est.mal { border: 1px solid var(--borde); }
+
+/* pieza: CTA fija sobre la barra; el contenido se desplaza detrás */
+.pantalla.con-cta .contenido { inset: 0 0 128px 0; }
+.pantalla.sin-nav .contenido { inset: 0 0 24px 0; }
+.pantalla.sin-nav .cta-fija { bottom: 0; padding-bottom: 20px; }
+.pantalla.sin-nav.con-cta .contenido { inset: 0 0 128px 0; }
+.rollo { display: flex; flex-direction: column; gap: 16px; }
+.cta-fija { position: absolute; left: 0; right: 0; bottom: 100px; padding: 10px 24px 8px; background: var(--background); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 -14px 14px var(--background); }
+.cta-fija .btn { width: 100%; }
+.centro { text-align: center; }
+
+/* fallo de red al firmar */
+.fallo { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--radius-lg); box-shadow: var(--relieve); border: 1px solid var(--control); }
+.fallo .est.mal { box-shadow: var(--hundido); }
+
+/* ronda 3 */
+.sig { font: 600 12px/16px var(--font-sans); color: var(--primario); border: 1px solid var(--primario); border-radius: var(--radius-full); padding: 1px 8px; margin-right: auto; margin-left: 8px; }
+.meta .sig + .dato { margin-left: 8px; }
+.puntos { display: flex; gap: 8px; justify-content: center; padding: 0 0 2px; }
+.puntos i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--control); box-shadow: var(--hundido); }
+.puntos i.v { background: var(--foreground); border-color: var(--foreground); box-shadow: none; }
+.detalles { border-radius: var(--radius-md); box-shadow: var(--relieve-sm); border: 1px solid var(--control); padding: 0 16px; }
+.detalles summary { min-height: 48px; display: flex; align-items: center; justify-content: space-between; font: 600 14px/20px var(--font-sans); cursor: pointer; list-style: none; }
+.detalles summary::-webkit-details-marker { display: none; }
+.detalles[open] summary .i { transform: rotate(180deg); }
+.detalles .datos { box-shadow: none; padding: 0; }
+.detalles .ayuda { padding: 4px 0 14px; }
+.cal-a { display: flex; flex-direction: column; gap: 3px; color: inherit; text-decoration: none; min-height: 44px; }
+.cal-a:active { box-shadow: var(--hundido); }
+.fila-completa { grid-column: 1 / -1; }
+.barra .aviso { margin-top: 2px; }
+.tel.oscuro .fila, .tel.oscuro .dia, .tel.oscuro .aviso-ok, .tel.oscuro .fallo, .tel.oscuro .confirmar { border: 1px solid var(--borde); }
+.btn.prim:disabled .i { width: 18px; height: 18px; }
+.btn.prim:disabled { background: var(--borde); color: var(--foreground); }
+
+/* ronda 4 */
+.icono-aviso { display: inline-flex; flex: none; }
+.aviso > span:last-child, .nota > span:last-child, .ayuda > span:last-child { flex: 1; min-width: 0; }
+.ventana .aviso { margin: 0; }
+.visor { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.visor .enlace { padding: 0 4px; }
+.visor .i { margin-right: 6px; }
+.enlace-sm { color: var(--primario); text-decoration: underline; font-weight: 600; }
+.hoy { margin-top: 6px; font: 600 11px/14px var(--font-sans); color: var(--primario); border: 1px solid var(--primario); border-radius: var(--radius-full); padding: 1px 6px; }
+.dia.es-hoy { box-shadow: var(--hundido); }
+.pilares { padding-bottom: 14px; }
+.pilares .seg.chico { margin: 4px 0 10px; }
+.pilares .barra { margin-top: 10px; }
+.pilares summary { color: var(--foreground); }
+.btn[aria-busy="true"] .i { animation: giro 1s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .btn[aria-busy="true"] .i { animation: none; } }
+
+/* teléfono real: una pantalla por fila, a ancho completo */
+@media (max-width: 500px) {
+  body { padding: 12px 0 32px; }
+  .pagina-t, .pagina-s { padding: 0 16px; }
+  .rejilla { gap: 28px; }
+  .tel, .pantalla { width: 100%; }
+  .tel figcaption { margin-left: 16px; }
+}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="logo" viewBox="-48 -808 2670 1158"><path id="fumetto" d="M90 -800H2484A130 130 0 0 1 2614 -670V-18A130 130 0 0 1 2484 112H400L130 342L220 112H90A130 130 0 0 1 -40 -18V-670A130 130 0 0 1 90 -800Z" fill="none" style="stroke:var(--logo-globo)" stroke-width="16" stroke-linejoin="round"/>
+<g id="PostIA" fill="currentColor">
+<g id="Post">
+  <path id="post-P-0" d="M60 0V-700H350Q429 -700 490.0 -669.0Q551 -638 585.5 -583.0Q620 -528 620 -456Q620 -384 585.5 -328.5Q551 -273 490.0 -241.5Q429 -210 350 -210H245V0ZM245 -380H345Q383 -380 406.5 -401.0Q430 -422 430 -456Q430 -489 406.5 -510.0Q383 -531 345 -531H245Z"/>
+  <path id="post-o-1" d="M813.0 12Q733.0 12 671.5 -21.5Q610.0 -55 575.0 -114.0Q540.0 -173 540.0 -250Q540.0 -327 574.5 -386.0Q609.0 -445 670.5 -478.5Q732.0 -512 811.0 -512Q891.0 -512 952.5 -478.5Q1014.0 -445 1048.5 -386.0Q1083.0 -327 1083.0 -250Q1083.0 -173 1048.5 -114.0Q1014.0 -55 953.0 -21.5Q892.0 12 813.0 12ZM813.0 -154Q838.0 -154 857.0 -166.5Q876.0 -179 887.0 -200.5Q898.0 -222 898.0 -250Q898.0 -278 887.0 -299.5Q876.0 -321 856.5 -333.5Q837.0 -346 811.0 -346Q786.0 -346 766.5 -333.5Q747.0 -321 736.0 -299.5Q725.0 -278 725.0 -250Q725.0 -222 736.0 -200.5Q747.0 -179 767.0 -166.5Q787.0 -154 813.0 -154Z"/>
+  <path id="post-s-2" d="M1242.0 12Q1192.0 12 1149.0 -2.0Q1106.0 -16 1075.5 -41.5Q1045.0 -67 1033.0 -103L1176.0 -159Q1187.0 -132 1207.0 -124.5Q1227.0 -117 1242.0 -117Q1258.0 -117 1268.0 -124.0Q1278.0 -131 1278.0 -144Q1278.0 -158 1264.0 -167.5Q1250.0 -177 1221.0 -184L1180.0 -194Q1113.0 -211 1079.0 -253.0Q1045.0 -295 1045.0 -351Q1045.0 -428 1101.5 -470.0Q1158.0 -512 1255.0 -512Q1314.0 -512 1354.5 -497.5Q1395.0 -483 1421.0 -457.0Q1447.0 -431 1461.0 -397L1322.0 -344Q1315.0 -364 1298.5 -373.0Q1282.0 -382 1258.0 -382Q1241.0 -382 1231.5 -374.0Q1222.0 -366 1222.0 -355Q1222.0 -343 1236.5 -334.5Q1251.0 -326 1281.0 -318L1322.0 -308Q1368.0 -297 1402.0 -274.5Q1436.0 -252 1455.0 -219.0Q1474.0 -186 1474.0 -143Q1474.0 -94 1445.0 -59.5Q1416.0 -25 1364.0 -6.5Q1312.0 12 1242.0 12Z"/>
+  <path id="post-t-3" d="M1672.0 12Q1579.0 12 1534.0 -32.0Q1489.0 -76 1489.0 -158V-350H1414.0V-500H1489.0V-656H1669.0V-500H1772.0V-350H1669.0V-207Q1669.0 -179 1677.0 -167.0Q1685.0 -155 1704.0 -155Q1712.0 -155 1724.0 -160.0Q1736.0 -165 1743.0 -170L1804.0 -40Q1781.0 -20 1744.0 -4.0Q1707.0 12 1672.0 12Z"/>
+</g>
+<g id="IA">
+  <path id="ia-I-0" d="M1842.0 0 1959.0 -700H2023.0L1906.0 0Z"/>
+  <path id="ia-A-1" d="M1866.0 0 2271.0 -700H2343.0L2514.0 0H2449.0L2397.0 -217H2064.0L1940.0 0ZM2098.0 -275H2383.0L2299.0 -626Z"/>
+</g>
+</g>
+</symbol></svg>
+<h1 class="pagina-t">PostIA · pantallas</h1>
+<p class="pagina-s">Maquetas estáticas con contenido de ejemplo (hoy es lunes 2 de noviembre). Vocabulario: turno = periodo del día para firmar; cupo = hueco semanal de publicación; margen = los 30 min para que salga una pieza. Dentro del flujo de firma se oculta la barra de navegación.</p>
+<div class="rejilla">
+<figure class="tel"><figcaption>Inicio</figcaption><div class="pantalla" style="--h:1320px"><main class="contenido"><header class="top"><svg class="logo" role="img" aria-label="PostIA"><use href="#logo"/></svg><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<h1 class="display">Lunes 2 de noviembre</h1>
+<section><h2 class="sec-t">Revisar<span class="dato">1</span></h2><ul class="lista"><li class="fila fija"><div class="meta"><b class="cuenta">WAV</b><span class="dato apagado">mié 28 oct · hace 5 días</span></div><p class="cuerpo">Qué pedirle a un focus group antes de empezar.</p>
+<span class="est mal"><svg class="i" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>No salió dentro de su margen de 30 min</span><p class="texto-sm">No se publica tarde: se vuelve a pedir tu firma.</p>
+<button class="btn sec chico" type="button">Volver a firmar</button></li></ul></section>
+<div class="ventana"><p class="cuerpo">Turno de la mañana abierto hasta las <b>12:00</b>.<br><span class="apagado">Esta semana: 2 de 6 firmadas.</span></p>
+<p class="aviso"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span>Pasaste el 80 % del tope del mes.</span></p>
+<button class="btn prim" type="button">Firmar las 3 en secuencia</button></div>
+<section><h2 class="sec-t">Por firmar<span class="dato">3</span></h2><ul class="lista">
+<li><a href="#" class="fila"><div class="meta"><b class="cuenta">WAV</b><span class="sig">Siguiente</span><span class="dato apagado">mar 3 nov</span></div><p class="cuerpo">Tres señales de que tu evento necesita medir antes de producir.</p><div class="pie"><span class="dato">Sale mar 3 nov, 15:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li><a href="#" class="fila"><div class="meta"><b class="cuenta">Federico</b><span class="dato apagado">mié 4 nov</span></div><p class="cuerpo">Lo que dejó una semana de entrevistas: cinco hallazgos que cambiaron cómo moderamos.</p><div class="pie"><span class="dato">Sale mié 4 nov, 11:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li><a href="#" class="fila"><div class="meta"><b class="cuenta">Federico</b><span class="dato apagado">jue 5 nov</span></div><p class="cuerpo">Tres preguntas que cambian un focus group antes de que empiece.</p><div class="pie"><span class="dato">Sale jue 5 nov, 11:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li></ul></section>
+<section><h2 class="sec-t">Sin pieza<span class="dato">1</span></h2><ul class="lista"><li class="fila fija"><div class="meta"><b class="cuenta">WAV</b><span class="dato apagado">jue 5 nov</span></div><p class="cuerpo apagado">Cupo de las 15:00 sin pieza.</p><button class="btn sec chico" type="button">Asignar una pieza</button></li></ul></section></main><nav class="nav" aria-label="Principal"><a href="#" class="nav-i on" aria-current="page"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><span>Nueva</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>Calendario</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg><span>Marcas</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></svg><span>Ajustes</span></a></nav></div></figure>
+<figure class="tel"><figcaption>Inicio · sin pendientes</figcaption><div class="pantalla" style="--h:844px"><main class="contenido"><header class="top"><svg class="logo" role="img" aria-label="PostIA"><use href="#logo"/></svg><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<h1 class="display">Jueves 5 de noviembre</h1>
+<div class="vacio"><p class="titulo">Nada por firmar</p>
+<p class="cuerpo">El próximo turno abre el <b>lunes 9 a las 8:00</b>.<br><span class="apagado">Esta semana: 6 de 6 firmadas.</span></p>
+<ul class="reserva"><li><span class="cuenta">WAV</span><span class="est ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Reserva lista</span></li><li><span class="cuenta">Federico</span><span class="est pend"><i class="pt"></i>Reserva sin firmar</span></li></ul>
+<p class="texto-sm apagado">La reserva es una semana firmada de antemano: sale sola si falta una firma.</p></div>
+<button class="btn prim" type="button">Firmar reserva de Federico</button>
+<button class="btn sec" type="button">Nueva pieza</button></main><nav class="nav" aria-label="Principal"><a href="#" class="nav-i on" aria-current="page"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><span>Nueva</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>Calendario</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg><span>Marcas</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></svg><span>Ajustes</span></a></nav></div></figure>
+<figure class="tel"><figcaption>Pieza · arriba, firma bloqueada</figcaption><div class="pantalla con-cta sin-nav" style="--h:844px"><main class="contenido"><div class="rollo" style="transform:translateY(-0px)"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est pend"><i class="pt"></i>Por firmar</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<p class="dato">Sale mar 3 nov, 15:00 · margen de 30 min</p>
+<div class="laminas" role="group" aria-label="Carrusel de 6 láminas">
+<div class="lamina l1"><span class="dato">1/6</span><b>Tres señales de que tu evento necesita medir</b></div>
+<div class="lamina"><span class="dato">2/6</span><b>1. Nadie sabe qué debería cambiar después</b></div>
+<div class="lamina"><span class="dato">3/6</span><b>2. El éxito se define al terminar</b></div></div>
+<div class="visor"><div class="puntos" role="img" aria-label="Viste 3 de 6 láminas"><i class="v"></i><i class="v"></i><i class="v"></i><i class=""></i><i class=""></i><i class=""></i></div><a href="#" class="enlace"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>Ver las 6 juntas</a></div>
+<article class="texto"><h2 class="etiqueta apagado">Texto del post</h2>
+<p class="cuerpo">Antes de producir, define qué vas a medir. Si la respuesta llega después del evento, ya llegó tarde.</p>
+<p class="cuerpo">1. Nadie sabe qué debería cambiar después. 2. El éxito se define al terminar. 3. Nadie decide con lo que midió.</p>
+<p class="texto-sm apagado">Fuente: <a href="#" class="enlace-sm">investigación del 24 oct</a></p></article>
+<p class="nota"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span><span>Texto escrito con IA: puede tener errores. Léelo entero antes de firmar.</span></p>
+<details class="detalles"><summary>Detalles de la firma<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+<dl class="datos"><div><dt>Fecha y hora</dt><dd><span class="dato">mar 3 nov, 15:00</span> <a href="#" class="enlace">Cambiar fecha</a></dd></div>
+<div><dt><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Huella</dt><dd class="dato">7f3a·c91e·04b2</dd></div></dl></details>
+<div class="dos"><button class="btn sec" type="button">Pedir otra versión</button><button class="btn sec" type="button">Corregir texto</button></div>
+<button class="descartar" type="button">Descartar pieza</button></div></main><div class="cta-fija"><button class="btn prim grande" type="button" disabled><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Firmar WAV · mar 3 nov, 15:00</button><p class="texto-sm centro">Viste 3 de 6 láminas. Faltan 3 por ver.</p></div></div></figure>
+<figure class="tel"><figcaption>Pieza · abajo, lista para firmar</figcaption><div class="pantalla con-cta sin-nav" style="--h:844px"><main class="contenido"><div class="rollo" style="transform:translateY(-500px)"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est pend"><i class="pt"></i>Por firmar</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<p class="dato">Sale mar 3 nov, 15:00 · margen de 30 min</p>
+<div class="laminas" role="group" aria-label="Carrusel de 6 láminas">
+<div class="lamina l1"><span class="dato">1/6</span><b>Tres señales de que tu evento necesita medir</b></div>
+<div class="lamina"><span class="dato">2/6</span><b>1. Nadie sabe qué debería cambiar después</b></div>
+<div class="lamina"><span class="dato">3/6</span><b>2. El éxito se define al terminar</b></div></div>
+<div class="visor"><div class="puntos" role="img" aria-label="Viste 6 de 6 láminas"><i class="v"></i><i class="v"></i><i class="v"></i><i class="v"></i><i class="v"></i><i class="v"></i></div><a href="#" class="enlace"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>Ver las 6 juntas</a></div>
+<article class="texto"><h2 class="etiqueta apagado">Texto del post</h2>
+<p class="cuerpo">Antes de producir, define qué vas a medir. Si la respuesta llega después del evento, ya llegó tarde.</p>
+<p class="cuerpo">1. Nadie sabe qué debería cambiar después. 2. El éxito se define al terminar. 3. Nadie decide con lo que midió.</p>
+<p class="texto-sm apagado">Fuente: <a href="#" class="enlace-sm">investigación del 24 oct</a></p></article>
+<p class="nota"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span><span>Texto escrito con IA: puede tener errores. Léelo entero antes de firmar.</span></p>
+<details class="detalles" open><summary>Detalles de la firma<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+<dl class="datos"><div><dt>Fecha y hora</dt><dd><span class="dato">mar 3 nov, 15:00</span> <a href="#" class="enlace">Cambiar fecha</a></dd></div>
+<div><dt><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Huella</dt><dd class="dato">7f3a·c91e·04b2</dd></div></dl><p class="ayuda"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>La huella identifica esta versión exacta. Si cambias el texto o la pieza, tu firma se cae.</span></p></details>
+<div class="dos"><button class="btn sec" type="button">Pedir otra versión</button><button class="btn sec" type="button">Corregir texto</button></div>
+<button class="descartar" type="button">Descartar pieza</button></div></main><div class="cta-fija"><button class="btn prim grande" type="button">Firmar WAV · mar 3 nov, 15:00</button><p class="texto-sm centro apagado">Firmar no genera gasto: texto y plantilla no cuestan.</p></div></div></figure>
+<figure class="tel"><figcaption>Pieza · firmando</figcaption><div class="pantalla con-cta sin-nav" style="--h:844px"><main class="contenido"><div class="rollo" style="transform:translateY(-0px)"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est pend"><i class="pt"></i>Por firmar</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<p class="dato">Sale mar 3 nov, 15:00 · margen de 30 min</p>
+<div class="laminas" role="group" aria-label="Carrusel de 6 láminas">
+<div class="lamina l1"><span class="dato">1/6</span><b>Tres señales de que tu evento necesita medir</b></div>
+<div class="lamina"><span class="dato">2/6</span><b>1. Nadie sabe qué debería cambiar después</b></div>
+<div class="lamina"><span class="dato">3/6</span><b>2. El éxito se define al terminar</b></div></div>
+<div class="visor"><div class="puntos" role="img" aria-label="Viste 6 de 6 láminas"><i class="v"></i><i class="v"></i><i class="v"></i><i class="v"></i><i class="v"></i><i class="v"></i></div><a href="#" class="enlace"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>Ver las 6 juntas</a></div>
+<article class="texto"><h2 class="etiqueta apagado">Texto del post</h2>
+<p class="cuerpo">Antes de producir, define qué vas a medir. Si la respuesta llega después del evento, ya llegó tarde.</p>
+<p class="cuerpo">1. Nadie sabe qué debería cambiar después. 2. El éxito se define al terminar. 3. Nadie decide con lo que midió.</p>
+<p class="texto-sm apagado">Fuente: <a href="#" class="enlace-sm">investigación del 24 oct</a></p></article>
+<p class="nota"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span><span>Texto escrito con IA: puede tener errores. Léelo entero antes de firmar.</span></p>
+<details class="detalles"><summary>Detalles de la firma<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+<dl class="datos"><div><dt>Fecha y hora</dt><dd><span class="dato">mar 3 nov, 15:00</span> <a href="#" class="enlace">Cambiar fecha</a></dd></div>
+<div><dt><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Huella</dt><dd class="dato">7f3a·c91e·04b2</dd></div></dl></details>
+<div class="dos"><button class="btn sec" type="button">Pedir otra versión</button><button class="btn sec" type="button">Corregir texto</button></div>
+<button class="descartar" type="button">Descartar pieza</button></div></main><div class="cta-fija"><button class="btn prim grande" type="button" aria-busy="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Firmando…</button><p class="texto-sm centro apagado">No cierres esta pantalla.</p></div></div></figure>
+<figure class="tel"><figcaption>Pieza · firmada, con deshacer</figcaption><div class="pantalla sin-nav" style="--h:844px"><main class="contenido"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Firmada</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<p class="dato">Sale mar 3 nov, 15:00 · margen de 30 min</p>
+<div class="aviso-ok" role="status"><p class="cuerpo"><b>Firmada.</b> Se publica exactamente esta versión (huella <span class="dato">7f3a·c91e·04b2</span>).</p>
+<button class="btn sec chico" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>Deshacer · 8 s</button>
+<p class="texto-sm apagado">Después puedes deshacer la firma hasta las 15:00.</p></div>
+<section><h2 class="sec-t">Sigue<span class="dato">pieza 2 de 3</span></h2><ul class="lista">
+<li><a href="#" class="fila"><div class="meta"><b class="cuenta">Federico</b><span class="dato apagado">mié 4 nov</span></div><p class="cuerpo">Lo que dejó una semana de entrevistas: cinco hallazgos que cambiaron cómo moderamos.</p><div class="pie"><span class="dato">Sale mié 4 nov, 11:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li></ul></section>
+<button class="btn prim grande" type="button" disabled><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Firmar Federico · mié 4 nov, 11:00</button>
+<p class="texto-sm centro apagado">Se habilita al terminar el deshacer.</p>
+<a href="#" class="enlace centro">Listo por ahora</a></main></div></figure>
+<figure class="tel"><figcaption>Pieza · error al firmar</figcaption><div class="pantalla sin-nav" style="--h:844px"><main class="contenido"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est pend"><i class="pt"></i>Por firmar</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<div class="fallo" role="alert"><p class="est mal"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 14 0"/><path d="M2 8.8a15 15 0 0 1 20 0"/><path d="m2 2 20 20"/></svg>No se pudo guardar tu firma</p>
+<p class="cuerpo">Sin conexión. Todavía no se publicó nada y tu texto está intacto.</p>
+<p class="est"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Reintentando solo · 2 de 3</p>
+<button class="btn prim" type="button">Reintentar ahora</button>
+<button class="btn sec" type="button">Volver a la pieza</button></div>
+<p class="texto-sm apagado">Si no vuelve la conexión antes del mar 3 nov, 15:00, la pieza no sale y vuelve a pedirse tu firma.</p></main></div></figure>
+<figure class="tel"><figcaption>Pieza · confirmar descarte</figcaption><div class="pantalla sin-nav" style="--h:844px"><main class="contenido"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est pend"><i class="pt"></i>Por firmar</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<div class="confirmar" role="alertdialog" aria-labelledby="cd-t"><p class="titulo" id="cd-t">¿Descartar esta pieza?</p>
+<p class="cuerpo apagado">Se borran el texto y la pieza. No se puede deshacer. Esta pieza no ha generado gasto.</p>
+<div class="dos"><button class="btn prim" type="button">Conservar pieza</button><button class="btn sec" type="button">Descartar</button></div>
+<button class="btn sec" type="button">Mejor dejarla en la reserva</button></div></main></div></figure>
+<figure class="tel"><figcaption>Calendario</figcaption><div class="pantalla" style="--h:1540px"><main class="contenido"><header class="top"><svg class="logo" role="img" aria-label="PostIA"><use href="#logo"/></svg><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<h1 class="display">Calendario</h1>
+<div class="seg" role="tablist" aria-label="Vista"><a href="#" class="on" aria-current="page">Semana</a><a href="#">Mes</a></div>
+<div class="semana-t"><a href="#" class="icb" aria-label="Semana anterior"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><div class="centro"><span class="subtitulo">Esta semana · 2 – 8 nov</span><br><span class="texto-sm apagado">2 de 6 firmadas · 3 por firmar · 1 cupo sin pieza</span></div><a href="#" class="icb" aria-label="Semana siguiente"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a></div>
+<div class="dias">
+<div class="dia es-hoy"><div class="dia-n"><span class="etiqueta apagado">Lun</span><b class="titulo">2</b><span class="hoy">Hoy</span></div><ul class="cal-l"><li class="cal-i"><p class="cuerpo corto apagado">Sin publicaciones.</p></li></ul></div>
+<div class="dia"><div class="dia-n"><span class="etiqueta apagado">Mar</span><b class="titulo">3</b></div><ul class="cal-l"><li class="cal-i"><a href="#" class="cal-a"><div class="meta"><span class="dato">11:00</span><b class="cuenta">Federico</b></div><p class="cuerpo corto">Los focus groups no mueren: cambian de sala.</p><div class="pie"><span class="est ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Firmada</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li class="cal-i"><a href="#" class="cal-a"><div class="meta"><span class="dato">15:00</span><b class="cuenta">WAV</b></div><p class="cuerpo corto">Tres señales de que tu evento necesita medir antes de producir.</p><div class="pie"><span class="est pend"><i class="pt"></i>Por firmar</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li></ul></div>
+<div class="dia"><div class="dia-n"><span class="etiqueta apagado">Mié</span><b class="titulo">4</b></div><ul class="cal-l"><li class="cal-i"><a href="#" class="cal-a"><div class="meta"><span class="dato">11:00</span><b class="cuenta">Federico</b></div><p class="cuerpo corto">Lo que dejó una semana de entrevistas: cinco hallazgos que cambiaron cómo moderamos.</p><div class="pie"><span class="est pend"><i class="pt"></i>Por firmar</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li class="cal-i"><a href="#" class="cal-a"><div class="meta"><span class="dato">15:00</span><b class="cuenta">WAV</b></div><p class="cuerpo corto">Cómo se prepara un carrusel que se guarda.</p><div class="pie"><span class="est ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Firmada</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li></ul></div>
+<div class="dia"><div class="dia-n"><span class="etiqueta apagado">Jue</span><b class="titulo">5</b></div><ul class="cal-l"><li class="cal-i"><a href="#" class="cal-a"><div class="meta"><span class="dato">11:00</span><b class="cuenta">Federico</b></div><p class="cuerpo corto">Tres preguntas que cambian un focus group antes de que empiece.</p><div class="pie"><span class="est pend"><i class="pt"></i>Por firmar</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li class="cal-i"><div class="meta"><span class="dato">15:00</span><b class="cuenta">WAV</b></div><p class="cuerpo corto apagado">Cupo sin pieza</p><button class="btn sec chico" type="button">Asignar una pieza</button></li></ul></div>
+</div>
+<p class="texto-sm apagado">Viernes sin publicaciones. Nunca fines de semana.</p>
+<details class="detalles pilares" open><summary>Pilares de WAV · 1 atrasado<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+<div class="seg chico" role="tablist"><a href="#" class="on">WAV</a><a href="#">Federico</a></div>
+<div class="barra"><span class="etiqueta">Evidencia</span><span class="dato">45 % <span class="apagado">· meta 40 %</span></span><i style="--w:45%;--m:40%"></i></div><div class="barra"><span class="etiqueta">Casos</span><span class="dato">40 % <span class="apagado">· meta 35 %</span></span><i style="--w:40%;--m:35%"></i></div><div class="barra"><span class="etiqueta">Método</span><span class="dato">15 % <span class="apagado">· meta 25 %</span></span><i style="--w:15%;--m:25%"></i><p class="aviso fila-completa"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span>Lleva 2 semanas sin salir. Está 10 puntos bajo su meta.</span></p></div></details></main><nav class="nav" aria-label="Principal"><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><span>Nueva</span></a><a href="#" class="nav-i on" aria-current="page"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>Calendario</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg><span>Marcas</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></svg><span>Ajustes</span></a></nav></div></figure>
+<figure class="tel"><figcaption>Investigar</figcaption><div class="pantalla" style="--h:1370px"><main class="contenido"><header class="top"><svg class="logo" role="img" aria-label="PostIA"><use href="#logo"/></svg><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<p class="etiqueta apagado">Nueva ›</p>
+<h1 class="display">Investigar</h1>
+<p class="aviso"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span>Pasaste el 80 % del tope del mes. Quedan <span class="dato">US$6,40</span> de <span class="dato">US$40</span>.</span></p>
+<form class="form" onsubmit="return false"><label class="etiqueta" for="iv-tema">Tema</label><input class="campo" id="iv-tema" value="Carruseles sobre WR3 y focus groups" readonly>
+<div class="par2"><div><label class="etiqueta" for="iv-cant">Cantidad</label><input class="campo dato" id="iv-cant" value="10" readonly></div><div><span class="etiqueta" id="iv-fmt">Formato</span><div class="seg chico" role="radiogroup" aria-labelledby="iv-fmt"><a href="#" class="on" role="radio" aria-checked="true">Carrusel</a><a href="#" role="radio" aria-checked="false">Texto</a></div></div></div>
+<span class="etiqueta" id="iv-ve">Temas relacionados</span><p class="texto-sm apagado">Cercanos a tu tema por similitud. Elige los que quieras sumar.</p><div class="tags" role="group" aria-labelledby="iv-ve"><button type="button" class="sel" aria-pressed="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>moderación híbrida</button><button type="button" aria-pressed="false">muestras pequeñas</button><button type="button" aria-pressed="false">sesgo del moderador</button></div>
+<button class="btn prim" type="button">Pedir investigación · US$0,80</button><p class="texto-sm apagado centro">Después quedan <span class="dato">US$5,60</span> del mes.</p></form>
+<section><h2 class="sec-t">Investigaciones</h2><ul class="lista">
+<li class="fila fija"><div class="meta"><span class="dato apagado">dom 1 nov</span><span class="est ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Lista</span></div><p class="cuerpo">Tendencias en investigación cualitativa para eventos</p><div class="pie"><span class="dato">12 hallazgos</span><a href="#" class="enlace">Ver hallazgos</a></div></li>
+<li class="fila fija"><div class="meta"><span class="dato apagado">hoy · 9:40</span><span class="est"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Buscando</span></div><p class="cuerpo">Casos de medición en activaciones de marca</p><div class="progreso" role="progressbar" aria-valuenow="6" aria-valuemax="10" aria-label="6 de 10 fuentes"><i style="--w:60%"></i></div><div class="pie"><span class="dato">6 de 10 fuentes</span><button class="btn sec chico" type="button">Detener búsqueda</button></div><p class="texto-sm apagado">Si la detienes, solo se cobra lo ya buscado (<span class="dato">US$0,30</span>).</p></li>
+<li class="fila fija"><div class="meta"><span class="dato apagado">vie 30 oct</span><span class="est neutro"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Sin resultados</span></div><p class="cuerpo">Normativa de datos en grupos focales</p><p class="texto-sm apagado">No encontró nada nuevo respecto a lo guardado. Sin cargo.</p><button class="btn sec chico" type="button">Probar otro tema</button></li></ul></section></main><nav class="nav" aria-label="Principal"><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span></a><a href="#" class="nav-i on" aria-current="page"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><span>Nueva</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>Calendario</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg><span>Marcas</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></svg><span>Ajustes</span></a></nav></div></figure>
+<figure class="tel"><figcaption>Investigar · tope alcanzado</figcaption><div class="pantalla" style="--h:1420px"><main class="contenido"><header class="top"><svg class="logo" role="img" aria-label="PostIA"><use href="#logo"/></svg><button class="gasto" type="button" aria-label="Gasto del mes: 40,00 de 40 dólares, llegaste al tope"><span class="dato">US$40,00 de 40</span><i class="tope"><b style="--w:100%"></b></i></button></header>
+<p class="etiqueta apagado">Nueva ›</p>
+<h1 class="display">Investigar</h1>
+<p class="aviso"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span><b>Llegaste al tope de US$40.</b> Se reinicia el 1 de diciembre. Firmar textos sigue sin costo.</span></p><a href="#" class="enlace">Cambiar el tope en Ajustes</a>
+<form class="form" onsubmit="return false"><label class="etiqueta" for="iv-tema">Tema</label><input class="campo" id="iv-tema" value="Carruseles sobre WR3 y focus groups" readonly>
+<div class="par2"><div><label class="etiqueta" for="iv-cant">Cantidad</label><input class="campo dato" id="iv-cant" value="10" readonly></div><div><span class="etiqueta" id="iv-fmt">Formato</span><div class="seg chico" role="radiogroup" aria-labelledby="iv-fmt"><a href="#" class="on" role="radio" aria-checked="true">Carrusel</a><a href="#" role="radio" aria-checked="false">Texto</a></div></div></div>
+<span class="etiqueta" id="iv-ve">Temas relacionados</span><p class="texto-sm apagado">Cercanos a tu tema por similitud. Elige los que quieras sumar.</p><div class="tags" role="group" aria-labelledby="iv-ve"><button type="button" class="sel" aria-pressed="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>moderación híbrida</button><button type="button" aria-pressed="false">muestras pequeñas</button><button type="button" aria-pressed="false">sesgo del moderador</button></div>
+<button class="btn prim" type="button" disabled><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Pedir investigación · US$0,80</button><p class="texto-sm apagado centro">Sin saldo este mes.</p></form>
+<section><h2 class="sec-t">Investigaciones</h2><ul class="lista">
+<li class="fila fija"><div class="meta"><span class="dato apagado">dom 1 nov</span><span class="est ok"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Lista</span></div><p class="cuerpo">Tendencias en investigación cualitativa para eventos</p><div class="pie"><span class="dato">12 hallazgos</span><a href="#" class="enlace">Ver hallazgos</a></div></li>
+<li class="fila fija"><div class="meta"><span class="dato apagado">hoy · 9:40</span><span class="est"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Buscando</span></div><p class="cuerpo">Casos de medición en activaciones de marca</p><div class="progreso" role="progressbar" aria-valuenow="6" aria-valuemax="10" aria-label="6 de 10 fuentes"><i style="--w:60%"></i></div><div class="pie"><span class="dato">6 de 10 fuentes</span><button class="btn sec chico" type="button">Detener búsqueda</button></div><p class="texto-sm apagado">Si la detienes, solo se cobra lo ya buscado (<span class="dato">US$0,30</span>).</p></li>
+<li class="fila fija"><div class="meta"><span class="dato apagado">vie 30 oct</span><span class="est neutro"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Sin resultados</span></div><p class="cuerpo">Normativa de datos en grupos focales</p><p class="texto-sm apagado">No encontró nada nuevo respecto a lo guardado. Sin cargo.</p><button class="btn sec chico" type="button">Probar otro tema</button></li></ul></section></main><nav class="nav" aria-label="Principal"><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span></a><a href="#" class="nav-i on" aria-current="page"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><span>Nueva</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>Calendario</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg><span>Marcas</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></svg><span>Ajustes</span></a></nav></div></figure>
+<figure class="tel oscuro"><figcaption>Inicio · tema oscuro</figcaption><div class="pantalla" style="--h:1320px"><main class="contenido"><header class="top"><svg class="logo" role="img" aria-label="PostIA"><use href="#logo"/></svg><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<h1 class="display">Lunes 2 de noviembre</h1>
+<section><h2 class="sec-t">Revisar<span class="dato">1</span></h2><ul class="lista"><li class="fila fija"><div class="meta"><b class="cuenta">WAV</b><span class="dato apagado">mié 28 oct · hace 5 días</span></div><p class="cuerpo">Qué pedirle a un focus group antes de empezar.</p>
+<span class="est mal"><svg class="i" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>No salió dentro de su margen de 30 min</span><p class="texto-sm">No se publica tarde: se vuelve a pedir tu firma.</p>
+<button class="btn sec chico" type="button">Volver a firmar</button></li></ul></section>
+<div class="ventana"><p class="cuerpo">Turno de la mañana abierto hasta las <b>12:00</b>.<br><span class="apagado">Esta semana: 2 de 6 firmadas.</span></p>
+<p class="aviso"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span>Pasaste el 80 % del tope del mes.</span></p>
+<button class="btn prim" type="button">Firmar las 3 en secuencia</button></div>
+<section><h2 class="sec-t">Por firmar<span class="dato">3</span></h2><ul class="lista">
+<li><a href="#" class="fila"><div class="meta"><b class="cuenta">WAV</b><span class="sig">Siguiente</span><span class="dato apagado">mar 3 nov</span></div><p class="cuerpo">Tres señales de que tu evento necesita medir antes de producir.</p><div class="pie"><span class="dato">Sale mar 3 nov, 15:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li><a href="#" class="fila"><div class="meta"><b class="cuenta">Federico</b><span class="dato apagado">mié 4 nov</span></div><p class="cuerpo">Lo que dejó una semana de entrevistas: cinco hallazgos que cambiaron cómo moderamos.</p><div class="pie"><span class="dato">Sale mié 4 nov, 11:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li><li><a href="#" class="fila"><div class="meta"><b class="cuenta">Federico</b><span class="dato apagado">jue 5 nov</span></div><p class="cuerpo">Tres preguntas que cambian un focus group antes de que empiece.</p><div class="pie"><span class="dato">Sale jue 5 nov, 11:00</span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></div></a></li></ul></section>
+<section><h2 class="sec-t">Sin pieza<span class="dato">1</span></h2><ul class="lista"><li class="fila fija"><div class="meta"><b class="cuenta">WAV</b><span class="dato apagado">jue 5 nov</span></div><p class="cuerpo apagado">Cupo de las 15:00 sin pieza.</p><button class="btn sec chico" type="button">Asignar una pieza</button></li></ul></section></main><nav class="nav" aria-label="Principal"><a href="#" class="nav-i on" aria-current="page"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Inicio</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg><span>Nueva</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg><span>Calendario</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg><span>Marcas</span></a><a href="#" class="nav-i"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></svg><span>Ajustes</span></a></nav></div></figure>
+<figure class="tel oscuro"><figcaption>Pieza · arriba, tema oscuro</figcaption><div class="pantalla con-cta sin-nav" style="--h:844px"><main class="contenido"><div class="rollo" style="transform:translateY(-0px)"><header class="top"><div class="atras"><a href="#" class="icb" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span class="etiqueta apagado">Pieza 1 de 3</span></div><button class="gasto" type="button" aria-label="Gasto del mes: 33,60 de 40 dólares, pasaste el 80 % del tope"><span class="dato">US$33,60 de 40</span><i class="tope"><b style="--w:84%"></b></i></button></header>
+<div class="meta"><b class="cuenta">WAV · página</b><span class="est pend"><i class="pt"></i>Por firmar</span></div>
+<h1 class="display h-pieza">Tres señales de que tu evento necesita medir antes de producir.</h1>
+<p class="dato">Sale mar 3 nov, 15:00 · margen de 30 min</p>
+<div class="laminas" role="group" aria-label="Carrusel de 6 láminas">
+<div class="lamina l1"><span class="dato">1/6</span><b>Tres señales de que tu evento necesita medir</b></div>
+<div class="lamina"><span class="dato">2/6</span><b>1. Nadie sabe qué debería cambiar después</b></div>
+<div class="lamina"><span class="dato">3/6</span><b>2. El éxito se define al terminar</b></div></div>
+<div class="visor"><div class="puntos" role="img" aria-label="Viste 3 de 6 láminas"><i class="v"></i><i class="v"></i><i class="v"></i><i class=""></i><i class=""></i><i class=""></i></div><a href="#" class="enlace"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>Ver las 6 juntas</a></div>
+<article class="texto"><h2 class="etiqueta apagado">Texto del post</h2>
+<p class="cuerpo">Antes de producir, define qué vas a medir. Si la respuesta llega después del evento, ya llegó tarde.</p>
+<p class="cuerpo">1. Nadie sabe qué debería cambiar después. 2. El éxito se define al terminar. 3. Nadie decide con lo que midió.</p>
+<p class="texto-sm apagado">Fuente: <a href="#" class="enlace-sm">investigación del 24 oct</a></p></article>
+<p class="nota"><span class="icono-aviso"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span><span>Texto escrito con IA: puede tener errores. Léelo entero antes de firmar.</span></p>
+<details class="detalles"><summary>Detalles de la firma<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+<dl class="datos"><div><dt>Fecha y hora</dt><dd><span class="dato">mar 3 nov, 15:00</span> <a href="#" class="enlace">Cambiar fecha</a></dd></div>
+<div><dt><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Huella</dt><dd class="dato">7f3a·c91e·04b2</dd></div></dl></details>
+<div class="dos"><button class="btn sec" type="button">Pedir otra versión</button><button class="btn sec" type="button">Corregir texto</button></div>
+<button class="descartar" type="button">Descartar pieza</button></div></main><div class="cta-fija"><button class="btn prim grande" type="button" disabled><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Firmar WAV · mar 3 nov, 15:00</button><p class="texto-sm centro">Viste 3 de 6 láminas. Faltan 3 por ver.</p></div></div></figure>
+</div></body></html>
