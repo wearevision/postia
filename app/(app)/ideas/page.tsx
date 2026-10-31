@@ -147,7 +147,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
             key={f.nombre}
             href={rutaConFiltro(serie, f.estado)}
             aria-current={f.estado === estado ? "page" : undefined}
-            className={`flex min-h-11 items-center rounded-full border border-borde px-4 text-sm ${f.estado === estado ? "bg-primario text-primario-texto" : ""}`}
+            className={`boton rounded-full text-sm ${f.estado === estado ? "font-semibold shadow-hundido" : ""}`}
           >
             {f.nombre}
           </Link>

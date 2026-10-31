@@ -130,7 +130,7 @@ export function DescartarInforme({
           type="button"
           disabled={pendiente}
           onClick={() => ejecutar(() => descartar(investigacionId))}
-          className="min-h-11 w-full rounded-lg bg-peligro px-4 font-medium text-primario-texto disabled:opacity-60"
+          className="boton-primario w-full"
         >
           Sí, descartar
         </button>
@@ -155,7 +155,7 @@ export function ArmarSerie({
         type="button"
         disabled={pendiente}
         onClick={() => ejecutar(() => pedir(investigacionId))}
-        className="min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
+        className="boton-primario w-full"
       >
         Armar la serie
       </button>

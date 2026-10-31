@@ -17,7 +17,7 @@ import type {
 import { rutaDePieza } from "@/lib/sesion/rutas"
 
 const BOTON = "boton w-full"
-const PRIMARIO = "min-h-11 w-full rounded-lg bg-primario px-4 font-medium text-primario-texto disabled:opacity-60"
+const PRIMARIO = "boton-primario w-full"
 const CAMPO = "campo w-full"
 
 const FORMATO = { texto: "Post de texto", carrusel_pdf: "Carrusel PDF" } as const
@@ -53,7 +53,7 @@ function NaceDe({ fuentes }: { fuentes: readonly FuenteConResumen[] }) {
       <p className="font-medium">Nace de:</p>
       <ul aria-label="Nace de:" className="grid gap-2 @sm:grid-cols-2">
         {fuentes.map((f) => (
-          <li key={f.id} className="space-y-1 rounded-lg border border-borde p-3">
+          <li key={f.id} className="tarjeta space-y-1 p-3">
             <EnlaceDeFuente fuente={f} />
             <p className="text-apagado">{f.resumen}</p>
           </li>
