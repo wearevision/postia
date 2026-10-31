@@ -2,6 +2,9 @@ import { enSantiago } from "@/lib/piezas/horarios"
 
 const ZONA = "America/Santiago"
 
+/** The refusal of a signature or plan for a past date; the signing form opens the date editor on it. */
+export const FECHA_EN_EL_PASADO = "Elige una fecha y hora futuras."
+
 const FORMATO_LARGO = new Intl.DateTimeFormat("es-CL", {
   timeZone: ZONA,
   weekday: "long",

@@ -141,7 +141,7 @@ describe("changing the date", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     const campo = screen.getByLabelText("Fecha y hora de publicación")
     fireEvent.change(campo, { target: { value: "2026-11-04T15:00" } })
-    fireEvent.keyDown(campo, { key: "Enter" })
+    expect(fireEvent.keyDown(campo, { key: "Enter" })).toBe(false)
     await waitFor(() =>
       expect(planear).toHaveBeenCalledWith({ piezaId: PIEZA, planeadaPara: "2026-11-04T18:00:00.000Z" }),
     )
@@ -186,5 +186,58 @@ describe("changing the date", () => {
     rerender(<FirmaDePieza key="b" fechaPropuesta="2026-11-05T14:00:00.000Z" {...props} />)
     expect(screen.getByText("jueves 5 de noviembre, 11:00")).toBeInTheDocument()
     expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
+  })
+
+  test("an edited date that was not saved blocks signing for a date, with its reason", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    const firmar = screen.getByRole("button", { name: /^Firmar Federico/ })
+    expect(firmar).toBeDisabled()
+    expect(screen.getByText("Guarda la fecha antes de firmar.")).toBeInTheDocument()
+    expect(firmar).toHaveAccessibleDescription(/Guarda la fecha antes de firmar\./)
+    expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeEnabled()
+  })
+
+  test("an open editor with the shown date unchanged does not block signing", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeEnabled()
+    expect(screen.queryByText("Guarda la fecha antes de firmar.")).not.toBeInTheDocument()
+  })
+
+  test("blocks signing while the new date is being saved", () => {
+    montar({ planear: vi.fn(() => new Promise<Resultado>(() => {})) })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeDisabled()
+  })
+
+  test("a failed save keeps the editor open and signing blocked", async () => {
+    montar({ planear: vi.fn(async () => ({ ok: false as const, error: "Esa cuenta ya tiene una pieza a esa hora." })) })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Esa cuenta ya tiene una pieza a esa hora.")
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeDisabled()
+  })
+
+  test("Cancelar closes the editor and resets the field", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+    expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeEnabled()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
+  })
+
+  test("a refusal because the date is past opens the date editor", async () => {
+    montar({ firmar: vi.fn(async () => ({ ok: false as const, error: "Elige una fecha y hora futuras." })) })
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar Federico/ }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toBeInTheDocument()
   })
 })

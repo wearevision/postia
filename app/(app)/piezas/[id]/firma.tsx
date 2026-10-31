@@ -3,7 +3,7 @@
 import { Loader2, Lock } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { FECHA_EN_EL_PASADO, fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
 import { useLectura } from "./lectura"
 
@@ -62,6 +62,9 @@ export function FirmaDePieza({
   const campoDeFecha = useRef<HTMLInputElement>(null)
   const lectura = useLectura()
   const bloqueada = pendiente || !lectura.puedeFirmar
+  // Signing for a date needs the date it shows: an edited date not saved yet, or being saved, is not that date.
+  const fechaSinGuardar = guardando || (cambiando && fecha !== valorLocal(fechaPropuesta))
+  const motivos = [lectura.motivo && "motivo-de-lectura", fechaSinGuardar && "motivo-de-fecha"].filter(Boolean)
   const [enfocarFecha, setEnfocarFecha] = useState(false)
 
   useEffect(() => {
@@ -98,13 +101,26 @@ export function FirmaDePieza({
           : firmarParaReserva({ piezaId, huella, abiertaEn }),
       )
       if (resultado === null) setSinRed(true)
-      else if (!resultado.ok) setError(resultado.error)
+      else if (!resultado.ok) {
+        setError(resultado.error)
+        if (resultado.error === FECHA_EN_EL_PASADO) {
+          setCambiando(true)
+          setEnfocarFecha(true)
+        }
+      }
     })
   }
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault()
+    if (fechaSinGuardar) return
     lanzar("fecha")
+  }
+
+  function cancelarFecha() {
+    setCambiando(false)
+    setFecha(valorLocal(fechaPropuesta))
+    setError(null)
   }
 
   function guardarFecha() {
@@ -148,9 +164,14 @@ export function FirmaDePieza({
                 className="campo block min-h-12 w-full min-w-0 max-w-full appearance-none"
               />
             </label>
-            <button type="button" disabled={guardando} onClick={guardarFecha} className="boton w-full">
-              Guardar fecha
-            </button>
+            <div className="flex gap-2">
+              <button type="button" disabled={guardando} onClick={guardarFecha} className="boton flex-1">
+                Guardar fecha
+              </button>
+              <button type="button" disabled={guardando} onClick={cancelarFecha} className="boton flex-1">
+                Cancelar
+              </button>
+            </div>
           </div>
         ) : (
           <button type="button" onClick={() => setCambiando(true)} className="min-h-11 text-sm underline">
@@ -167,11 +188,17 @@ export function FirmaDePieza({
           {lectura.motivo}
         </p>
       )}
+      {fechaSinGuardar && (
+        <p id="motivo-de-fecha" className="flex items-start gap-2 text-sm">
+          <Lock aria-hidden="true" strokeWidth={1.75} className="mt-0.5 size-4 flex-none" />
+          Guarda la fecha antes de firmar.
+        </p>
+      )}
       <button
         type="submit"
-        disabled={bloqueada}
+        disabled={bloqueada || fechaSinGuardar}
         aria-busy={pendiente && cual === "fecha"}
-        aria-describedby={lectura.motivo ? "motivo-de-lectura" : undefined}
+        aria-describedby={motivos.length > 0 ? motivos.join(" ") : undefined}
         className="boton-primario w-full gap-2"
       >
         {pendiente && cual === "fecha" ? <Ocupado /> : `Firmar ${cuenta} · ${fechaCorta(fechaPropuesta)}`}
