@@ -10,7 +10,7 @@ import { nombresVetados } from "@/lib/redaccion/instrucciones"
 import { contextoDeRedaccion, repositorioDeRedaccion } from "@/lib/redaccion/repositorio"
 import type { Db } from "@/lib/supabase/database"
 import { lineaDeMarca } from "@/lib/voz/lectura"
-import type { PuertosDeSerie } from "./armar"
+import { fallaDeGuardarSerie, type PuertosDeSerie } from "./armar"
 import type { AsignacionAEscribir, PuertosDeEscritura } from "./escribir"
 import { PREVIAS_EN_EL_MENSAJE } from "./instrucciones"
 import type { CuentaDeSerie, PasoDeEsqueleto } from "./propuestas"
@@ -148,7 +148,11 @@ export function repositorioDeSeries(db: Db): Omit<PuertosDeSerie, "pedir" | "emb
           ...(i.reemplazaA ? { reemplaza_a: i.reemplazaA } : {}),
         })),
       })
-      if (error) fallo("No pude guardar la serie", error)
+      if (error) {
+        const falla = fallaDeGuardarSerie(error)
+        if (falla) throw falla
+        fallo("No pude guardar la serie", error)
+      }
       return data
     },
   }

@@ -176,6 +176,15 @@ describe("validarSerie", () => {
       "La razón pasa los 300 caracteres.",
     )
   })
+
+  test("drops an idea with a skeleton beat over 400 characters, which the database would refuse", () => {
+    const largo = { ...texto, esqueleto: [{ tipo: null, idea: "a".repeat(401) }] }
+    expect(validarSerie({ ideas: [largo] }, contexto).descartadas[0]?.motivo).toBe(
+      "Un paso del esqueleto pasa los 400 caracteres.",
+    )
+    const justo = { ...texto, esqueleto: [{ tipo: null, idea: "a".repeat(400) }] }
+    expect(validarSerie({ ideas: [justo] }, contexto).ideas).toHaveLength(1)
+  })
 })
 
 describe("quitarParecidas", () => {

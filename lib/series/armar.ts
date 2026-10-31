@@ -62,6 +62,24 @@ const SIN_VALIDAS = "Claude no propuso ideas que pueda usar con este informe. Pi
 const TODAS_PARECIDAS = "No salieron ideas nuevas de este informe: se parecían a ideas anteriores."
 const OTRA_PARECIDA = "La idea nueva se parecía a otra anterior. Pide otra de nuevo."
 
+// guardar_serie's 22023 refusals: validarSerie should have caught them, so reaching one means the data moved under
+// the job (an account, pillar or proposal changed) or the two checks drifted apart.
+const AL_GUARDAR: Record<string, string> = {
+  ideas_invalidas: "Claude propuso ideas que no se pueden guardar. Pide la serie de nuevo.",
+  investigacion_no_aprobada: "El informe ya no está aprobado, así que no guardé la serie.",
+  cuenta_desconocida: "Una idea sugería una cuenta que ya no existe. Pide la serie de nuevo.",
+  pilar_no_valido: "Una idea traía un pilar que ya no es de su cuenta. Pide la serie de nuevo.",
+  fuente_ajena: "Una idea citaba un hallazgo que no es de este informe. Pide la serie de nuevo.",
+  esqueleto_no_valido: "Claude propuso un esqueleto que no se puede guardar. Pide la serie de nuevo.",
+  idea_no_reemplazable: "La idea que pediste reemplazar ya no espera tu revisión.",
+}
+
+/** A readable Falla for a known refusal of guardar_serie; null for anything else, which stays unexpected. */
+export function fallaDeGuardarSerie(error: { code?: string; message: string }): Falla | null {
+  if (error.code !== "22023" || !Object.hasOwn(AL_GUARDAR, error.message)) return null
+  return new Falla(AL_GUARDAR[error.message])
+}
+
 function leerSerie(respuesta: RespuestaDeClaude): Serie {
   if (respuesta.detenido === "refusal") throw new Falla("Claude no quiso proponer ideas con este informe.")
   if (respuesta.detenido === "max_tokens") throw new Falla("La serie de Claude quedó cortada. Pídela de nuevo.")

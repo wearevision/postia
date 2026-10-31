@@ -80,6 +80,8 @@ export interface SerieValidada {
 export const LARGO_DE_GANCHO = 140
 export const LARGO_DE_RESUMEN = 600
 export const LARGO_DE_RAZON = 300
+/** public.esqueleto_valido: each beat's idea, trimmed. */
+export const LARGO_DE_PASO = 400
 export const MAXIMO_DE_FUENTES = 6
 export const PASOS_DE_TEXTO = { minimo: 1, maximo: 6 } as const
 
@@ -91,6 +93,7 @@ const MOTIVOS = {
   gancho: `El gancho pasa los ${LARGO_DE_GANCHO} caracteres.`,
   resumen: `El resumen pasa los ${LARGO_DE_RESUMEN} caracteres.`,
   razon: `La razón pasa los ${LARGO_DE_RAZON} caracteres.`,
+  paso: `Un paso del esqueleto pasa los ${LARGO_DE_PASO} caracteres.`,
 }
 
 const deIndice = <T>(lista: readonly T[], indice: number): T | undefined =>
@@ -125,6 +128,7 @@ function validarIdea(
   if (idea.gancho.length > LARGO_DE_GANCHO) return { ok: false, motivo: MOTIVOS.gancho }
   if (idea.resumen.length > LARGO_DE_RESUMEN) return { ok: false, motivo: MOTIVOS.resumen }
   if (idea.razon.length > LARGO_DE_RAZON) return { ok: false, motivo: MOTIVOS.razon }
+  if (idea.esqueleto.some((p) => p.idea.length > LARGO_DE_PASO)) return { ok: false, motivo: MOTIVOS.paso }
   const cuenta = deIndice(contexto.cuentas, idea.cuenta)
   if (!cuenta) return { ok: false, motivo: MOTIVOS.cuenta }
   const fuentes = [...new Set(idea.fuentes.flatMap((i) => deIndice(contexto.hallazgos, i)?.id ?? []))].slice(

@@ -6,7 +6,7 @@ import type { Pedir, RespuestaDeClaude } from "@/lib/ia/claude"
 import type { Trabajo } from "@/lib/investigacion/investigar"
 import { atenderInvestigaciones, type PuertosDeAtencionDeInvestigacion } from "@/lib/investigacion/vigilancia"
 import { UMBRALES } from "@/lib/mapa/umbrales"
-import { armarSerie, otraIdea, type PuertosDeSerie, type TrabajoDeSerie } from "@/lib/series/armar"
+import { armarSerie, fallaDeGuardarSerie, otraIdea, type PuertosDeSerie, type TrabajoDeSerie } from "@/lib/series/armar"
 import type { CuentaDeSerie, IdeaPropuesta } from "@/lib/series/propuestas"
 
 const CUENTAS: CuentaDeSerie[] = [
@@ -273,5 +273,32 @@ describe("atenderInvestigaciones with series jobs", () => {
     vi.mocked(p.pedir).mockRejectedValue(new PasoYaPagado("serie:j1"))
     await atenderInvestigaciones(p)
     expect(vi.mocked(p.terminar).mock.calls[0][2]).toMatch(/serie ya se había empezado a pagar/)
+  })
+})
+
+describe("fallaDeGuardarSerie", () => {
+  test("turns each refusal of guardar_serie into a Falla Federico can read", () => {
+    for (const motivo of [
+      "ideas_invalidas",
+      "investigacion_no_aprobada",
+      "cuenta_desconocida",
+      "pilar_no_valido",
+      "fuente_ajena",
+      "esqueleto_no_valido",
+      "idea_no_reemplazable",
+    ]) {
+      const falla = fallaDeGuardarSerie({ code: "22023", message: motivo })
+      expect(falla).toBeInstanceOf(Falla)
+      expect(falla?.message).not.toContain("_")
+      expect(falla?.message).toMatch(/\.$/)
+    }
+    expect(fallaDeGuardarSerie({ code: "22023", message: "esqueleto_no_valido" })?.message).toBe(
+      "Claude propuso un esqueleto que no se puede guardar. Pide la serie de nuevo.",
+    )
+  })
+
+  test("leaves any other database error as unexpected", () => {
+    expect(fallaDeGuardarSerie({ code: "08006", message: "conexión perdida" })).toBeNull()
+    expect(fallaDeGuardarSerie({ code: "22023", message: "otra_cosa" })).toBeNull()
   })
 })
