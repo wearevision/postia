@@ -99,10 +99,13 @@ test("an owner asks for research, and approves its report after discarding a fin
   await expect(descartado).toContainText("Descartado")
   await expect(angulo.getByRole("listitem").last()).toContainText("Los grupos online crecen cada año.")
 
-  await expect(
-    page.getByText("Con el informe aprobado, PostIA arma la serie de propuestas (llega pronto)."),
-  ).toBeVisible()
+  await expect(page.getByText("Al aprobarlo, PostIA arma la serie de propuestas.")).toBeVisible()
   await page.getByRole("button", { name: "Aprobar informe" }).click()
   await expect(page.getByText("Aprobada", { exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Aprobar informe" })).toHaveCount(0)
+  // Approving queued its series: the report now leads to it.
+  await expect(page.getByRole("link", { name: "Ver la serie" })).toHaveAttribute(
+    "href",
+    `/ideas?serie=${investigacion.id}`,
+  )
 })
