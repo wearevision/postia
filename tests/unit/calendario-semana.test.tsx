@@ -61,7 +61,7 @@ describe("VistaDeSemana", () => {
     const sinFirma = screen.getByRole("link", { name: /Sin firma/ })
     expect(sinFirma).toHaveAttribute("href", "/piezas/p2")
     expect(within(sinFirma).getByText("Planeada, sin firma")).toBeInTheDocument()
-    expect(within(sinFirma).getByText("miércoles 28 de octubre, 11:00")).toBeInTheDocument()
+    expect(within(sinFirma).getByText("mié 28 · 11:00")).toBeInTheDocument()
     expect(within(screen.getByRole("link", { name: /Firmada/ })).getByText("Programada")).toBeInTheDocument()
   })
 
@@ -100,7 +100,7 @@ describe("VistaDeSemana", () => {
     expect(enlace).toHaveAttribute("href", "/ideas?serie=inv1#idea-i1")
     expect(enlace).toHaveClass("border-dashed")
     expect(within(enlace).getByText("Por escribir · Los focus groups no mueren")).toBeInTheDocument()
-    expect(within(enlace).getByText("jueves 29 de octubre, 11:00")).toBeInTheDocument()
+    expect(within(enlace).getByText("jue 29 · 11:00")).toBeInTheDocument()
     // Ordered by time with the account's pieces: after Tuesday's and Wednesday's.
     expect(within(perfil).getAllByRole("link").at(-1)).toBe(enlace)
   })
