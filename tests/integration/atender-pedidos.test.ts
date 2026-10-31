@@ -25,7 +25,8 @@ describe("atenderPedidos with the database", () => {
     const crear = vi.fn(async (solicitud: Anthropic.MessageCreateParamsNonStreaming) => ({
       content: [
         {
-          type: "text",
+          type: "text" as const,
+          citations: null,
           text: JSON.stringify(
             JSON.stringify(solicitud.output_config?.format).includes("hallazgos")
               ? { voz: { ok: true, comentario: "" }, hallazgos: [] }

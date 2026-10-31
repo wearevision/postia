@@ -5,6 +5,8 @@ export interface EstadoDelResumen {
   porFirmar: number
   aMano: number
   revisar: number
+  /** Research reports waiting for approval. Research is not per brand, so every owner hears the same count. */
+  informes: number
   reservas: { cuenta: string; tiene: number; meta: number }[]
   huecos: { cuenta: string; faltan: number; semana: "esta" | "proxima" }[]
   /** D20: pillars two weeks without coming out (lib/voz/balance.ts decides which). */
@@ -34,6 +36,7 @@ function recortar(linea: string): string {
 export function armarResumen(e: EstadoDelResumen): MensajePush | null {
   const filas = [
     ...(e.porFirmar > 0 ? [`${plural(e.porFirmar, "pieza espera", "piezas esperan")} tu firma.`] : []),
+    ...(e.informes > 0 ? [`${plural(e.informes, "informe espera", "informes esperan")} tu revisión.`] : []),
     ...(e.aMano > 0 ? [`${e.aMano} para publicar a mano.`] : []),
     ...(e.revisar > 0 ? [`${plural(e.revisar, "envío", "envíos")} por revisar.`] : []),
     ...e.lineas.map((l) => l.cuerpo),

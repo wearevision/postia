@@ -5,6 +5,7 @@ const VACIO: EstadoDelResumen = {
   porFirmar: 0,
   aMano: 0,
   revisar: 0,
+  informes: 0,
   reservas: [],
   huecos: [],
   pilares: [],
@@ -102,6 +103,14 @@ describe("armarResumen", () => {
         "«Oficio» lleva 16 días sin salir en Página de WAV.",
         "«Coherencia» no ha salido en Perfil en más de dos semanas.",
       ].join("\n"),
+    )
+  })
+
+  test("counts the research reports waiting, singular and plural, right after the signatures", () => {
+    expect(armarResumen({ ...VACIO, informes: 2 })?.cuerpo).toBe("2 informes esperan tu revisión.")
+    expect(armarResumen({ ...VACIO, informes: 1 })?.cuerpo).toBe("1 informe espera tu revisión.")
+    expect(armarResumen({ ...VACIO, porFirmar: 1, aMano: 1, informes: 1 })?.cuerpo).toBe(
+      "1 pieza espera tu firma.\n1 informe espera tu revisión.\n1 para publicar a mano.",
     )
   })
 })

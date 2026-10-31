@@ -8,10 +8,20 @@ import type { ServicioPush } from "./push"
 import { avisosSinEnviar, type LineaPendiente, marcarEnviados } from "./repositorio-de-avisos"
 import { armarResumen, type EstadoDelResumen } from "./resumen"
 
-type PorMarca = Omit<EstadoDelResumen, "lineas">
+type PorMarca = Omit<EstadoDelResumen, "lineas" | "informes">
 
 function vacio(): PorMarca {
   return { porFirmar: 0, aMano: 0, revisar: 0, reservas: [], huecos: [], pilares: [] }
+}
+
+/** Read once: research is not per brand (D17). */
+async function informesPorAprobar(db: Db): Promise<number> {
+  const { count, error } = await db
+    .from("investigaciones")
+    .select("id", { count: "exact", head: true })
+    .eq("estado", "informe_por_aprobar")
+  if (error) throw new Error(`No pude contar los informes por aprobar: ${error.message}`, { cause: error })
+  return count ?? 0
 }
 
 async function estadoPorMarca(db: Db, ahora: number): Promise<Map<string, PorMarca>> {
@@ -78,18 +88,24 @@ export async function enviarResumenes(
   servicio: ServicioPush,
   ahora: number,
 ): Promise<{ avisos: number; lineas: number }> {
-  const { data: miembros, error } = await db.from("miembros").select("user_id, marca_id")
+  const { data: miembros, error } = await db.from("miembros").select("user_id, marca_id, rol")
   if (error) throw new Error(`No pude leer los miembros: ${error.message}`, { cause: error })
   const porMarca = await estadoPorMarca(db, ahora)
   const lineas = await avisosSinEnviar(db, ahora)
+  const informes = await informesPorAprobar(db)
   const marcasDe = new Map<string, string[]>()
-  for (const m of miembros) marcasDe.set(m.user_id, [...(marcasDe.get(m.user_id) ?? []), m.marca_id])
+  const duenos = new Set<string>()
+  for (const m of miembros) {
+    marcasDe.set(m.user_id, [...(marcasDe.get(m.user_id) ?? []), m.marca_id])
+    if (m.rol === "dueno") duenos.add(m.user_id)
+  }
 
   let avisos = 0
   // Only lines that reached at least one device are marked: a failed or absent device keeps them for the next window.
   const recibidas = new Set<string>()
   for (const [userId, marcas] of marcasDe) {
-    const estado: EstadoDelResumen = { ...vacio(), lineas: [] }
+    // Only an owner can approve a report (aprobar_informe checks es_dueno_de_alguna).
+    const estado: EstadoDelResumen = { ...vacio(), informes: duenos.has(userId) ? informes : 0, lineas: [] }
     const suyas: LineaPendiente[] = []
     for (const marcaId of marcas) {
       const e = porMarca.get(marcaId)

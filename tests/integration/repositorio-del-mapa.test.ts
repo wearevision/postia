@@ -23,6 +23,25 @@ describe("repositorioDelMapa", () => {
     expect(segundo).toEqual({ estado: "repetido", de: primero.estado === "guardado" ? primero.id : "" })
   })
 
+  test("saves the research and the angle a finding came from", async () => {
+    const { data: investigacion, error } = await admin().rpc("crear_vigilancia", {
+      p_dia: "2030-03-01",
+      p_temas: ["Eventos"],
+    })
+    if (error) throw error
+    try {
+      const r = await repositorioDelMapa(admin()).guardarHallazgo(
+        { ...nuevo(vectorDe(0)), investigacionId: investigacion, angulo: "Mitos" },
+        UMBRALES,
+      )
+      expect(r).toMatchObject({ estado: "guardado" })
+      const { data } = await admin().from("hallazgos").select("investigacion_id, angulo").single()
+      expect(data).toEqual({ investigacion_id: investigacion, angulo: "Mitos" })
+    } finally {
+      await admin().from("investigaciones").delete().eq("id", investigacion)
+    }
+  })
+
   test("lists loose findings with parsed vectors, creates a topic and finds it as a neighbour", async () => {
     const mapa = repositorioDelMapa(admin())
     // Pairwise 0.93 / 0.93 / 0.86: under the 0.95 repeat threshold.

@@ -1,5 +1,3 @@
-import { Falla } from "@/lib/dominio/falla"
-
 /** Claude models PostIA may call. Prices from the claude-api skill (Anthropic first-party rates, cached 2026-10-06). */
 export type ModeloClaude = "claude-opus-5-5" | "claude-sonnet-5-5"
 
@@ -19,10 +17,7 @@ const PRECIOS: Record<ModeloClaude, Precio> = {
   "claude-sonnet-5-5": { entrada: 2_000_000, salida: 10_000_000, escrituraDeCache: 2_500_000, lecturaDeCache: 200_000 },
 }
 
-/**
- * US$10 per 1,000 web searches. Only `costoReal` uses it today; estimating a call that searches waits for the research
- * sub-plan (see `estimarCosto`).
- */
+/** US$10 per 1,000 web searches, in both the real cost and the estimate (through `costoReal`). */
 const BUSQUEDA_WEB_MICRO = 10_000
 
 // Spanish runs about 3.5 characters per token; two per token keeps the estimate above the real count.
@@ -62,25 +57,34 @@ export function estimarVoyage(caracteres: number): number {
 }
 
 /**
- * The worst case before calling: every input token written to cache and the whole max_tokens produced. Calls with web
- * searches are refused: their results come back as billed input tokens of unknown size, so no bound exists yet. The
- * research sub-plan defines one.
+ * Search results come back as input tokens of unknown size. 30,000 tokens per allowed search is far above a filtered
+ * result set (dynamic filtering, web_search_20260209), so the estimate stays above the real cost.
+ */
+const TOKENS_POR_BUSQUEDA = 30_000
+
+/**
+ * Inside the server loop each iteration re-reads the context gathered so far, so billed input grows with the square
+ * of the searches: n searches re-read on average ceil((n + 1) / 2) result sets each.
+ */
+function tokensDeBusquedas(busquedas: number): number {
+  return busquedas * TOKENS_POR_BUSQUEDA * Math.ceil((busquedas + 1) / 2)
+}
+
+/**
+ * The worst case before calling: every input token written to cache, the whole max_tokens produced, and every allowed
+ * search used with its bound of result tokens re-read across the loop.
  */
 export function estimarCosto(
   modelo: ModeloClaude,
   pedido: { caracteresDeEntrada: number; maxTokens: number; busquedas: number },
 ): number {
-  if (pedido.busquedas > 0) {
-    throw new Falla(
-      "Todavía no puedo estimar el costo de una llamada con búsquedas web: llega con las investigaciones.",
-    )
-  }
   return costoReal(modelo, {
     entrada: 0,
     salida: pedido.maxTokens,
-    escrituraDeCache: Math.ceil(pedido.caracteresDeEntrada / CARACTERES_POR_TOKEN),
+    escrituraDeCache:
+      Math.ceil(pedido.caracteresDeEntrada / CARACTERES_POR_TOKEN) + tokensDeBusquedas(pedido.busquedas),
     lecturaDeCache: 0,
-    busquedas: 0,
+    busquedas: pedido.busquedas,
   })
 }
 

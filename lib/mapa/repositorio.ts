@@ -9,6 +9,8 @@ export interface HallazgoNuevo {
   medio: string
   publicadoEn: string | null
   vector: number[]
+  investigacionId?: string
+  angulo?: string
 }
 
 const ResultadoDeGuardar = z.discriminatedUnion("estado", [
@@ -51,6 +53,8 @@ export function repositorioDelMapa(db: Db) {
         p_umbral_tema: umbrales.tema,
         p_cita: h.cita ?? undefined,
         p_publicado_en: h.publicadoEn ?? undefined,
+        p_investigacion: h.investigacionId,
+        p_angulo: h.angulo,
       })
       if (error) fallo("No pude guardar el hallazgo", error)
       return ResultadoDeGuardar.parse(data)

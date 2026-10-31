@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest"
-import { Falla } from "@/lib/dominio/falla"
 import {
   costoDeVoyage,
   costoReal,
@@ -50,10 +49,42 @@ describe("estimarCosto", () => {
     )
   })
 
-  test("refuses web searches until the research sub-plan bounds the tokens their results bring back", () => {
-    expect(() => estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 10, maxTokens: 10, busquedas: 1 })).toThrow(
-      Falla,
-    )
+  test("estimates a call with searches: each search adds its fee and re-reads the average context of the loop", () => {
+    const sin = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 8000, busquedas: 0 })
+    const con = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 8000, busquedas: 8 })
+    // 8 × (US$0.01 fee + 30,000 tokens × ceil(9 / 2) = 5 at the Opus cache-write price of US$5/M = US$0.75)
+    expect(con - sin).toBe(8 * (10_000 + 5 * 150_000))
+    const una = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 2000, maxTokens: 8000, busquedas: 1 })
+    expect(una - sin).toBe(10_000 + 150_000)
+  })
+
+  test("an 8-search Opus estimate stays above a loop that re-reads a growing 30,000-token-per-search context", () => {
+    const caracteres = 4000
+    const estimado = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: caracteres, maxTokens: 8000, busquedas: 8 })
+    // Pessimistic: each of the 8 server iterations re-reads the prompt plus every result so far, all billed as cache
+    // writes (the dearest input), and the whole max_tokens is produced.
+    let contexto = 0
+    for (let i = 1; i <= 8; i++) contexto += caracteres / 2 + 30_000 * i
+    const real = costoReal("claude-opus-5-5", {
+      entrada: 0,
+      salida: 8000,
+      escrituraDeCache: contexto,
+      lecturaDeCache: 0,
+      busquedas: 8,
+    })
+    expect(estimado).toBeGreaterThan(real)
+  })
+
+  test("the estimate with searches stays above a realistic real cost", () => {
+    const estimado = estimarCosto("claude-opus-5-5", { caracteresDeEntrada: 4000, maxTokens: 16_000, busquedas: 8 })
+    const real = costoReal("claude-opus-5-5", {
+      entrada: 60_000,
+      salida: 6_000,
+      escrituraDeCache: 0,
+      lecturaDeCache: 0,
+      busquedas: 8,
+    })
+    expect(estimado).toBeGreaterThan(real)
   })
 
   test("covers every input token as a cache write and the whole max_tokens, for any size and model", () => {

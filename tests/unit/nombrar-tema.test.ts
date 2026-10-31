@@ -1,7 +1,11 @@
 import { describe, expect, test, vi } from "vitest"
 import { nombrarTema } from "@/lib/mapa/nombrar"
 
-const respuesta = (texto: string, detenido: "end_turn" | "refusal" | "max_tokens" = "end_turn") => ({ texto, detenido })
+const respuesta = (texto: string, detenido: "end_turn" | "refusal" | "max_tokens" = "end_turn") => ({
+  texto,
+  detenido,
+  bloques: [],
+})
 
 describe("nombrarTema", () => {
   test("asks Sonnet at low effort, charged to General, with the summaries wrapped as data", async () => {

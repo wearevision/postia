@@ -9,6 +9,7 @@ export const RUTA_DE_CARRUSEL = "/piezas/carrusel"
 export const RUTA_DE_CALENDARIO = "/calendario"
 export const RUTA_DE_VOZ = "/voz"
 export const RUTA_DE_CLIENTES = "/clientes"
+export const RUTA_DE_INVESTIGAR = "/investigar"
 
 export function rutaDeCalendario(destino: { semana: string } | { mes: string }): string {
   return "semana" in destino
@@ -27,6 +28,10 @@ export function rutaDePieza(id: string, aviso: readonly string[] = []): string {
 
 export function rutaDeEditarCarrusel(piezaId: string): string {
   return `${RUTA_DE_CARRUSEL}?pieza=${encodeURIComponent(piezaId)}`
+}
+
+export function rutaDeInvestigacion(id: string): string {
+  return `${RUTA_DE_INVESTIGAR}/${encodeURIComponent(id)}`
 }
 
 const PUBLICAS = new Set([RUTA_DE_INGRESO])

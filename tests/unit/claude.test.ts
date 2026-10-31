@@ -5,6 +5,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, expectTypeOf, test, vi } from "vitest"
 import { Falla } from "@/lib/dominio/falla"
 import type { LibroDeGastos } from "@/lib/gasto/pagar"
+import { estimarCosto } from "@/lib/gasto/precios"
 import { crearReal, esRechazoProbado, pedirPagando, type RespuestaDeClaude, solicitudDe, usoDe } from "@/lib/ia/claude"
 import { servidor } from "../msw"
 
@@ -59,6 +60,17 @@ describe("solicitudDe", () => {
   })
 })
 
+describe("solicitudDe with tools", () => {
+  const base = { sistema: "Breve.", mensajes: [{ role: "user" as const, content: "Hola" }], maxTokens: 512 }
+
+  test("passes the tools through and omits them when there are none", () => {
+    const busqueda: Anthropic.Messages.ToolUnion = { type: "web_search_20260209", name: "web_search", max_uses: 3 }
+    expect(solicitudDe({ ...base, esfuerzo: "low", herramientas: [busqueda] }).tools).toEqual([busqueda])
+    expect(solicitudDe({ ...base, esfuerzo: "low", herramientas: [] })).not.toHaveProperty("tools")
+    expect(solicitudDe({ ...base, esfuerzo: "low" })).not.toHaveProperty("tools")
+  })
+})
+
 describe("usoDe", () => {
   test("reads every billed kind of token from the response usage", () => {
     expect(
@@ -102,7 +114,7 @@ describe("pedirPagando", () => {
       liberar: vi.fn(async () => {}),
     }
     const crear = vi.fn(async () => ({
-      content: [{ type: "text", text: "listo" }],
+      content: [{ type: "text" as const, text: "listo", citations: null }],
       stop_reason: "end_turn" as const,
       usage: { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
     }))
@@ -111,7 +123,11 @@ describe("pedirPagando", () => {
       { clave: "probar:1", paso: "probar", marcaId: null },
       { sistema: "Breve.", mensajes: [{ role: "user", content: "Hola" }], maxTokens: 1024, esfuerzo: "low" },
     )
-    expect(respuesta).toEqual({ texto: "listo", detenido: "end_turn" })
+    expect(respuesta).toEqual({
+      texto: "listo",
+      detenido: "end_turn",
+      bloques: [{ type: "text", text: "listo", citations: null }],
+    })
     expect(crear).toHaveBeenCalledTimes(1)
     expect(libro.reservar).toHaveBeenCalledWith(expect.objectContaining({ clave: "probar:1", proveedor: "anthropic" }))
     // 100 in × $4 + 50 out × $20 per million, rounded up.
@@ -128,7 +144,7 @@ function libroQueReserva(): LibroDeGastos {
 }
 
 const RESPUESTA_CORTA = {
-  content: [{ type: "text", text: "listo" }],
+  content: [{ type: "text" as const, text: "listo", citations: null }],
   stop_reason: "end_turn" as const,
   usage: { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
 }
@@ -176,6 +192,194 @@ describe("pedirPagando with content blocks", () => {
       return vi.mocked(libro.reservar).mock.calls[0]?.[0].estimadoMicro
     }
     expect(await estimadoDe([{ type: "text", text: texto }])).toBe(await estimadoDe(texto))
+  })
+})
+
+describe("pedirPagando with web searches", () => {
+  const busqueda = (max_uses?: number): Anthropic.Messages.ToolUnion =>
+    max_uses === undefined
+      ? { type: "web_search_20260209", name: "web_search" }
+      : { type: "web_search_20260209", name: "web_search", max_uses }
+
+  async function estimado(pedido: Parameters<typeof pedirPagando>[2]): Promise<number | undefined> {
+    const libro = libroQueReserva()
+    await pedirPagando(
+      { libro, avisar: async () => {}, crear: async () => RESPUESTA_CORTA },
+      { clave: "busqueda:1", paso: "probar", marcaId: null },
+      pedido,
+    )
+    return vi.mocked(libro.reservar).mock.calls[0]?.[0].estimadoMicro
+  }
+
+  test("reserves the bound of every search the tools allow", async () => {
+    const pedido = { sistema: "Breve.", mensajes: [{ role: "user" as const, content: "Investiga" }], maxTokens: 1024 }
+    const caracteres = "Breve.".length + "Investiga".length
+    expect(await estimado({ ...pedido, esfuerzo: "low", herramientas: [busqueda(8)] })).toBe(
+      estimarCosto("claude-opus-5-5", { caracteresDeEntrada: caracteres, maxTokens: 1024, busquedas: 8 }),
+    )
+  })
+
+  test("refuses a web search tool without a maximum, before reserving or calling", async () => {
+    const libro = libroQueReserva()
+    const crear = vi.fn(async () => RESPUESTA_CORTA)
+    await expect(
+      pedirPagando(
+        { libro, avisar: async () => {}, crear },
+        { clave: "busqueda:2", paso: "probar", marcaId: null },
+        {
+          sistema: "Breve.",
+          mensajes: [{ role: "user", content: "Investiga" }],
+          maxTokens: 1024,
+          esfuerzo: "low",
+          herramientas: [busqueda()],
+        },
+      ),
+    ).rejects.toBeInstanceOf(Falla)
+    expect(libro.reservar).not.toHaveBeenCalled()
+    expect(crear).not.toHaveBeenCalled()
+  })
+
+  test("returns the raw content blocks next to the joined text", async () => {
+    const bloques: Anthropic.ContentBlock[] = [
+      {
+        type: "server_tool_use",
+        id: "s1",
+        caller: { type: "direct" },
+        name: "web_search",
+        input: { query: "focus groups" },
+      },
+      { type: "text", text: "Hallé ", citations: null },
+      { type: "text", text: "esto.", citations: null },
+    ]
+    const respuesta = await pedirPagando(
+      {
+        libro: libroQueReserva(),
+        avisar: async () => {},
+        crear: async () => ({ ...RESPUESTA_CORTA, content: bloques }),
+      },
+      { clave: "busqueda:3", paso: "probar", marcaId: null },
+      { sistema: "Breve.", mensajes: [{ role: "user", content: "Investiga" }], maxTokens: 1024, esfuerzo: "low" },
+    )
+    expect(respuesta.bloques).toEqual(bloques)
+    expect(respuesta.texto).toBe("Hallé esto.")
+  })
+
+  test("estimates a continuation by the JSON length of its search blocks", async () => {
+    const turno: Anthropic.ContentBlockParam[] = [
+      { type: "server_tool_use", id: "s1", name: "web_search", input: { query: "focus groups" } },
+      {
+        type: "web_search_tool_result",
+        tool_use_id: "s1",
+        content: [{ type: "web_search_result", url: "https://a.cl/x", title: "A", encrypted_content: "x".repeat(500) }],
+      },
+      {
+        type: "text",
+        text: "Según A.",
+        citations: [
+          {
+            type: "web_search_result_location",
+            url: "https://a.cl/x",
+            title: "A",
+            cited_text: "c",
+            encrypted_index: "i",
+          },
+        ],
+      },
+    ]
+    const largo = turno.reduce((n, b) => n + JSON.stringify(b).length, 0)
+    const caracteres = "Breve.".length + "Investiga".length + largo
+    expect(
+      await estimado({
+        sistema: "Breve.",
+        mensajes: [
+          { role: "user", content: "Investiga" },
+          { role: "assistant", content: turno },
+        ],
+        maxTokens: 1024,
+        esfuerzo: "low",
+        herramientas: [busqueda(2)],
+      }),
+    ).toBe(estimarCosto("claude-opus-5-5", { caracteresDeEntrada: caracteres, maxTokens: 1024, busquedas: 2 }))
+  })
+
+  test("estimates and sends a continuation carrying thinking and server-side code execution blocks", async () => {
+    const turno: Anthropic.ContentBlockParam[] = [
+      { type: "thinking", thinking: "Primero busco y luego filtro.", signature: "firma".repeat(40) },
+      { type: "redacted_thinking", data: "opaco".repeat(20) },
+      { type: "server_tool_use", id: "s1", name: "web_search", input: { query: "focus groups" } },
+      {
+        type: "web_search_tool_result",
+        tool_use_id: "s1",
+        content: [{ type: "web_search_result", url: "https://a.cl/x", title: "A", encrypted_content: "x".repeat(500) }],
+      },
+      { type: "server_tool_use", id: "c1", name: "bash_code_execution", input: { command: "grep -i focus r.txt" } },
+      {
+        type: "bash_code_execution_tool_result",
+        tool_use_id: "c1",
+        content: { type: "bash_code_execution_result", content: [], return_code: 0, stderr: "", stdout: "focus" },
+      },
+      {
+        type: "text",
+        text: "Según A.",
+        citations: [
+          {
+            type: "web_search_result_location",
+            url: "https://a.cl/x",
+            title: "A",
+            cited_text: "c",
+            encrypted_index: "i",
+          },
+        ],
+      },
+    ]
+    const libro = libroQueReserva()
+    const crear = vi.fn(async () => RESPUESTA_CORTA)
+    await pedirPagando(
+      { libro, avisar: async () => {}, crear },
+      { clave: "continuacion:1", paso: "probar", marcaId: null },
+      {
+        sistema: "Breve.",
+        mensajes: [
+          { role: "user", content: "Investiga" },
+          { role: "assistant", content: turno },
+        ],
+        maxTokens: 1024,
+        esfuerzo: "low",
+        herramientas: [busqueda(2)],
+      },
+    )
+    const largo = turno.reduce((n, b) => n + JSON.stringify(b).length, 0)
+    const caracteres = "Breve.".length + "Investiga".length + largo
+    expect(crear).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(libro.reservar).mock.calls[0]?.[0]).toMatchObject({
+      estimadoMicro: estimarCosto("claude-opus-5-5", {
+        caracteresDeEntrada: caracteres,
+        maxTokens: 1024,
+        busquedas: 2,
+      }),
+    })
+  })
+
+  test("still refuses a document block", async () => {
+    const libro = libroQueReserva()
+    await expect(
+      pedirPagando(
+        { libro, avisar: async () => {}, crear: async () => RESPUESTA_CORTA },
+        { clave: "documento:1", paso: "probar", marcaId: null },
+        {
+          sistema: "Breve.",
+          mensajes: [
+            {
+              role: "user",
+              content: [{ type: "document", source: { type: "text", media_type: "text/plain", data: "hola" } }],
+            },
+          ],
+          maxTokens: 1024,
+          esfuerzo: "low",
+        },
+      ),
+    ).rejects.toBeInstanceOf(Falla)
+    expect(libro.reservar).not.toHaveBeenCalled()
   })
 })
 

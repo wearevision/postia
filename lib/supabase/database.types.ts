@@ -419,12 +419,14 @@ export type Database = {
       }
       hallazgos: {
         Row: {
+          angulo: string | null
           cita: string | null
           creado_en: string
           enlace: string
           enlace_normalizado: string
           estado: string
           id: string
+          investigacion_id: string | null
           medio: string
           publicado_en: string | null
           resumen: string
@@ -432,12 +434,14 @@ export type Database = {
           vector: string
         }
         Insert: {
+          angulo?: string | null
           cita?: string | null
           creado_en?: string
           enlace: string
           enlace_normalizado: string
           estado?: string
           id?: string
+          investigacion_id?: string | null
           medio?: string
           publicado_en?: string | null
           resumen: string
@@ -445,12 +449,14 @@ export type Database = {
           vector: string
         }
         Update: {
+          angulo?: string | null
           cita?: string | null
           creado_en?: string
           enlace?: string
           enlace_normalizado?: string
           estado?: string
           id?: string
+          investigacion_id?: string | null
           medio?: string
           publicado_en?: string | null
           resumen?: string
@@ -459,6 +465,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "hallazgos_investigacion_id_fkey"
+            columns: ["investigacion_id"]
+            isOneToOne: false
+            referencedRelation: "investigaciones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "hallazgos_tema_id_fkey"
             columns: ["tema_id"]
             isOneToOne: false
@@ -466,6 +479,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      investigaciones: {
+        Row: {
+          angulos: Json
+          cantidad: number | null
+          cerrada_en: string | null
+          creada_en: string
+          descartados: number
+          dia: string | null
+          enfoque: string | null
+          estado: string
+          formato: string | null
+          id: string
+          motivo: string | null
+          origen: string
+          pedida_por: string | null
+          repetidos: number
+          tema: string
+        }
+        Insert: {
+          angulos?: Json
+          cantidad?: number | null
+          cerrada_en?: string | null
+          creada_en?: string
+          descartados?: number
+          dia?: string | null
+          enfoque?: string | null
+          estado?: string
+          formato?: string | null
+          id?: string
+          motivo?: string | null
+          origen: string
+          pedida_por?: string | null
+          repetidos?: number
+          tema: string
+        }
+        Update: {
+          angulos?: Json
+          cantidad?: number | null
+          cerrada_en?: string | null
+          creada_en?: string
+          descartados?: number
+          dia?: string | null
+          enfoque?: string | null
+          estado?: string
+          formato?: string | null
+          id?: string
+          motivo?: string | null
+          origen?: string
+          pedida_por?: string | null
+          repetidos?: number
+          tema?: string
+        }
+        Relationships: []
       }
       lineas_editoriales: {
         Row: {
@@ -937,6 +1004,27 @@ export type Database = {
           },
         ]
       }
+      sugerencias_de_investigacion: {
+        Row: {
+          creada_en: string
+          enriquece: string
+          id: string
+          tema: string
+        }
+        Insert: {
+          creada_en?: string
+          enriquece: string
+          id?: string
+          tema: string
+        }
+        Update: {
+          creada_en?: string
+          enriquece?: string
+          id?: string
+          tema?: string
+        }
+        Relationships: []
+      }
       suscripciones_push: {
         Row: {
           auth: string
@@ -1040,6 +1128,53 @@ export type Database = {
           },
         ]
       }
+      trabajos_de_investigacion: {
+        Row: {
+          angulo: string | null
+          arrendado_hasta: string | null
+          creado_en: string
+          estado: string
+          id: string
+          intentos: number
+          investigacion_id: string
+          motivo: string | null
+          terminado_en: string | null
+          tipo: string
+        }
+        Insert: {
+          angulo?: string | null
+          arrendado_hasta?: string | null
+          creado_en?: string
+          estado?: string
+          id?: string
+          intentos?: number
+          investigacion_id: string
+          motivo?: string | null
+          terminado_en?: string | null
+          tipo: string
+        }
+        Update: {
+          angulo?: string | null
+          arrendado_hasta?: string | null
+          creado_en?: string
+          estado?: string
+          id?: string
+          intentos?: number
+          investigacion_id?: string
+          motivo?: string | null
+          terminado_en?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabajos_de_investigacion_investigacion_id_fkey"
+            columns: ["investigacion_id"]
+            isOneToOne: false
+            referencedRelation: "investigaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       versiones: {
         Row: {
           archivo_ruta: string | null
@@ -1104,6 +1239,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aprobar_informe: { Args: { p_investigacion: string }; Returns: undefined }
       barrer_gastos: { Args: { p_ahora?: string }; Returns: number }
       cerrar_a_mano: {
         Args: { p_enlace: string; p_pieza: string }
@@ -1111,6 +1247,15 @@ export type Database = {
       }
       cerrar_envio: {
         Args: { p_enlace: string; p_pieza: string; p_urn: string }
+        Returns: undefined
+      }
+      cerrar_investigacion: {
+        Args: {
+          p_angulos: Json
+          p_descartados?: number
+          p_investigacion: string
+          p_repetidos?: number
+        }
         Returns: undefined
       }
       conectar_linkedin: {
@@ -1161,6 +1306,10 @@ export type Database = {
         }
         Returns: string
       }
+      crear_vigilancia: {
+        Args: { p_dia: string; p_temas: string[] }
+        Returns: string
+      }
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
         Returns: {
@@ -1172,6 +1321,11 @@ export type Database = {
       cubrir_con_reserva: {
         Args: { p_pendiente: string; p_siguiente: string }
         Returns: string
+      }
+      descartar_hallazgo: { Args: { p_hallazgo: string }; Returns: undefined }
+      descartar_informe: {
+        Args: { p_investigacion: string }
+        Returns: undefined
       }
       descartar_pieza: {
         Args: { p_motivo: string; p_pieza: string }
@@ -1208,9 +1362,11 @@ export type Database = {
       }
       guardar_hallazgo: {
         Args: {
+          p_angulo?: string
           p_cita?: string
           p_enlace: string
           p_enlace_normalizado: string
+          p_investigacion?: string
           p_medio: string
           p_publicado_en?: string
           p_resumen: string
@@ -1243,6 +1399,7 @@ export type Database = {
         Args: { p_pedido?: string; p_veredicto: Json; p_version: string }
         Returns: undefined
       }
+      guardar_sugerencias: { Args: { p_sugerencias: Json }; Returns: undefined }
       guardar_tope: {
         Args: { p_marca?: string; p_monto_micro?: number }
         Returns: undefined
@@ -1282,6 +1439,10 @@ export type Database = {
         }
         Returns: string
       }
+      pedir_ampliacion: {
+        Args: { p_angulo: string; p_investigacion: string }
+        Returns: string
+      }
       pedir_diseno: {
         Args: {
           p_cuenta: string
@@ -1290,6 +1451,15 @@ export type Database = {
           p_tema: string
           p_texto: string
           p_titulo: string
+        }
+        Returns: string
+      }
+      pedir_investigacion: {
+        Args: {
+          p_cantidad: number
+          p_enfoque?: string
+          p_formato: string
+          p_tema: string
         }
         Returns: string
       }
@@ -1399,6 +1569,10 @@ export type Database = {
         Args: { p_estado: string; p_motivo: string; p_pedido: string }
         Returns: undefined
       }
+      terminar_trabajo_de_investigacion: {
+        Args: { p_estado: string; p_motivo?: string; p_trabajo: string }
+        Returns: undefined
+      }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_para_publicar: {
         Args: never
@@ -1475,6 +1649,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "pedidos_de_diseno"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      tomar_trabajo_de_investigacion: {
+        Args: never
+        Returns: {
+          angulo: string | null
+          arrendado_hasta: string | null
+          creado_en: string
+          estado: string
+          id: string
+          intentos: number
+          investigacion_id: string
+          motivo: string | null
+          terminado_en: string | null
+          tipo: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trabajos_de_investigacion"
           isOneToOne: false
           isSetofReturn: true
         }

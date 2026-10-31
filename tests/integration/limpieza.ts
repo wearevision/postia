@@ -38,6 +38,9 @@ async function limpiarDatosDePrueba(): Promise<void> {
     if (errorDeExcepciones) throw new Error(`No pude borrar excepciones de prueba: ${errorDeExcepciones.message}`)
     const { error: errorDeTopesPuestos } = await db.from("topes").delete().in("puesto_por", lote)
     if (errorDeTopesPuestos) throw errorDeTopesPuestos
+    // Research requests are not per brand (D17): they hang from their author, with no cascade.
+    const { error: errorDeInvestigaciones } = await db.from("investigaciones").delete().in("pedida_por", lote)
+    if (errorDeInvestigaciones) throw errorDeInvestigaciones
     const { error: errorDeConexiones } = await db.from("conexiones").delete().in("conectada_por", lote)
     if (errorDeConexiones) throw new Error(`No pude borrar conexiones de prueba: ${errorDeConexiones.message}`)
   }

@@ -101,6 +101,34 @@ describe("Worker boundary", () => {
     expect([...grafo.paquetes].filter((p) => p === "playwright" || p.startsWith("playwright/"))).toEqual([])
   })
 
+  test("nothing reachable from a route, a component or the proxy imports the research run, its repository or the watch", () => {
+    const entradas = [
+      ...archivos("app"),
+      ...archivos("components"),
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    const soloTrigger = [
+      "lib/investigacion/investigar.ts",
+      "lib/investigacion/repositorio.ts",
+      "lib/investigacion/vigilancia.ts",
+    ]
+    expect([...grafo.archivos].filter((a) => soloTrigger.includes(a))).toEqual([])
+  })
+
+  test("the research run and the watch stay Trigger-only because they reach the Claude client", () => {
+    const grafo = recorrerImports(["trigger/investigaciones.ts"], disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos]).toEqual(
+      expect.arrayContaining([
+        "lib/investigacion/investigar.ts",
+        "lib/investigacion/vigilancia.ts",
+        "lib/ia/claude.ts",
+      ]),
+    )
+  })
+
   test("the cheap carousel poller does not reach Playwright or the renderer's task", () => {
     const grafo = recorrerImports(["trigger/vigilar-carruseles.ts"], disco)
     expect(grafo.sinResolver).toEqual([])
