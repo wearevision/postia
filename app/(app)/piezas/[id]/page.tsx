@@ -126,6 +126,20 @@ export default async function Pieza({
     }
   }
 
+  /** The next piece waiting for a signature; null when none is left or the inbox could not be read. */
+  async function leerSiguiente(): Promise<string | null> {
+    try {
+      return siguientePorFirmar((await bandeja(db)).porFirmar, piezaId)
+    } catch (error) {
+      // Only a shortcut: the signed piece must still open without it.
+      console.error(
+        "No pude leer la bandeja para la siguiente pieza",
+        error instanceof Error ? error.message : String(error),
+      )
+      return null
+    }
+  }
+
   const recienFirmada = estado === "programada" || estado === "en_reserva"
   const [pilares, hallazgos, redaccion, diseno, siguiente] = await Promise.all([
     SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
@@ -134,7 +148,7 @@ export default async function Pieza({
     estado === "por_aprobar" ? revisarAntesDeFirmar() : [],
     conClaude ? leerRedaccion() : null,
     rearmable ? leerDiseno() : null,
-    recienFirmada ? bandeja(db).then((b) => siguientePorFirmar(b.porFirmar, pieza.id)) : null,
+    recienFirmada ? leerSiguiente() : null,
   ])
   const armando = diseno?.abierto ?? false
   const firmaCaida = estado === "por_aprobar" && pieza.motivo === MOTIVO_DE_FIRMA_CAIDA
