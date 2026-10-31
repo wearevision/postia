@@ -18,6 +18,7 @@ import type {
 } from "@/lib/series/lectura"
 import type { FormatoDeIdea } from "@/lib/series/propuestas"
 import { rutaDePieza } from "@/lib/sesion/rutas"
+import { useAccionDiferida } from "./aprobacion-diferida"
 
 const BOTON = "boton w-full"
 const PRIMARIO = "boton-primario w-full"
@@ -196,6 +197,7 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
   const [elegidas, setElegidas] = useState<ReadonlySet<string>>(() => new Set([idea.cuentaSugerida.id]))
   const [editando, setEditando] = useState(false)
   const { error, setError, pendiente, ejecutar } = useAccion()
+  const diferida = useAccionDiferida()
   // The suggested account always shows, even if it is not among the person's own.
   const opciones = cuentas.some((c) => c.id === idea.cuentaSugerida.id) ? cuentas : [idea.cuentaSugerida, ...cuentas]
 
@@ -211,7 +213,7 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
   function aprobar() {
     const ids = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.id)
     if (ids.length === 0) return setError("Elige al menos una cuenta.")
-    ejecutar(() => a.aprobar(idea.id, ids))
+    diferida.programar(() => ejecutar(() => a.aprobar(idea.id, ids)))
   }
 
   return (
@@ -225,9 +227,18 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
           </label>
         ))}
       </fieldset>
-      <button type="button" disabled={pendiente} onClick={aprobar} className={PRIMARIO}>
-        Aprobar
-      </button>
+      {diferida.esperando ? (
+        <div className="space-y-1">
+          <button type="button" onClick={diferida.cancelar} className={BOTON}>
+            Deshacer
+          </button>
+          <output className="block text-sm text-apagado">Se aprueba en 10 s. Si sales antes, no se aprueba.</output>
+        </div>
+      ) : (
+        <button type="button" disabled={pendiente} onClick={aprobar} className={PRIMARIO}>
+          Aprobar
+        </button>
+      )}
       <div className="grid grid-cols-3 gap-2">
         <button type="button" disabled={pendiente} onClick={() => setEditando(true)} className={BOTON}>
           Editar

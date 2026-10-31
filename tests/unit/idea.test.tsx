@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { describe, expect, test, vi } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { AprobarSerie, TarjetaDeIdea } from "@/app/(app)/ideas/idea"
 import type { IdeaDeSerie, IdeaSuelta } from "@/lib/series/lectura"
 
@@ -93,6 +93,10 @@ function tarjeta(idea: IdeaDeSerie, a = acciones()) {
   return a
 }
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 describe("TarjetaDeIdea", () => {
   test("shows the hook, summary, format, numbered skeleton, sources and why that account", () => {
     tarjeta(PROPUESTA)
@@ -116,12 +120,14 @@ describe("TarjetaDeIdea", () => {
   })
 
   test("a proposal offers the accounts with the suggested one checked, and approves the chosen ones", async () => {
+    vi.useFakeTimers()
     const a = tarjeta(PROPUESTA)
     expect(screen.getByRole("checkbox", { name: "Página de WAV" })).toBeChecked()
     expect(screen.getByRole("checkbox", { name: "Federico" })).not.toBeChecked()
     fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
-    await waitFor(() => expect(a.aprobar).toHaveBeenCalledWith("i1", [PERFIL.id, PAGINA.id]))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(a.aprobar).toHaveBeenCalledWith("i1", [PERFIL.id, PAGINA.id])
   })
 
   test("with no account checked it asks for one instead of calling", () => {
@@ -256,9 +262,12 @@ describe("TarjetaDeIdea", () => {
   })
 
   test("a cross is approved, discarded, edited and replaced like a series idea", async () => {
+    vi.useFakeTimers()
     const a = tarjeta(CRUCE)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
-    await waitFor(() => expect(a.aprobar).toHaveBeenCalledWith("c1", [PAGINA.id]))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(a.aprobar).toHaveBeenCalledWith("c1", [PAGINA.id])
+    vi.useRealTimers()
     fireEvent.click(screen.getByRole("button", { name: "Pedir otra" }))
     await waitFor(() => expect(a.pedirOtra).toHaveBeenCalledWith("c1"))
     fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
@@ -293,5 +302,38 @@ describe("AprobarSerie", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
     expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeInTheDocument()
     expect(aprobar).not.toHaveBeenCalled()
+  })
+})
+
+describe("approving one idea", () => {
+  test("waits 10 seconds before approving, with a way to undo", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    expect(screen.getByText("Se aprueba en 10 s. Si sales antes, no se aprueba.")).toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(9_900))
+    expect(a.aprobar).not.toHaveBeenCalled()
+    await act(() => vi.advanceTimersByTimeAsync(100))
+    expect(a.aprobar).toHaveBeenCalledWith("i1", ["c-pagina"])
+  })
+
+  test("Deshacer cancels it for good", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
+    await act(() => vi.advanceTimersByTimeAsync(20_000))
+    expect(a.aprobar).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
+  })
+
+  test("leaving the page before the countdown ends approves nothing", async () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    const { unmount } = render(<TarjetaDeIdea idea={PROPUESTA} cuentas={[PERFIL, PAGINA]} {...a} />)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    unmount()
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(a.aprobar).not.toHaveBeenCalled()
   })
 })
