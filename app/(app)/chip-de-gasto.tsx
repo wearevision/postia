@@ -3,7 +3,7 @@ import Link from "next/link"
 import { enDolares } from "@/lib/gasto/precios"
 import { RUTA_DE_AJUSTES } from "@/lib/sesion/rutas"
 
-/** Month spend against the cap, in the header of every screen; it opens the breakdown by account in Ajustes. */
+/** Month spend against the cap, in the header of Inicio and Ajustes (elsewhere from 80 %); it opens the breakdown by account in Ajustes. */
 export function ChipDeGasto({ gastadoMicro, topeMicro }: { gastadoMicro: number; topeMicro: number }) {
   const porcentaje = (gastadoMicro * 100) / topeMicro
   const aviso = porcentaje >= 100 ? "Tope alcanzado" : porcentaje >= 80 ? "Va en el 80 %" : null

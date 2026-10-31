@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test"
+import { pedirDiseno } from "@/lib/disenos/acciones"
 import { invitar } from "@/lib/equipo/invitar"
+import { carruselInicial } from "@/lib/plantillas/iniciales"
+import { familiaDe } from "@/lib/plantillas/temas"
 import { admin, correoUnico } from "../integration/entorno"
 import { entrar } from "./ingreso"
+import { clienteDe } from "./piezas"
 
-test("an owner asks for a carousel from the defaults, and its piece shows the slides at gate 1", async ({
+test("a carousel asked for in the editor shows its slides at gate 1 and opens again to edit", async ({
   page,
   request,
 }) => {
@@ -17,27 +21,36 @@ test("an owner asks for a carousel from the defaults, and its piece shows the sl
     .single()
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
 
+  // Signed in first: opening the helper session before asking for the emailed code trips the per-address mail limit.
   await entrar(page, request, correo)
 
-  await page.getByRole("link", { name: "Nuevo carrusel" }).click()
-  await expect(page.getByRole("heading", { name: "Nuevo carrusel" })).toBeVisible()
-  await page.getByLabel("Texto del post").fill("Un carrusel para probar el editor.")
-  await page.getByRole("button", { name: "Armar carrusel" }).click()
-  const recientes = page.locator("section", { has: page.getByRole("heading", { name: "Carruseles recientes" }) })
-  await expect(recientes.getByText(/· En cola$/)).toBeVisible()
-  await expect(recientes.getByText("Se está armando el carrusel. Esta página se actualiza sola.")).toBeVisible()
+  // Carousels are asked for from approved ideas now, so the order is placed the way the editor's action does.
+  const dueno = await clienteDe(db, correo)
+  const pedido = await pedirDiseno(dueno, {
+    cuentaId: cuenta.id,
+    piezaId: null,
+    tema: "wav-noche",
+    titulo: "Portada: la pregunta que responde la guía",
+    texto: "Un carrusel para probar el editor.",
+    diseno: carruselInicial(familiaDe("wav-noche")),
+  })
+  if (!pedido.ok) throw new Error(`No pude pedir el carrusel: ${pedido.error}`)
 
   // No Trigger.dev in e2e: stand in for armar-carruseles with stub previews and its service-role RPCs.
-  const { data: pedido } = await db.from("pedidos_de_diseno").select("id, diseno").eq("cuenta_id", cuenta.id).single()
-  if (!pedido) throw new Error("No quedó el pedido de carrusel")
+  const { data: pedidoGuardado } = await db
+    .from("pedidos_de_diseno")
+    .select("id, diseno")
+    .eq("id", pedido.pedidoId)
+    .single()
+  if (!pedidoGuardado) throw new Error("No quedó el pedido de carrusel")
   await db
     .from("pedidos_de_diseno")
     .update({ estado: "obsoleto" })
     .in("estado", ["pendiente", "trabajando"])
-    .neq("id", pedido.id)
+    .neq("id", pedidoGuardado.id)
   await db.rpc("tomar_pedidos_de_diseno")
   const base = `${marcaId}/${crypto.randomUUID()}`
-  const laminas = (pedido.diseno as { laminas: unknown[] }).laminas.length
+  const laminas = (pedidoGuardado.diseno as { laminas: unknown[] }).laminas.length
   await db.storage.from("piezas").upload(`${base}.pdf`, new TextEncoder().encode("%PDF-1.4"), {
     contentType: "application/pdf",
   })
@@ -48,7 +61,7 @@ test("an owner asks for a carousel from the defaults, and its piece shows the sl
         contentType: "image/jpeg",
       })
   const guardado = await db.rpc("guardar_diseno", {
-    p_pedido: pedido.id,
+    p_pedido: pedidoGuardado.id,
     p_archivo_ruta: `${base}.pdf`,
     p_archivo_sha256: "d".repeat(64),
   })
@@ -64,5 +77,15 @@ test("an owner asks for a carousel from the defaults, and its piece shows the sl
   await page.getByRole("link", { name: "Editar el carrusel" }).click()
   await expect(page.getByRole("heading", { name: "Editar carrusel" })).toBeVisible()
   await expect(page.getByLabel("Texto del post")).toHaveValue("Un carrusel para probar el editor.")
-  await expect(page.getByRole("combobox", { name: "Cuenta" })).toBeDisabled()
+  // The editor only edits an existing piece: its account is fixed and shown, not chosen.
+  await expect(page.getByText(/^Cuenta:/)).toBeVisible()
+  await expect(page.getByRole("combobox", { name: "Cuenta" })).toHaveCount(0)
+})
+
+test("the empty carousel editor is gone", async ({ page, request }) => {
+  const correo = correoUnico("e2e-sin-editor")
+  await invitar(admin(), { correo, marca: `Marca ${correo}`, voz: "yo" })
+  await entrar(page, request, correo)
+  await page.goto("/piezas/carrusel")
+  await expect(page.getByRole("heading", { name: "No encontré esta página" })).toBeVisible()
 })

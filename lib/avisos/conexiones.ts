@@ -1,7 +1,7 @@
 import { seRenuevaSola } from "@/lib/marcas/estado-conexion"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { fechaLarga } from "@/lib/piezas/fechas"
-import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES } from "@/lib/sesion/rutas"
 import type { Db } from "@/lib/supabase/database"
 import { avisarMiembros } from "./a-miembros"
 import type { ServicioPush } from "./push"
@@ -37,17 +37,17 @@ export function revisarConexion(
   const aviso = (cuerpo: string): MensajePush => ({
     titulo: `Conexión de LinkedIn · ${quien}`,
     cuerpo,
-    url: RUTA_DE_MARCAS,
+    url: RUTA_DE_AJUSTES,
   })
   if (Date.parse(d.expiraEn) <= ahora) {
     const dias = diasDeCalendario(d.expiraEn, ahora)
-    const venció = aviso(`La conexión de LinkedIn de ${quien} venció. Reconéctala en Marcas.`)
+    const venció = aviso(`La conexión de LinkedIn de ${quien} venció. Reconéctala en Ajustes.`)
     // One push when it happens; the following days it waits for the digest instead of buzzing every morning.
     return dias >= -1 ? { urgente: venció, lineas: [] } : { urgente: null, lineas: [venció] }
   }
   if (Date.parse(d.expiraEn) - ahora < DIA_MS) {
     return {
-      urgente: aviso(`La conexión de LinkedIn de ${quien} vence en menos de un día. Reconéctala en Marcas.`),
+      urgente: aviso(`La conexión de LinkedIn de ${quien} vence en menos de un día. Reconéctala en Ajustes.`),
       lineas: [],
     }
   }
@@ -61,15 +61,15 @@ export function revisarConexion(
     lineas.push(
       aviso(
         renovable
-          ? `La conexión de LinkedIn de ${quien} deja de renovarse sola en ${dias} días. Reconéctala en Marcas.`
-          : `La conexión de LinkedIn de ${quien} vence en ${dias} días. Reconéctala en Marcas.`,
+          ? `La conexión de LinkedIn de ${quien} deja de renovarse sola en ${dias} días. Reconéctala en Ajustes.`
+          : `La conexión de LinkedIn de ${quien} vence en ${dias} días. Reconéctala en Ajustes.`,
       ),
     )
   }
   if (MARCAS_DE_PIEZAS.has(dias) && d.ultimaProgramada && Date.parse(d.ultimaProgramada) >= Date.parse(fin)) {
     lineas.push(
       aviso(
-        `Hay piezas de ${quien} programadas después del ${fechaLarga(fin)}, cuando vence su conexión. Reconéctala en Marcas.`,
+        `Hay piezas de ${quien} programadas después del ${fechaLarga(fin)}, cuando vence su conexión. Reconéctala en Ajustes.`,
       ),
     )
   }

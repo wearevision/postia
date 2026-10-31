@@ -23,38 +23,40 @@ describe("Navegacion", () => {
     expect(marcado()).toEqual(["Inicio"])
   })
 
-  test.each(["/piezas/nueva", "/piezas/pedir", "/piezas/carrusel", "/investigar", "/investigar/abc"])(
-    "marks Nueva on the creation flow %s",
-    (destino) => {
-      ruta.actual = destino
-      render(<Navegacion />)
-      expect(marcado()).toEqual(["Nueva"])
-    },
-  )
-
-  test.each(["/marcas", "/voz", "/voz/abc"])("marks Marcas on %s", (destino) => {
+  test.each([
+    ["/ideas", "Ideas"],
+    ["/investigar", "Investigar"],
+    ["/investigar/abc", "Investigar"],
+    ["/calendario", "Calendario"],
+    ["/ajustes", "Ajustes"],
+    ["/marcas", "Ajustes"],
+    ["/marcas/pagina", "Ajustes"],
+    ["/voz/abc", "Ajustes"],
+    ["/clientes", "Ajustes"],
+  ])("on %s marks %s", (destino, marcadoEsperado) => {
     ruta.actual = destino
     render(<Navegacion />)
-    expect(marcado()).toEqual(["Marcas"])
+    expect(marcado()).toEqual([marcadoEsperado])
   })
 
-  test("marks Ajustes on its own screen", () => {
-    ruta.actual = "/ajustes"
-    render(<Navegacion />)
-    expect(marcado()).toEqual(["Ajustes"])
-  })
-
-  test("stays on a piece page, the screen notifications open", () => {
+  test("marks nothing on a piece, which belongs to no tab", () => {
     ruta.actual = "/piezas/abc"
     render(<Navegacion />)
     expect(screen.getByRole("navigation", { name: "Principal" })).toBeInTheDocument()
+    expect(marcado()).toEqual([])
   })
 
   test("pairs every destination with a decorative icon and a visible label", () => {
     ruta.actual = "/"
     render(<Navegacion />)
     const enlaces = screen.getAllByRole("link")
-    expect(enlaces.map((enlace) => enlace.textContent)).toEqual(["Inicio", "Nueva", "Calendario", "Marcas", "Ajustes"])
+    expect(enlaces.map((enlace) => enlace.textContent)).toEqual([
+      "Inicio",
+      "Ideas",
+      "Investigar",
+      "Calendario",
+      "Ajustes",
+    ])
     for (const enlace of enlaces) {
       const icono = enlace.querySelector("svg")
       expect(icono, enlace.textContent ?? "").not.toBeNull()

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
+import { informesPorAprobar } from "@/lib/investigacion/lectura"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { horariosOcupados } from "@/lib/piezas/lectura"
 import {
@@ -485,6 +486,27 @@ describe("readers", () => {
     expect(await ideasPorRevisar(dueno.db)).toBe(antes + 2)
     const cuentas = await cuentasParaIdeas(dueno.db)
     expect(cuentas.map((c) => c.id).sort()).toEqual([perfil, pagina].sort())
+  })
+
+  test("informesPorAprobar counts only the reports waiting for approval", async () => {
+    const antes = await informesPorAprobar(dueno.db)
+    await informeAprobado()
+    expect(await informesPorAprobar(dueno.db)).toBe(antes)
+    const { data, error } = await admin()
+      .from("investigaciones")
+      .insert({
+        origen: "encargo",
+        tema: `Por aprobar ${randomUUID().slice(0, 8)}`,
+        cantidad: 4,
+        formato: "texto",
+        pedida_por: dueno.userId,
+        estado: "informe_por_aprobar",
+      })
+      .select("id")
+      .single()
+    if (error) throw error
+    investigacionesCreadas.push(data.id)
+    expect(await informesPorAprobar(dueno.db)).toBe(antes + 1)
   })
 
   test("ideasYSeries returns crosses and Sunday ideas newest first, each with its sources' summary excerpt", async () => {

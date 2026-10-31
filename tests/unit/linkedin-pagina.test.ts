@@ -260,11 +260,11 @@ describe("terminarConexionDePagina", () => {
 describe("destinoDeLaPagina", () => {
   test("every outcome goes back inside the app", () => {
     expect(destinoDeLaPagina({ ok: true, eleccion: ELECCION })).toBe(`/marcas/pagina?eleccion=${ELECCION}`)
-    expect(destinoDeLaPagina({ ok: false, motivo: "sin_pagina" })).toBe("/marcas?linkedin=sin_pagina")
+    expect(destinoDeLaPagina({ ok: false, motivo: "sin_pagina" })).toBe("/ajustes?linkedin=sin_pagina")
   })
 
   test("a choice id that is not a uuid never reaches the address", () => {
-    expect(destinoDeLaPagina({ ok: true, eleccion: "//evil.example" })).toBe("/marcas?linkedin=fallo")
+    expect(destinoDeLaPagina({ ok: true, eleccion: "//evil.example" })).toBe("/ajustes?linkedin=fallo")
   })
 })
 

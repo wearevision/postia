@@ -48,11 +48,9 @@ describe("voz y clientes", () => {
 })
 
 describe("rutaDePieza", () => {
-  test("a piece, and a new piece whose plan or pillar could not be set", () => {
+  test("a piece route carries no creation notice any more", () => {
     expect(rutaDePieza("p1")).toBe("/piezas/p1")
-    expect(rutaDePieza("p1", [])).toBe("/piezas/p1")
-    expect(rutaDePieza("p1", ["pilar"])).toBe("/piezas/p1?aviso=pilar")
-    expect(rutaDePieza("p1", ["plan", "pilar"])).toBe("/piezas/p1?aviso=plan,pilar")
+    expect(rutaDePieza.length).toBe(1)
   })
 })
 

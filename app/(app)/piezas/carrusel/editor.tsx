@@ -8,14 +8,14 @@ import type { Familia } from "@/lib/plantillas/estilos"
 import { carruselInicial } from "@/lib/plantillas/iniciales"
 import { type Carrusel, TIPOS_DE_LAMINA, type TipoDeLamina } from "@/lib/plantillas/laminas"
 import { familiaDe, type IdDeTema, TEMAS, temasDeLaVoz } from "@/lib/plantillas/temas"
-import { RUTA_DE_CARRUSEL, rutaDePieza } from "@/lib/sesion/rutas"
+import { rutaDePieza } from "@/lib/sesion/rutas"
 
 type Voz = "yo" | "nosotros"
 
 interface Props {
   cuentas: { id: string; nombre: string; voz: Voz }[]
-  /** Edit mode: the piece's latest version. */
-  inicial?: { piezaId: string; cuentaId: string; tema: IdDeTema; titulo: string; texto: string; diseno: Carrusel }
+  /** The piece being edited: its latest version. */
+  inicial: { piezaId: string; cuentaId: string; tema: IdDeTema; titulo: string; texto: string; diseno: Carrusel }
   pedir: (entrada: unknown) => Promise<Resultado<{ pedidoId: string }>>
 }
 
@@ -27,8 +27,6 @@ interface LaminaEnEdicion {
 
 const CAMPO = "campo w-full"
 const BOTON = "boton flex-1 px-3"
-// The WAV page posts as WAV more often than as WR3, so its default is WAV's first theme.
-const TEMA_INICIAL: Record<Voz, IdDeTema> = { nosotros: "wav-noche", yo: "personal-claro" }
 const MAXIMO_DE_LAMINAS = 10
 const MINIMO_DE_LAMINAS = 3
 const AGREGABLES = TIPOS_DE_LAMINA.filter((t) => t !== "portada" && t !== "cierre")
@@ -53,27 +51,19 @@ function cambiarDeFamilia(laminas: LaminaEnEdicion[], antes: Familia, despues: F
   })
 }
 
-const tituloDePortada = (laminas: LaminaEnEdicion[]) =>
-  laminas[0]?.tipo === "portada" ? (laminas[0].borrador.titulo ?? "") : ""
-
 export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
   const router = useRouter()
-  const vozDe = (id: string): Voz => cuentas.find((c) => c.id === id)?.voz ?? "yo"
-  const primera = inicial?.cuentaId ?? cuentas[0]?.id ?? ""
-  const [cuentaId, setCuentaId] = useState(primera)
-  const [tema, setTema] = useState<IdDeTema>(inicial?.tema ?? TEMA_INICIAL[vozDe(primera)])
+  const cuenta = cuentas.find((c) => c.id === inicial.cuentaId)
+  const voz: Voz = cuenta?.voz ?? "yo"
+  const [tema, setTema] = useState<IdDeTema>(inicial.tema)
   const familia = familiaDe(tema)
-  const [laminas, setLaminas] = useState<LaminaEnEdicion[]>(() =>
-    enEdicion(inicial?.diseno ?? carruselInicial(familiaDe(tema))),
-  )
-  const [antetitulo, setAntetitulo] = useState(inicial?.diseno.antetitulo ?? carruselInicial(familia).antetitulo)
-  // A new carousel's document title follows the cover's until Federico writes his own.
-  const [titulo, setTitulo] = useState<string | null>(inicial?.titulo ?? null)
-  const [texto, setTexto] = useState(inicial?.texto ?? "")
+  const [laminas, setLaminas] = useState<LaminaEnEdicion[]>(() => enEdicion(inicial.diseno))
+  const [antetitulo, setAntetitulo] = useState(inicial.diseno.antetitulo)
+  const [titulo, setTitulo] = useState(inicial.titulo)
+  const [texto, setTexto] = useState(inicial.texto)
   const [nuevoTipo, setNuevoTipo] = useState<TipoDeLamina>("punto")
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
-  const tituloMostrado = titulo ?? tituloDePortada(laminas)
 
   function elegirTema(siguiente: IdDeTema) {
     const antes = familiaDe(tema)
@@ -83,12 +73,6 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
       if (antetitulo === carruselInicial(antes).antetitulo) setAntetitulo(carruselInicial(despues).antetitulo)
     }
     setTema(siguiente)
-  }
-
-  function elegirCuenta(id: string) {
-    setCuentaId(id)
-    const voz = vozDe(id)
-    if (!temasDeLaVoz(voz).includes(tema)) elegirTema(TEMA_INICIAL[voz])
   }
 
   function cambiarCampo(id: string, clave: string, valor: string) {
@@ -116,57 +100,32 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
     ])
   }
 
-  /** After a queued new carousel: the account and theme stay, everything written goes back to the family's defaults. */
-  function empezarDeNuevo() {
-    const ejemplo = carruselInicial(familia)
-    setLaminas(enEdicion(ejemplo))
-    setAntetitulo(ejemplo.antetitulo)
-    setTitulo(null)
-    setTexto("")
-    setNuevoTipo("punto")
-  }
-
   function enviar(evento: React.FormEvent) {
     evento.preventDefault()
     setError(null)
     iniciar(async () => {
       const resultado = await pedir({
-        cuentaId,
-        piezaId: inicial?.piezaId ?? null,
+        cuentaId: inicial.cuentaId,
+        piezaId: inicial.piezaId,
         tema,
-        titulo: tituloMostrado,
+        titulo,
         texto,
         diseno: { antetitulo, laminas: laminas.map((l) => deBorrador(l.tipo, l.borrador)) },
       })
       if (!resultado.ok) return setError(resultado.error)
-      if (inicial) return router.push(rutaDePieza(inicial.piezaId))
-      empezarDeNuevo()
-      router.push(RUTA_DE_CARRUSEL)
-      router.refresh()
+      router.push(rutaDePieza(inicial.piezaId))
     })
   }
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-5">
-      <label className="block space-y-1">
-        <span className="text-sm">Cuenta</span>
-        <select
-          value={cuentaId}
-          onChange={(evento) => elegirCuenta(evento.target.value)}
-          disabled={Boolean(inicial)}
-          className={CAMPO}
-        >
-          {cuentas.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
+      <p className="text-sm">
+        Cuenta: <span className="font-medium">{cuenta?.nombre}</span>
+      </p>
 
       <fieldset className="space-y-2">
         <legend className="text-sm">Diseño</legend>
-        {temasDeLaVoz(vozDe(cuentaId)).map((t) => (
+        {temasDeLaVoz(voz).map((t) => (
           <label key={t} className="tarjeta flex min-h-11 items-center gap-3 px-3">
             <input type="radio" name="tema" value={t} checked={tema === t} onChange={() => elegirTema(t)} />
             {TEMAS[t].nombre}
@@ -176,12 +135,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
 
       <label className="block space-y-1">
         <span className="text-sm">Título del documento</span>
-        <input
-          value={tituloMostrado}
-          onChange={(evento) => setTitulo(evento.target.value)}
-          maxLength={100}
-          className={CAMPO}
-        />
+        <input value={titulo} onChange={(evento) => setTitulo(evento.target.value)} maxLength={100} className={CAMPO} />
       </label>
 
       <div className="space-y-1">
@@ -300,11 +254,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
       <button type="submit" disabled={pendiente} className="boton-primario w-full">
         Armar carrusel
       </button>
-      {inicial && (
-        <p className="text-sm text-apagado">
-          Al armarlo de nuevo, la firma se cae y la pieza vuelve a esperar tu firma.
-        </p>
-      )}
+      <p className="text-sm text-apagado">Al armarlo de nuevo, la firma se cae y la pieza vuelve a esperar tu firma.</p>
       {error && (
         <p role="alert" className="text-sm text-peligro">
           {error}

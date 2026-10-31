@@ -34,7 +34,7 @@ export function revisarAntesDeEnviar(d: DatosDeRevision, ahora: number): Revisio
     return {
       ok: false,
       destino: "a_mano",
-      motivo: "La conexión de LinkedIn venció. Reconéctala en Marcas o publícala a mano.",
+      motivo: "La conexión de LinkedIn venció. Reconéctala en Ajustes o publícala a mano.",
     }
   }
   return { ok: true }

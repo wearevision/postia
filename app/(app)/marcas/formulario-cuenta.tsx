@@ -1,12 +1,16 @@
 "use client"
 
+import Link from "next/link"
 import { useActionState } from "react"
-import { agregarCuentaAccion } from "./acciones"
+import type { Resultado } from "@/lib/marcas/acciones"
+import { RUTA_DE_AJUSTES } from "@/lib/sesion/rutas"
+
+type Agregar = (previo: Resultado | null, datos: FormData) => Promise<Resultado>
 
 const CAMPO = "campo"
 
-export function FormularioCuenta({ marcaId }: { marcaId: string }) {
-  const [resultado, enviar, pendiente] = useActionState(agregarCuentaAccion, null)
+export function FormularioCuenta({ marcaId, agregar }: { marcaId: string; agregar: Agregar }) {
+  const [resultado, enviar, pendiente] = useActionState(agregar, null)
   return (
     <form action={enviar} className="space-y-2">
       <input type="hidden" name="marcaId" value={marcaId} />
@@ -41,6 +45,16 @@ export function FormularioCuenta({ marcaId }: { marcaId: string }) {
       <button type="submit" disabled={pendiente} className="boton w-full">
         Agregar cuenta
       </button>
+      {resultado?.ok && (
+        // biome-ignore lint/a11y/useSemanticElements: jsdom drops element children inside <output>, so the link would be untestable
+        <p role="status" className="text-sm">
+          Cuenta agregada. Conéctala en{" "}
+          <Link href={RUTA_DE_AJUSTES} className="underline">
+            Ajustes
+          </Link>
+          .
+        </p>
+      )}
       {resultado && !resultado.ok && (
         <p role="alert" className="text-sm text-peligro">
           {resultado.error}

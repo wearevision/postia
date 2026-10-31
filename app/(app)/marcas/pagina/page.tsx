@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { z } from "zod"
 import { esUuid } from "@/lib/linkedin/estado-oauth"
-import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { elegirPaginaAccion } from "./acciones"
 
@@ -44,11 +44,11 @@ export default async function ElegirPagina({ searchParams }: { searchParams: Pro
         </>
       ) : (
         <p className="tarjeta p-3 text-sm">
-          Esta elección venció o no es tuya. Vuelve a conectar la página desde Marcas.
+          Esta elección venció o no es tuya. Vuelve a conectar la página desde Ajustes.
         </p>
       )}
-      <Link href={RUTA_DE_MARCAS} className="inline-block min-h-11 py-2 text-sm text-apagado">
-        Volver a Marcas
+      <Link href={RUTA_DE_AJUSTES} className="inline-block min-h-11 py-2 text-sm text-apagado">
+        Volver a Ajustes
       </Link>
     </section>
   )

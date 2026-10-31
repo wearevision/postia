@@ -8,7 +8,7 @@ import {
   opcionesDeLaCookieLinkedin,
 } from "@/lib/linkedin/estado-oauth"
 import { urlDeAutorizacionLinkedin } from "@/lib/linkedin/oauth"
-import { RUTA_DE_INGRESO, RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES, RUTA_DE_INGRESO } from "@/lib/sesion/rutas"
 import { leerSesion } from "@/lib/sesion/sesion"
 import { createClient } from "@/lib/supabase/server"
 
@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
   const sesion = await leerSesion(await createClient())
   if (sesion.estado !== "miembro") return irA(request, RUTA_DE_INGRESO)
   const cuenta = request.nextUrl.searchParams.get("cuenta")
-  if (!esUuid(cuenta)) return irA(request, `${RUTA_DE_MARCAS}?linkedin=fallo`)
+  if (!esUuid(cuenta)) return irA(request, `${RUTA_DE_AJUSTES}?linkedin=fallo`)
   const app = leerAppDeLinkedin(process.env)
-  if (!app) return irA(request, `${RUTA_DE_MARCAS}?linkedin=sin_app`)
+  if (!app) return irA(request, `${RUTA_DE_AJUSTES}?linkedin=sin_app`)
 
   const estado = nuevoEstado()
   const respuesta = NextResponse.redirect(

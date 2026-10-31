@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { Falla, FallaDeConfiguracion } from "@/lib/dominio/falla"
-import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
+import { RUTA_DE_AJUSTES, RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
 import type { Db } from "@/lib/supabase/database"
 import { RechazoDeLinkedin } from "./api"
 import type { AppDeLinkedin, Llegada } from "./conexion"
@@ -159,10 +159,10 @@ export async function terminarConexionDePagina(deps: DepsDePagina, llegada: Lleg
 
 /** Where the callback sends the owner: always a path inside the app, with only a fixed word or a uuid in it. */
 export function destinoDeLaPagina(resultado: ResultadoDePagina): string {
-  if (!resultado.ok) return `${RUTA_DE_MARCAS}?linkedin=${resultado.motivo}`
+  if (!resultado.ok) return `${RUTA_DE_AJUSTES}?linkedin=${resultado.motivo}`
   return esUuid(resultado.eleccion)
     ? `${RUTA_DE_ELEGIR_PAGINA}?eleccion=${resultado.eleccion}`
-    : `${RUTA_DE_MARCAS}?linkedin=fallo`
+    : `${RUTA_DE_AJUSTES}?linkedin=fallo`
 }
 
 const Eleccion = z.object({ eleccion: z.uuid(), organizacion: z.string().regex(URN_DE_ORGANIZACION) })
