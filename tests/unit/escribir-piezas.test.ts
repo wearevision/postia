@@ -119,11 +119,12 @@ function puertos(asignaciones: AsignacionAEscribir[], over: Partial<PuertosDeEsc
 }
 
 describe("escribirPiezas", () => {
-  test("leases one assignment due within the next 3 days at a time, so another run can take the rest", async () => {
+  test("leases any approved assignment, however far its date, one at a time, so another run can take the rest", async () => {
     const p = puertos([])
     expect(await escribirPiezas(p, AHORA)).toEqual({ escritas: 0, fallidas: 0 })
-    expect(DIAS_ANTES_DE_ESCRIBIR).toBe(3)
-    expect(p.tomarAsignaciones).toHaveBeenCalledWith(AHORA + 3 * 86_400_000, 1)
+    // Federico's decision (2026-10-31): write as soon as the idea is approved, to see the piece before signing.
+    expect(DIAS_ANTES_DE_ESCRIBIR).toBeGreaterThanOrEqual(366)
+    expect(p.tomarAsignaciones).toHaveBeenCalledWith(AHORA + DIAS_ANTES_DE_ESCRIBIR * 86_400_000, 1)
 
     const dos = puertos([TEXTO, CARRUSEL])
     expect(await escribirPiezas(dos, AHORA)).toEqual({ escritas: 2, fallidas: 0 })
