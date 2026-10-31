@@ -35,6 +35,17 @@ begin
   end if;
 end $$;
 
+-- Not callable by anyone: a connection no account uses any more goes, with its Vault secrets.
+create function public.soltar_conexion(p_conexion uuid) returns void
+language plpgsql set search_path = '' as $$
+begin
+  if p_conexion is null or exists (select 1 from public.cuentas where conexion_id = p_conexion) then
+    return;
+  end if;
+  delete from vault.secrets where name in ('conexion:' || p_conexion, 'conexion:' || p_conexion || ':renovacion');
+  delete from public.conexiones where id = p_conexion;
+end $$;
+
 drop function public.conectar_linkedin(uuid, text, text, text, text[], timestamptz);
 
 create function public.conectar_linkedin(
@@ -83,6 +94,10 @@ begin
   end if;
 
   update public.cuentas set conexion_id = v_conexion where id = p_cuenta;
+  -- A reconnect to another member or page leaves the old connection behind: it goes unless another account uses it.
+  if v_cuenta.conexion_id is distinct from v_conexion then
+    perform public.soltar_conexion(v_cuenta.conexion_id);
+  end if;
   return v_conexion;
 end $$;
 
@@ -100,11 +115,7 @@ begin
     return;
   end if;
   update public.cuentas set conexion_id = null where id = p_cuenta;
-  if not exists (select 1 from public.cuentas where conexion_id = v_cuenta.conexion_id) then
-    delete from vault.secrets
-     where name in ('conexion:' || v_cuenta.conexion_id, 'conexion:' || v_cuenta.conexion_id || ':renovacion');
-    delete from public.conexiones where id = v_cuenta.conexion_id;
-  end if;
+  perform public.soltar_conexion(v_cuenta.conexion_id);
 end $$;
 
 -- The return type gains `autor`, so the function is dropped and created again.
@@ -143,8 +154,8 @@ begin
   update public.cuentas set ruta = p_ruta where id = p_cuenta;
 end $$;
 
--- Daily refresh task (service role): page connections whose access token runs out before p_hasta and whose refresh
--- token is still valid, with the refresh token decrypted.
+-- Daily refresh task (service role): page connections that serve at least one account, whose access token runs out
+-- before p_hasta and whose refresh token is still valid, with the refresh token decrypted.
 create function public.renovaciones_pendientes(p_hasta timestamptz)
 returns table (conexion uuid, renovacion text, expira_en timestamptz, renovacion_expira_en timestamptz)
 language sql stable security definer set search_path = '' as $$
@@ -152,6 +163,7 @@ language sql stable security definer set search_path = '' as $$
     from public.conexiones c
     join vault.decrypted_secrets s on s.name = 'conexion:' || c.id || ':renovacion'
    where c.app = 'estudio_wav' and c.expira_en < p_hasta and c.renovacion_expira_en > now()
+     and exists (select 1 from public.cuentas a where a.conexion_id = c.id)
 $$;
 
 -- Daily refresh task (service role): the new access token, and the refresh token when LinkedIn sends one back.
@@ -189,8 +201,9 @@ begin
   delete from vault.secrets where name = 'conexion:' || p_conexion || ':renovacion';
 end $$;
 
--- The owner confirms the page that publishes, even when they administer only one. The list holds page names only for this short flow: it is ignored
--- after 10 minutes and deleted when a page is picked or by the nightly sweep (LinkedIn: organization data ≤ 8 weeks).
+-- The owner confirms the page that publishes, even when they administer only one. The list holds page names only for
+-- this short flow: it is ignored after 10 minutes and deleted when a page is picked or by the nightly sweep (LinkedIn:
+-- organization data ≤ 8 weeks).
 -- The token waits in Vault as 'eleccion:<id>' (and 'eleccion:<id>:renovacion').
 create table public.elecciones_de_pagina (
   id uuid primary key default gen_random_uuid(),
@@ -305,7 +318,8 @@ begin
   return v_borradas;
 end $$;
 
-revoke execute on function public.guardar_secreto(text, text) from public, anon, authenticated, service_role;
+revoke execute on function public.guardar_secreto(text, text), public.soltar_conexion(uuid)
+  from public, anon, authenticated, service_role;
 revoke execute on function
   public.conectar_linkedin(uuid, text, text, text, text[], timestamptz, text, text, text, timestamptz),
   public.desconectar_cuenta(uuid), public.credencial_de_cuenta(uuid), public.cambiar_ruta(uuid, text),

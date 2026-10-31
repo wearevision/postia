@@ -1887,6 +1887,7 @@ export type Database = {
       resumen_de_gasto: { Args: never; Returns: Json }
       reubicar_pendientes: { Args: { p_umbral: number }; Returns: number }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
+      soltar_conexion: { Args: { p_conexion: string }; Returns: undefined }
       tema_de_la_voz: {
         Args: { p_tema: string; p_voz: string }
         Returns: boolean

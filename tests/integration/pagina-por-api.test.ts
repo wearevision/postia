@@ -114,6 +114,79 @@ describe("connecting the WAV page", () => {
   })
 })
 
+async function existeConexion(conexion: string | null): Promise<boolean> {
+  const { count } = await admin()
+    .from("conexiones")
+    .select("*", { count: "exact", head: true })
+    .eq("id", conexion ?? "")
+  return count === 1
+}
+
+describe("reconnecting an account", () => {
+  test("repointing an account deletes its previous connection and both secrets when no other account uses it", async () => {
+    const { db, cuenta } = await duenoCon("empresa")
+    const { data: vieja } = await conectarPagina(db, cuenta, {
+      p_renovacion: "renovacion-vieja",
+      p_renovacion_expira_en: EN_DIAS(365),
+    })
+    const { data: nueva, error } = await conectarPagina(db, cuenta, { p_organizacion: OTRA_PAGINA })
+    expect(error).toBeNull()
+    expect(nueva).not.toBe(vieja)
+    expect((await conexionDe(cuenta)).conexion_id).toBe(nueva)
+    expect(await existeConexion(vieja)).toBe(false)
+    expect(secretosLlamados(`conexion:${vieja}`)).toBe(0)
+    expect(secretosLlamados(`conexion:${vieja}:renovacion`)).toBe(0)
+  })
+
+  test("the previous connection stays while another account still uses it", async () => {
+    const dueno = await personaConSesion("pagina-compartida")
+    const a = await cuentaDe(await marcaConDueno(dueno.userId, "nosotros"), "empresa")
+    const b = await cuentaDe(await marcaConDueno(dueno.userId, "nosotros"), "empresa")
+    const titular = `urn:li:person:com${crypto.randomUUID().slice(0, 8)}`
+    const { data: compartida } = await conectarPagina(dueno.db, a, { p_titular: titular })
+    expect((await conectarPagina(dueno.db, b, { p_titular: titular })).data).toBe(compartida)
+
+    await conectarPagina(dueno.db, a, { p_organizacion: OTRA_PAGINA })
+    expect(await existeConexion(compartida)).toBe(true)
+    expect(secretosLlamados(`conexion:${compartida}`)).toBe(1)
+    expect((await conexionDe(b)).conexion_id).toBe(compartida)
+  })
+
+  test("picking a page for an already connected account deletes the connection it replaces", async () => {
+    const { db, cuenta } = await duenoCon("empresa")
+    const { data: vieja } = await conectarPagina(db, cuenta)
+    const { data: eleccion } = await db.rpc("guardar_eleccion", {
+      p_cuenta: cuenta,
+      p_titular: `urn:li:person:rec${crypto.randomUUID().slice(0, 8)}`,
+      p_nombre: "",
+      p_paginas: [{ urn: OTRA_PAGINA, nombre: "Otra" }],
+      p_token: "token-nuevo",
+      p_scopes: ["r_basicprofile", "rw_organization_admin", "w_organization_social"],
+      p_expira_en: EN_DIAS(60),
+    })
+    const { data: nueva, error } = await db.rpc("elegir_pagina", {
+      p_eleccion: eleccion ?? "",
+      p_organizacion: OTRA_PAGINA,
+    })
+    expect(error).toBeNull()
+    expect((await conexionDe(cuenta)).conexion_id).toBe(nueva)
+    expect(await existeConexion(vieja)).toBe(false)
+    expect(secretosLlamados(`conexion:${vieja}`)).toBe(0)
+  })
+
+  test("a connection no account uses is not renewed", async () => {
+    const { db, cuenta } = await duenoCon("empresa")
+    const { data: conexion } = await conectarPagina(db, cuenta, {
+      p_expira_en: EN_DIAS(5),
+      p_renovacion: "renovacion-huerfana",
+      p_renovacion_expira_en: EN_DIAS(365),
+    })
+    await admin().from("cuentas").update({ conexion_id: null }).eq("id", cuenta)
+    const { data } = await admin().rpc("renovaciones_pendientes", { p_hasta: EN_DIAS(10) })
+    expect(data?.some((p) => p.conexion === conexion)).toBe(false)
+  })
+})
+
 describe("the account's route", () => {
   test("a company account can now be added with the API route", async () => {
     const dueno = await personaConSesion("pagina-ruta")
