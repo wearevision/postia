@@ -64,5 +64,5 @@ test("an owner asks for a carousel from the defaults, and its piece shows the sl
   await page.getByRole("link", { name: "Editar el carrusel" }).click()
   await expect(page.getByRole("heading", { name: "Editar carrusel" })).toBeVisible()
   await expect(page.getByLabel("Texto del post")).toHaveValue("Un carrusel para probar el editor.")
-  await expect(page.getByLabel("Cuenta")).toBeDisabled()
+  await expect(page.getByRole("combobox", { name: "Cuenta" })).toBeDisabled()
 })
