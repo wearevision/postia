@@ -25,3 +25,14 @@ function textos(l: Lamina): string[] {
 export function textoDeLasLaminas(c: Carrusel): string {
   return [c.antetitulo, ...c.laminas.flatMap(textos)].join("\n")
 }
+
+/**
+ * Every string inside a stored design, whatever its shape: gate 1 reviews these even when the design no longer
+ * parses with today's templates, so no slide word (numero, barras.valor included) skips the client review (D13).
+ */
+export function textosDelDiseno(diseno: unknown): string[] {
+  if (typeof diseno === "string") return [diseno]
+  if (Array.isArray(diseno)) return diseno.flatMap(textosDelDiseno)
+  if (diseno !== null && typeof diseno === "object") return Object.values(diseno).flatMap(textosDelDiseno)
+  return []
+}

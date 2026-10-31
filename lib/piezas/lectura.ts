@@ -236,6 +236,8 @@ export interface DetalleDePieza {
     /** Set only for a carousel built from the templates; a hand-made PDF or a text post has neither. */
     tema: IdDeTema | null
     diseno: Carrusel | null
+    /** The stored design as is, even when it no longer parses: gate 1 reviews every string in it. */
+    disenoCrudo: unknown
     /** Signed URLs of the slide previews, in order: the very images inside the PDF. */
     vistas: string[]
   }
@@ -322,6 +324,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
       archivoDescarga,
       tema: diseno && v.tema && esTema(v.tema) ? v.tema : null,
       diseno,
+      disenoCrudo: v.diseno,
       vistas,
     },
     fechaPropuesta:

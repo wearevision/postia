@@ -4,6 +4,7 @@ import { crearPieza, firmarPieza } from "@/lib/piezas/acciones"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
 import { carruselInicial } from "@/lib/plantillas/iniciales"
+import type { Json } from "@/lib/supabase/database.types"
 import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, versionVigente } from "./entorno"
 
 /** The gate 1 page render time the form sends with a signature. */
@@ -288,47 +289,53 @@ describe("detalle and pillars", () => {
   })
 })
 
+/** A carousel saved through the worker's RPCs, with the first `vistas` previews uploaded next to its PDF. */
+async function carruselGuardado(nombre: string, diseno: unknown, vistas: number) {
+  const { db, userId } = await personaConSesion(nombre)
+  const marca = await marcaConDueno(userId, "nosotros")
+  const cuenta = await cuentaDe(marca, "empresa", "a_mano")
+  // pedir_diseno checks only the shape (3 to 10 slides); the server action parses the slides before it.
+  const pedido = await db.rpc("pedir_diseno", {
+    p_cuenta: cuenta,
+    p_tema: "wav-noche",
+    p_titulo: "Documento",
+    p_texto: "Post",
+    p_diseno: diseno as Json,
+  })
+  if (pedido.error) throw pedido.error
+  await admin()
+    .from("pedidos_de_diseno")
+    .update({ estado: "obsoleto" })
+    .in("estado", ["pendiente", "trabajando"])
+    .neq("id", pedido.data)
+  await admin().rpc("tomar_pedidos_de_diseno")
+  const base = `${marca}/${crypto.randomUUID()}`
+  const pdf = await admin()
+    .storage.from("piezas")
+    .upload(`${base}.pdf`, new TextEncoder().encode("%PDF-1.4"), { contentType: "application/pdf" })
+  if (pdf.error) throw pdf.error
+  for (let n = 1; n <= vistas; n++) {
+    const jpg = await admin()
+      .storage.from("piezas")
+      .upload(`${base}/${String(n).padStart(2, "0")}.jpg`, new Uint8Array([0xff, 0xd8, 0xff, n]), {
+        contentType: "image/jpeg",
+      })
+    if (jpg.error) throw jpg.error
+  }
+  const guardado = await admin().rpc("guardar_diseno", {
+    p_pedido: pedido.data,
+    p_archivo_ruta: `${base}.pdf`,
+    p_archivo_sha256: "c".repeat(64),
+  })
+  if (guardado.error) throw guardado.error
+  return { db, piezaId: (guardado.data as { pieza: string }).pieza }
+}
+
 describe("detalle of a carousel built from the templates", () => {
   test("carries the theme, the slides and a signed preview per slide", async () => {
-    const { db, userId } = await personaConSesion("lec-carrusel")
-    const marca = await marcaConDueno(userId, "nosotros")
-    const cuenta = await cuentaDe(marca, "empresa", "a_mano")
     const diseno = carruselInicial("wav")
     expect(diseno.laminas).toHaveLength(9)
-    const pedido = await db.rpc("pedir_diseno", {
-      p_cuenta: cuenta,
-      p_tema: "wav-noche",
-      p_titulo: "Documento",
-      p_texto: "Post",
-      p_diseno: diseno,
-    })
-    if (pedido.error) throw pedido.error
-    await admin()
-      .from("pedidos_de_diseno")
-      .update({ estado: "obsoleto" })
-      .in("estado", ["pendiente", "trabajando"])
-      .neq("id", pedido.data)
-    await admin().rpc("tomar_pedidos_de_diseno")
-    const base = `${marca}/${crypto.randomUUID()}`
-    const pdf = await admin()
-      .storage.from("piezas")
-      .upload(`${base}.pdf`, new TextEncoder().encode("%PDF-1.4"), { contentType: "application/pdf" })
-    if (pdf.error) throw pdf.error
-    for (let n = 1; n <= 9; n++) {
-      const jpg = await admin()
-        .storage.from("piezas")
-        .upload(`${base}/${String(n).padStart(2, "0")}.jpg`, new Uint8Array([0xff, 0xd8, 0xff, n]), {
-          contentType: "image/jpeg",
-        })
-      if (jpg.error) throw jpg.error
-    }
-    const guardado = await admin().rpc("guardar_diseno", {
-      p_pedido: pedido.data,
-      p_archivo_ruta: `${base}.pdf`,
-      p_archivo_sha256: "c".repeat(64),
-    })
-    if (guardado.error) throw guardado.error
-    const piezaId = (guardado.data as { pieza: string }).pieza
+    const { db, piezaId } = await carruselGuardado("lec-carrusel", diseno, 9)
 
     const d = await detalle(db, piezaId)
 
@@ -342,6 +349,25 @@ describe("detalle of a carousel built from the templates", () => {
     const primera = await fetch(vistas[0] ?? "")
     expect(primera.ok).toBe(true)
     expect(new Uint8Array(await primera.arrayBuffer())).toEqual(new Uint8Array([0xff, 0xd8, 0xff, 1]))
+  })
+
+  test("a stored design that no longer parses keeps its raw value for the client review", async () => {
+    const viejo = {
+      antetitulo: "Serie",
+      laminas: [
+        { tipo: "retirada", titulo: "Cliente reservado" },
+        { tipo: "retirada", titulo: "Dos" },
+        { tipo: "retirada", titulo: "Tres" },
+      ],
+    }
+    const { db, piezaId } = await carruselGuardado("lec-carrusel-viejo", viejo, 0)
+
+    const d = await detalle(db, piezaId)
+
+    expect(d?.version.diseno).toBeNull()
+    expect(d?.version.disenoCrudo).toEqual(viejo)
+    expect(d?.version.vistas).toEqual([])
+    expect(d?.version.archivoUrl).not.toBeNull()
   })
 
   test("a hand-made PDF carousel has no slides and no previews", async () => {

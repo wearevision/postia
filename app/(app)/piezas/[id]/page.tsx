@@ -8,7 +8,7 @@ import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { lineaEnReserva } from "@/lib/piezas/textos"
-import { textoDeLasLaminas } from "@/lib/plantillas/texto"
+import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
 import { rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
@@ -79,8 +79,11 @@ export default async function Pieza({
       return null
     }
     const revisor = prepararRevision(excepciones, diaEnSantiago(Date.now()))
-    const laminas = version.diseno ? textoDeLasLaminas(version.diseno) : ""
-    return revisor.revisar(textoARevisar(version.titulo, version.texto, laminas), cuenta.voz)
+    // The raw stored design, not the parsed one: a design that no longer parses still has every word reviewed.
+    return revisor.revisar(
+      textoARevisar(version.titulo, version.texto, ...textosDelDiseno(version.disenoCrudo)),
+      cuenta.voz,
+    )
   }
 
   const conClaude = estado === "por_aprobar" && pieza.formato === "texto"
@@ -230,6 +233,9 @@ export default async function Pieza({
             </>
           )}
         </>
+      )}
+      {estado === "por_aprobar" && !armando && version.diseno === null && version.disenoCrudo != null && (
+        <p className="text-sm">No pude leer las láminas de esta versión. Revisa el PDF antes de firmar.</p>
       )}
       {estado === "por_aprobar" && !armando && (
         <FirmaDePieza
