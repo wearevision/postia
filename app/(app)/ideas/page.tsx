@@ -1,5 +1,12 @@
 import Link from "next/link"
-import { cuentasParaIdeas, type EstadoDeIdea, type SerieDeIdeas, series } from "@/lib/series/lectura"
+import {
+  cuentasParaIdeas,
+  type EstadoDeIdea,
+  type IdeaDeSerie,
+  type IdeaSuelta,
+  ideasYSeries,
+  type SerieDeIdeas,
+} from "@/lib/series/lectura"
 import { RUTA_DE_IDEAS, RUTA_DE_INVESTIGAR, rutaDeInvestigacion } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { Refrescar } from "../piezas/refrescar"
@@ -34,15 +41,54 @@ function rutaConFiltro(serie: string | undefined, estado: EstadoDeIdea | null): 
   return consulta ? `${RUTA_DE_IDEAS}?${consulta}` : RUTA_DE_IDEAS
 }
 
-function Serie({
-  serie,
+type Cuentas = Awaited<ReturnType<typeof cuentasParaIdeas>>
+
+function Tarjetas({ ideas, cuentas }: { ideas: readonly (IdeaDeSerie | IdeaSuelta)[]; cuentas: Cuentas }) {
+  return (
+    <div className="space-y-3">
+      {ideas.map((idea) => (
+        <TarjetaDeIdea
+          key={idea.id}
+          idea={idea}
+          cuentas={cuentas}
+          aprobar={aprobarIdeaAccion}
+          descartar={descartarIdeaAccion}
+          pedirOtra={pedirOtraIdeaAccion}
+          editar={editarIdeaAccion}
+          mover={moverAsignacionAccion}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Crosses or Sunday ideas: shown only once there is one. */
+function Grupo({
+  titulo,
+  ideas,
   estado,
   cuentas,
 }: {
-  serie: SerieDeIdeas
+  titulo: string
+  ideas: readonly IdeaSuelta[]
   estado: EstadoDeIdea | null
-  cuentas: Awaited<ReturnType<typeof cuentasParaIdeas>>
+  cuentas: Cuentas
 }) {
+  if (ideas.length === 0) return null
+  const visibles = estado ? ideas.filter((i) => i.estado === estado) : ideas
+  return (
+    <section aria-label={titulo} className="space-y-3">
+      <h2 className="text-lg font-medium">{titulo}</h2>
+      {visibles.length > 0 ? (
+        <Tarjetas ideas={visibles} cuentas={cuentas} />
+      ) : (
+        <p className="text-sm text-apagado">Nada con este filtro.</p>
+      )}
+    </section>
+  )
+}
+
+function Serie({ serie, estado, cuentas }: { serie: SerieDeIdeas; estado: EstadoDeIdea | null; cuentas: Cuentas }) {
   const propuestas = serie.ideas.filter((i) => i.estado === "propuesta").length
   const visibles = estado ? serie.ideas.filter((i) => i.estado === estado) : serie.ideas
   const cortas = !serie.trabajando && serie.cantidad !== null && serie.ideas.length < serie.cantidad
@@ -68,20 +114,7 @@ function Serie({
         <AprobarSerie investigacionId={serie.investigacionId} propuestas={propuestas} aprobar={aprobarSerieAccion} />
       )}
       {visibles.length > 0 ? (
-        <div className="space-y-3">
-          {visibles.map((idea) => (
-            <TarjetaDeIdea
-              key={idea.id}
-              idea={idea}
-              cuentas={cuentas}
-              aprobar={aprobarIdeaAccion}
-              descartar={descartarIdeaAccion}
-              pedirOtra={pedirOtraIdeaAccion}
-              editar={editarIdeaAccion}
-              mover={moverAsignacionAccion}
-            />
-          ))}
-        </div>
+        <Tarjetas ideas={visibles} cuentas={cuentas} />
       ) : (
         serie.ideas.length > 0 && <p className="text-sm text-apagado">Nada con este filtro.</p>
       )}
@@ -94,7 +127,11 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
   const serie = primero(params.serie)
   const estado = FILTROS.find((f) => f.estado !== null && f.estado === primero(params.estado))?.estado ?? null
   const db = await createClient()
-  const [lista, cuentas] = await Promise.all([series(db, { investigacionId: serie }), cuentasParaIdeas(db)])
+  const [{ cruces, sueltas, series: lista }, cuentas] = await Promise.all([
+    ideasYSeries(db, { investigacionId: serie }),
+    cuentasParaIdeas(db),
+  ])
+  const buscandoOtra = [...cruces, ...sueltas].some((i) => i.pidiendoOtra)
 
   return (
     <div className="mx-auto max-w-md space-y-6">
@@ -116,9 +153,13 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
           </Link>
         ))}
       </nav>
-      {lista.some((s) => s.trabajando) && (
+      {lista.some((s) => s.trabajando) ? (
         <Refrescar mensaje="Se está armando la serie. Esta página se actualiza sola." />
+      ) : (
+        buscandoOtra && <Refrescar mensaje="Se está buscando otra idea. Esta página se actualiza sola." />
       )}
+      <Grupo titulo="Cruces" ideas={cruces} estado={estado} cuentas={cuentas} />
+      <Grupo titulo="Ideas sueltas del domingo" ideas={sueltas} estado={estado} cuentas={cuentas} />
       {lista.length === 0 ? (
         <div className="space-y-3">
           <p className="text-apagado">Todavía no hay series. Al aprobar un informe, PostIA arma la suya.</p>

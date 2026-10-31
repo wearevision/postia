@@ -5,7 +5,15 @@ import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { lineaDelPaso, textoDelEsqueleto } from "@/lib/series/esqueleto"
-import type { AsignacionDeIdea, CuentaParaIdeas, EstadoDeAsignacion, IdeaDeSerie } from "@/lib/series/lectura"
+import type {
+  AsignacionDeIdea,
+  CuentaParaIdeas,
+  EstadoDeAsignacion,
+  FuenteConResumen,
+  FuenteDeIdea,
+  IdeaDeSerie,
+  IdeaSuelta,
+} from "@/lib/series/lectura"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 
 const BOTON = "min-h-11 w-full rounded-lg border border-borde px-4 font-medium disabled:opacity-60"
@@ -27,6 +35,32 @@ const DIA = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", 
 /** A finding's date is a calendar day (YYYY-MM-DD): read in UTC so it never shifts a day. */
 function fechaDelHallazgo(dia: string): string {
   return DIA.format(new Date(`${dia}T00:00:00Z`))
+}
+
+function EnlaceDeFuente({ fuente }: { fuente: FuenteDeIdea }) {
+  return (
+    <a href={fuente.enlace} target="_blank" rel="noopener noreferrer" className="inline-block py-1 underline">
+      {fuente.medio}
+      {fuente.publicadoEn && ` · ${fechaDelHallazgo(fuente.publicadoEn)}`}
+    </a>
+  )
+}
+
+/** The two findings a cross was born from: side by side when the card is wide enough, stacked on a phone. */
+function NaceDe({ fuentes }: { fuentes: readonly FuenteConResumen[] }) {
+  return (
+    <div className="@container space-y-1 text-sm">
+      <p className="font-medium">Nace de:</p>
+      <ul aria-label="Nace de:" className="grid gap-2 @sm:grid-cols-2">
+        {fuentes.map((f) => (
+          <li key={f.id} className="space-y-1 rounded-lg border border-borde p-3">
+            <EnlaceDeFuente fuente={f} />
+            <p className="text-apagado">{f.resumen}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function useAccion() {
@@ -222,7 +256,8 @@ export function TarjetaDeIdea({
   idea,
   cuentas,
   ...acciones
-}: { idea: IdeaDeSerie; cuentas: readonly CuentaParaIdeas[] } & Acciones) {
+}: { idea: IdeaDeSerie | IdeaSuelta; cuentas: readonly CuentaParaIdeas[] } & Acciones) {
+  const origen = "origen" in idea ? idea.origen : "serie"
   return (
     <article
       id={`idea-${idea.id}`}
@@ -232,6 +267,8 @@ export function TarjetaDeIdea({
       <div className="space-y-1">
         <p className="text-sm text-apagado">
           {FORMATO[idea.formato]}
+          {origen === "domingo" && " · "}
+          {origen === "domingo" && <span>Idea del domingo</span>}
           {idea.estado === "descartada" && " · "}
           {idea.estado === "descartada" && <span>Descartada</span>}
         </p>
@@ -244,17 +281,18 @@ export function TarjetaDeIdea({
           <li key={i}>{lineaDelPaso(paso)}</li>
         ))}
       </ol>
-      {idea.fuentes.length > 0 && (
-        <ul aria-label="Fuentes" className="space-y-1 text-sm">
-          {idea.fuentes.map((f) => (
-            <li key={f.id}>
-              <a href={f.enlace} target="_blank" rel="noopener noreferrer" className="inline-block py-1 underline">
-                {f.medio}
-                {f.publicadoEn && ` · ${fechaDelHallazgo(f.publicadoEn)}`}
-              </a>
-            </li>
-          ))}
-        </ul>
+      {"origen" in idea && idea.origen === "cruce" ? (
+        <NaceDe fuentes={idea.fuentes} />
+      ) : (
+        idea.fuentes.length > 0 && (
+          <ul aria-label="Fuentes" className="space-y-1 text-sm">
+            {idea.fuentes.map((f) => (
+              <li key={f.id}>
+                <EnlaceDeFuente fuente={f} />
+              </li>
+            ))}
+          </ul>
+        )
       )}
       <div className="space-y-1 text-sm">
         <p>Sugerida para {idea.cuentaSugerida.nombre}</p>

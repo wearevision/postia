@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 import { TarjetaDeIdea } from "@/app/(app)/ideas/idea"
-import type { IdeaDeSerie } from "@/lib/series/lectura"
+import type { IdeaDeSerie, IdeaSuelta } from "@/lib/series/lectura"
 
 const PERFIL = { id: "c-perfil", nombre: "Federico" }
 const PAGINA = { id: "c-pagina", nombre: "Página de WAV" }
@@ -49,6 +49,34 @@ const APROBADA: IdeaDeSerie = {
     },
   ],
 }
+
+const CRUCE: IdeaSuelta = {
+  ...PROPUESTA,
+  id: "c1",
+  gancho: "Lo que el retail le enseña a la minería",
+  formato: "texto",
+  esqueleto: [{ idea: "Lo que dice uno" }, { idea: "Lo que dice el otro" }],
+  origen: "cruce",
+  creadaEn: "2026-11-01T20:00:00.000Z",
+  fuentes: [
+    {
+      id: "h1",
+      medio: "La Tercera",
+      enlace: "https://latercera.com/x",
+      publicadoEn: "2026-10-20",
+      resumen: "El retail mide la experiencia en cada visita.",
+    },
+    {
+      id: "h2",
+      medio: "Diario Financiero",
+      enlace: "https://df.cl/y",
+      publicadoEn: null,
+      resumen: "La minería empieza a medir a sus comunidades.",
+    },
+  ],
+}
+
+const DEL_DOMINGO: IdeaSuelta = { ...CRUCE, id: "d1", gancho: "Una idea suelta", origen: "domingo", fuentes: [] }
 
 function acciones() {
   return {
@@ -198,5 +226,51 @@ describe("TarjetaDeIdea", () => {
     tarjeta({ ...PROPUESTA, estado: "descartada" })
     expect(screen.getByText("Descartada")).toBeVisible()
     expect(screen.queryByRole("button")).toBeNull()
+  })
+
+  test("a cross shows «Nace de:» with both sources, each with its outlet, date, link and excerpt", () => {
+    tarjeta(CRUCE)
+    const card = screen.getByRole("article", { name: "Lo que el retail le enseña a la minería" })
+    const origen = within(card).getByRole("list", { name: "Nace de:" })
+    const fuentes = within(origen).getAllByRole("listitem")
+    expect(fuentes).toHaveLength(2)
+    const tercera = within(fuentes[0] as HTMLElement).getByRole("link", { name: "La Tercera · 20 de octubre de 2026" })
+    expect(tercera).toHaveAttribute("href", "https://latercera.com/x")
+    expect(tercera).toHaveAttribute("target", "_blank")
+    expect(tercera).toHaveAttribute("rel", "noopener noreferrer")
+    expect(within(fuentes[0] as HTMLElement).getByText("El retail mide la experiencia en cada visita.")).toBeVisible()
+    expect(within(fuentes[1] as HTMLElement).getByRole("link", { name: "Diario Financiero" })).toHaveAttribute(
+      "href",
+      "https://df.cl/y",
+    )
+    expect(within(fuentes[1] as HTMLElement).getByText("La minería empieza a medir a sus comunidades.")).toBeVisible()
+    expect(within(card).queryByRole("list", { name: "Fuentes" })).toBeNull()
+    expect(within(card).queryByText("Idea del domingo")).toBeNull()
+  })
+
+  test("a Sunday idea says so", () => {
+    tarjeta(DEL_DOMINGO)
+    const card = screen.getByRole("article", { name: "Una idea suelta" })
+    expect(within(card).getByText("Idea del domingo")).toBeVisible()
+    expect(within(card).queryByRole("list", { name: "Nace de:" })).toBeNull()
+  })
+
+  test("a cross is approved, discarded, edited and replaced like a series idea", async () => {
+    const a = tarjeta(CRUCE)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await waitFor(() => expect(a.aprobar).toHaveBeenCalledWith("c1", [PAGINA.id]))
+    fireEvent.click(screen.getByRole("button", { name: "Pedir otra" }))
+    await waitFor(() => expect(a.pedirOtra).toHaveBeenCalledWith("c1"))
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
+    await waitFor(() => expect(a.descartar).toHaveBeenCalledWith("c1"))
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }))
+    await waitFor(() =>
+      expect(a.editar).toHaveBeenCalledWith(
+        "c1",
+        "Lo que el retail le enseña a la minería",
+        "Lo que dice uno\nLo que dice el otro",
+      ),
+    )
   })
 })

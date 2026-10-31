@@ -106,3 +106,78 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   // Open assignments are leased globally by escribir-piezas: leave none behind. Local test database only.
   await db.from("asignaciones").update({ estado: "descartada" }).eq("cuenta_id", cuenta.id)
 })
+
+test("an owner sees a cross under «Cruces» with both of its sources and approves it", async ({ page, request }) => {
+  const db = admin()
+  const correo = correoUnico("e2e-cruces")
+  const { marcaId } = await invitar(db, { correo, marca: `Marca ${correo}`, voz: "yo" })
+  const nombreDeCuenta = `Perfil ${crypto.randomUUID().slice(0, 8)}`
+  const { data: cuenta, error: errorDeCuenta } = await db
+    .from("cuentas")
+    .insert({ marca_id: marcaId, red: "linkedin", tipo: "persona", ruta: "a_mano", nombre: nombreDeCuenta })
+    .select("id")
+    .single()
+  if (errorDeCuenta) throw errorDeCuenta
+
+  // No Trigger.dev in e2e: two findings of the map and the crossing step's result, saved as the worker would.
+  const hallazgo = async (medio: string, resumen: string) => {
+    const enlace = `https://medio.cl/${crypto.randomUUID()}`
+    const { data, error } = await db
+      .from("hallazgos")
+      .insert({
+        resumen,
+        enlace,
+        enlace_normalizado: enlace.replace(/^https:\/\//, ""),
+        medio,
+        publicado_en: "2026-10-22",
+        vector: literal(vectorAlAzar()),
+      })
+      .select("id, enlace")
+      .single()
+    if (error) throw error
+    return data
+  }
+  const retail = await hallazgo("La Tercera", "El retail mide la experiencia en cada visita.")
+  const mineria = await hallazgo("Diario Financiero", "La minería empieza a medir a sus comunidades.")
+  const gancho = `Lo que el retail le enseña a la minería ${crypto.randomUUID().slice(0, 8)}`
+  const guardada = await db.rpc("guardar_ideas_sueltas", {
+    p_origen: "cruce",
+    p_ideas: [
+      {
+        gancho,
+        resumen: "Dos industrias que miden lo mismo sin saberlo.",
+        formato: "texto",
+        esqueleto: [{ idea: "Lo que dice uno" }, { idea: "Lo que dice el otro" }],
+        fuentes: [retail.id, mineria.id],
+        cuenta: cuenta.id,
+        razon: "Es una mirada personal sobre investigación.",
+        pilar: null,
+        vector: literal(vectorAlAzar()),
+      },
+    ],
+  })
+  if (guardada.error) throw new Error(`No pude guardar el cruce: ${guardada.error.message}`)
+
+  await entrar(page, request, correo)
+  await page.getByRole("link", { name: "Ideas y series" }).click()
+  const cruces = page.getByRole("region", { name: "Cruces" })
+  const cruce = cruces.getByRole("article", { name: gancho })
+  await expect(cruce).toBeVisible()
+  const origen = cruce.getByRole("list", { name: "Nace de:" })
+  await expect(origen.getByRole("link", { name: "La Tercera · 22 de octubre de 2026" })).toHaveAttribute(
+    "href",
+    retail.enlace,
+  )
+  await expect(origen.getByRole("link", { name: "Diario Financiero · 22 de octubre de 2026" })).toHaveAttribute(
+    "target",
+    "_blank",
+  )
+  await expect(origen.getByText("La minería empieza a medir a sus comunidades.")).toBeVisible()
+
+  await cruce.getByRole("button", { name: "Aprobar" }).click()
+  await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible()
+  await expect(cruce.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
+
+  // Open assignments are leased globally by escribir-piezas: leave none behind. Local test database only.
+  await db.from("asignaciones").update({ estado: "descartada" }).eq("cuenta_id", cuenta.id)
+})

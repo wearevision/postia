@@ -55,6 +55,27 @@ export interface SerieDeIdeas {
   ideas: IdeaDeSerie[]
 }
 
+export const ORIGENES_SUELTOS = ["cruce", "domingo"] as const
+export type OrigenSuelto = (typeof ORIGENES_SUELTOS)[number]
+
+export interface FuenteConResumen extends FuenteDeIdea {
+  /** The finding's summary, cut to an excerpt so the page stays light. */
+  resumen: string
+}
+
+/** A cross of two findings or a Sunday idea: it hangs from no report. */
+export interface IdeaSuelta extends IdeaDeSerie {
+  origen: OrigenSuelto
+  creadaEn: string
+  fuentes: FuenteConResumen[]
+}
+
+export interface IdeasYSeries {
+  cruces: IdeaSuelta[]
+  sueltas: IdeaSuelta[]
+  series: SerieDeIdeas[]
+}
+
 export interface CuentaParaIdeas {
   id: string
   nombre: string
@@ -72,6 +93,64 @@ function fallo(accion: string, error: { message: string }): never {
 
 const ABIERTO = new Set(["pendiente", "trabajando"])
 const SERIES_POR_PAGINA = 20
+const SUELTAS_POR_GRUPO = 30
+const LARGO_DEL_EXTRACTO = 180
+
+type FilaDeIdea = {
+  id: string
+  orden: number
+  estado: string
+  gancho: string
+  resumen: string
+  formato: string
+  esqueleto: unknown
+  razon: string
+  cuenta_sugerida: string
+  cuentas: { nombre: string } | null
+  asignaciones: {
+    id: string
+    cuenta_id: string
+    planeada_para: string
+    estado: string
+    motivo: string | null
+    pieza_id: string | null
+    cuentas: { nombre: string } | null
+  }[]
+}
+
+/** Everything of an idea but its sources, read the same way for a series idea and a loose one. */
+function ideaLeida(i: FilaDeIdea, pidiendoOtra: boolean): Omit<IdeaDeSerie, "fuentes"> {
+  return {
+    id: i.id,
+    orden: i.orden,
+    estado: EstadoDeIdeaLeido.parse(i.estado),
+    gancho: i.gancho,
+    resumen: i.resumen,
+    formato: i.formato === "carrusel_pdf" ? "carrusel_pdf" : "texto",
+    esqueleto: Esqueleto.catch([]).parse(i.esqueleto),
+    cuentaSugerida: { id: i.cuenta_sugerida, nombre: i.cuentas?.nombre ?? "" },
+    razon: i.razon,
+    asignaciones: [...i.asignaciones]
+      .sort((a, b) => Date.parse(a.planeada_para) - Date.parse(b.planeada_para))
+      .map((a) => ({
+        id: a.id,
+        cuentaId: a.cuenta_id,
+        cuenta: a.cuentas?.nombre ?? "",
+        planeadaPara: a.planeada_para,
+        estado: EstadoDeAsignacionLeido.parse(a.estado),
+        motivo: a.motivo,
+        piezaId: a.pieza_id,
+      })),
+    pidiendoOtra,
+  }
+}
+
+const abierto = (trabajos: { estado: string }[]) => trabajos.some((t) => ABIERTO.has(t.estado))
+
+function extracto(texto: string): string {
+  const limpio = texto.trim()
+  return limpio.length <= LARGO_DEL_EXTRACTO ? limpio : `${limpio.slice(0, LARGO_DEL_EXTRACTO - 1).trimEnd()}…`
+}
 
 /**
  * Approved reports with their series, newest first: their ideas in order (replaced ones left out), each with its
@@ -98,36 +177,17 @@ export async function series(db: Db, filtro: { investigacionId?: string } = {}):
     const abiertos = trabajos.filter((t) => ABIERTO.has(t.estado))
     const ultimo = trabajos[0]
     const hallazgos = new Map(inv.hallazgos.map((h) => [h.id, h]))
+    const pidiendoOtra = (ideaId: string) => abiertos.some((t) => t.idea_id === ideaId)
     const ideas = inv.ideas
       .filter((i) => i.estado !== "reemplazada")
       .sort((a, b) => a.orden - b.orden)
       .map(
         (i): IdeaDeSerie => ({
-          id: i.id,
-          orden: i.orden,
-          estado: EstadoDeIdeaLeido.parse(i.estado),
-          gancho: i.gancho,
-          resumen: i.resumen,
-          formato: i.formato === "carrusel_pdf" ? "carrusel_pdf" : "texto",
-          esqueleto: Esqueleto.catch([]).parse(i.esqueleto),
+          ...ideaLeida(i, pidiendoOtra(i.id)),
           fuentes: i.fuentes.flatMap((id) => {
             const h = hallazgos.get(id)
             return h ? [{ id: h.id, medio: h.medio, enlace: h.enlace, publicadoEn: h.publicado_en }] : []
           }),
-          cuentaSugerida: { id: i.cuenta_sugerida, nombre: i.cuentas?.nombre ?? "" },
-          razon: i.razon,
-          asignaciones: [...i.asignaciones]
-            .sort((a, b) => Date.parse(a.planeada_para) - Date.parse(b.planeada_para))
-            .map((a) => ({
-              id: a.id,
-              cuentaId: a.cuenta_id,
-              cuenta: a.cuentas?.nombre ?? "",
-              planeadaPara: a.planeada_para,
-              estado: EstadoDeAsignacionLeido.parse(a.estado),
-              motivo: a.motivo,
-              piezaId: a.pieza_id,
-            })),
-          pidiendoOtra: abiertos.some((t) => t.idea_id === i.id),
         }),
       )
     return [
@@ -141,6 +201,54 @@ export async function series(db: Db, filtro: { investigacionId?: string } = {}):
       },
     ]
   })
+}
+
+const COLUMNAS_DE_SUELTA =
+  "id, orden, estado, gancho, resumen, formato, esqueleto, fuentes, razon, cuenta_sugerida, creada_en, cuentas!ideas_cuenta_sugerida_fkey(nombre), asignaciones(id, cuenta_id, planeada_para, estado, motivo, pieza_id, cuentas(nombre)), trabajos_de_investigacion!trabajos_de_investigacion_idea_id_fkey(estado)"
+
+async function sueltasDe(db: Db, origen: OrigenSuelto) {
+  const { data, error } = await db
+    .from("ideas")
+    .select(COLUMNAS_DE_SUELTA)
+    .eq("origen", origen)
+    .is("investigacion_id", null)
+    .neq("estado", "reemplazada")
+    .order("creada_en", { ascending: false })
+    .limit(SUELTAS_POR_GRUPO)
+  if (error) fallo("No pude leer las ideas sueltas", error)
+  return data.map((fila) => ({ fila, origen }))
+}
+
+/**
+ * The page's three groups: crosses and Sunday ideas (newest first, at most 30 each, with an excerpt of each source)
+ * and the series. Filtered to one series, only that series.
+ */
+export async function ideasYSeries(db: Db, filtro: { investigacionId?: string } = {}): Promise<IdeasYSeries> {
+  if (filtro.investigacionId !== undefined) return { cruces: [], sueltas: [], series: await series(db, filtro) }
+  const [lista, cruces, delDomingo] = await Promise.all([series(db), sueltasDe(db, "cruce"), sueltasDe(db, "domingo")])
+  const filas = [...cruces, ...delDomingo]
+  const ids = [...new Set(filas.flatMap(({ fila }) => fila.fuentes))]
+  const hallazgos = new Map<string, FuenteConResumen>()
+  if (ids.length > 0) {
+    const { data, error } = await db.from("hallazgos").select("id, medio, enlace, publicado_en, resumen").in("id", ids)
+    if (error) fallo("No pude leer las fuentes de las ideas", error)
+    for (const h of data) {
+      hallazgos.set(h.id, {
+        id: h.id,
+        medio: h.medio,
+        enlace: h.enlace,
+        publicadoEn: h.publicado_en,
+        resumen: extracto(h.resumen),
+      })
+    }
+  }
+  const leida = ({ fila, origen }: (typeof filas)[number]): IdeaSuelta => ({
+    ...ideaLeida(fila, abierto(fila.trabajos_de_investigacion)),
+    origen,
+    creadaEn: fila.creada_en,
+    fuentes: fila.fuentes.flatMap((id) => hallazgos.get(id) ?? []),
+  })
+  return { cruces: cruces.map(leida), sueltas: delDomingo.map(leida), series: lista }
 }
 
 /** Proposals waiting for a decision; ideas belong to no brand, so everyone with access hears the same count. */
