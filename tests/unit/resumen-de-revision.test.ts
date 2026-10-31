@@ -6,37 +6,56 @@ import { resumenDeRevision } from "@/lib/redaccion/resumen"
 const PRECIO: Hallazgo = { tipo: "precio", fragmento: "$100" }
 const MENCION: Hallazgo = { tipo: "mencion", fragmento: "@Acme" }
 const LIMPIA: VeredictoGuardado = { voz: { ok: true, comentario: "" }, hallazgos: [] }
+const CON_DOS: VeredictoGuardado = {
+  voz: { ok: false, comentario: "Suena a folleto." },
+  hallazgos: [{ tipo: "cita", fragmento: "dicen que", comentario: "Cita sin fuente." }],
+}
 
 describe("resumenDeRevision", () => {
-  test("says there is nothing when neither review found anything", () => {
-    expect(resumenDeRevision({ hallazgos: [], revision: LIMPIA })).toBe("sin comentarios")
+  test("a piece without Claude shows only the verdict's count", () => {
+    expect(resumenDeRevision({ hallazgos: [PRECIO, MENCION] })).toEqual({ texto: "2 comentarios", abierta: true })
   })
 
-  test("says there is nothing when there is no Claude review at all", () => {
-    expect(resumenDeRevision({ hallazgos: [], revision: null })).toBe("sin comentarios")
-  })
-
-  test("counts one comment in the singular", () => {
-    expect(resumenDeRevision({ hallazgos: [PRECIO], revision: null })).toBe("1 comentario")
-  })
-
-  test("adds the verdict's findings, Claude's findings and a voice remark", () => {
-    const revision: VeredictoGuardado = {
-      voz: { ok: false, comentario: "Suena a folleto." },
-      hallazgos: [{ tipo: "cita", fragmento: "dicen que", comentario: "Cita sin fuente." }],
-    }
-    expect(resumenDeRevision({ hallazgos: [PRECIO, MENCION], revision })).toBe("4 comentarios")
+  test("a clean verdict on a piece without Claude stays folded", () => {
+    expect(resumenDeRevision({ hallazgos: [] })).toEqual({ texto: "sin comentarios", abierta: false })
   })
 
   test("counts the same verdict line once, as the screen shows it", () => {
-    expect(resumenDeRevision({ hallazgos: [PRECIO, { ...PRECIO }], revision: null })).toBe("1 comentario")
+    expect(resumenDeRevision({ hallazgos: [PRECIO, { ...PRECIO }] }).texto).toBe("1 comentario")
   })
 
-  test("says it could not read it when the verdict did not run", () => {
-    expect(resumenDeRevision({ hallazgos: null, revision: LIMPIA })).toBe("no pude leerla")
+  test("says Claude is still reviewing while its automatic review is pending", () => {
+    expect(resumenDeRevision({ hallazgos: [PRECIO], claude: { estado: "revisando" } })).toEqual({
+      texto: "1 comentario · Claude todavía revisa",
+      abierta: true,
+    })
   })
 
-  test("says it could not read it when Claude's work could not be read", () => {
-    expect(resumenDeRevision({ hallazgos: [], revision: null, claudeIlegible: true })).toBe("no pude leerla")
+  test("says there is no Claude review when there is none, and the verdict could not run", () => {
+    expect(resumenDeRevision({ hallazgos: null, claude: { estado: "lista", revision: null } })).toEqual({
+      texto: "no pude revisar los clientes · sin revisión de Claude",
+      abierta: true,
+    })
+  })
+
+  test("says Claude could not be read on a read failure, without hiding the verdict", () => {
+    expect(resumenDeRevision({ hallazgos: [], claude: { estado: "ilegible" } })).toEqual({
+      texto: "sin comentarios · Claude no se pudo leer",
+      abierta: true,
+    })
+  })
+
+  test("reports Claude's findings and voice remark apart from the verdict", () => {
+    expect(resumenDeRevision({ hallazgos: [], claude: { estado: "lista", revision: CON_DOS } })).toEqual({
+      texto: "sin comentarios · Claude: 2 comentarios",
+      abierta: true,
+    })
+  })
+
+  test("both clean stays folded", () => {
+    expect(resumenDeRevision({ hallazgos: [], claude: { estado: "lista", revision: LIMPIA } })).toEqual({
+      texto: "sin comentarios · Claude: sin comentarios",
+      abierta: false,
+    })
   })
 })

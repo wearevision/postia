@@ -13,7 +13,7 @@ import { siguientePorFirmar } from "@/lib/piezas/siguiente"
 import { lineaEnReserva } from "@/lib/piezas/textos"
 import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
-import { resumenDeRevision } from "@/lib/redaccion/resumen"
+import { type ClaudeEnLaRevision, resumenDeRevision } from "@/lib/redaccion/resumen"
 import { rutaDeEditarCarrusel, rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
@@ -146,11 +146,20 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
   const conPilar = SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && (pilares.length > 0 || pilarId !== null)
   // Claude's tools need its requests read and none in flight.
   const redaccionLista = conClaude && redaccion !== null && !redaccion.pedidoAbierto && !redaccion.revisandoAuto
+  const resumen = resumenDeRevision({ hallazgos, claude: claudeEnLaRevision() })
   const bloqueo = bloqueoDeFirma({
     formato: pieza.formato,
     laminasEsperadas: version.diseno?.laminas.length ?? null,
     vistas: version.vistas.length,
   })
+
+  function claudeEnLaRevision(): ClaudeEnLaRevision | undefined {
+    if (!conClaude) return undefined
+    if (!redaccion) return { estado: "ilegible" }
+    // A review already stored for this version is shown even while another request runs.
+    if (!redaccion.revision && (redaccion.revisandoAuto || redaccion.pedidoAbierto)) return { estado: "revisando" }
+    return { estado: "lista", revision: redaccion.revision }
+  }
 
   function estadoDelCarrusel() {
     if (!diseno) return <p className="text-sm">No pude leer si se está armando el carrusel. Recarga en un rato.</p>
@@ -209,15 +218,8 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       {rearmable && (!porFirmar || armando) && estadoDelCarrusel()}
 
       {porFirmar && (
-        <details className="tarjeta p-3">
-          <summary className="min-h-11 cursor-pointer py-2 font-medium">
-            Revisión ·{" "}
-            {resumenDeRevision({
-              hallazgos,
-              revision: redaccion?.revision ?? null,
-              claudeIlegible: conClaude && !redaccion,
-            })}
-          </summary>
+        <details className="tarjeta p-3" open={resumen.abierta}>
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">Revisión · {resumen.texto}</summary>
           <div className="space-y-3 pt-2">
             <Veredicto hallazgos={hallazgos} />
             {redaccionLista && redaccion && (
