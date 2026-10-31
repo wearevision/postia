@@ -2,6 +2,7 @@ import { z } from "zod"
 import { Falla, FallaDeConfiguracion } from "@/lib/dominio/falla"
 import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
 import type { Db } from "@/lib/supabase/database"
+import { RechazoDeLinkedin } from "./api"
 import type { AppDeLinkedin, Llegada } from "./conexion"
 import { estadoCoincide, esUuid } from "./estado-oauth"
 import { intercambiarCodigoLinkedin, leerMiembroPorMe, urlDeAutorizacionLinkedin } from "./oauth"
@@ -41,7 +42,7 @@ interface Acceso {
 
 export type ArgsDeEleccion = Acceso & { p_paginas: { urn: string; nombre: string }[] }
 
-type ErrorDeLaBase = { message: string } | null
+type ErrorDeLaBase = { message: string; code?: string } | null
 
 export interface DepsDePagina {
   app: AppDeLinkedin | null
@@ -60,11 +61,18 @@ export type MotivoDeFalloDePagina =
   | "permisos"
   | "sin_pagina"
   | "sin_app_pagina"
+  | "cuenta_es_perfil"
   | "fallo"
 
 export type ResultadoDePagina = { ok: true; eleccion: string } | { ok: false; motivo: MotivoDeFalloDePagina }
 
 const URN_DE_ORGANIZACION = /^urn:li:organization:([0-9]+)$/
+
+/** What a log may say about an error: its kind and HTTP code, never its message (LinkedIn's or the database's words). */
+function tipoDeError(error: unknown): string {
+  if (error instanceof RechazoDeLinkedin) return `${error.name} HTTP ${error.http}`
+  return error instanceof Error ? error.name : typeof error
+}
 
 /**
  * Only the name of a page is shown, never stored past this flow (LinkedIn keeps organization data ≤ 8 weeks). A page
@@ -76,7 +84,7 @@ async function conNombres(token: string, paginas: string[]): Promise<{ urn: stri
       try {
         return { urn, nombre: await nombreDePagina({ token, organizacion: urn }) }
       } catch (error) {
-        console.error(`No pude leer el nombre de ${urn}`, error instanceof Error ? error.message : error)
+        console.error(`No pude leer el nombre de ${urn} (${tipoDeError(error)}).`)
         return { urn, nombre: `Página n.º ${URN_DE_ORGANIZACION.exec(urn)?.[1] ?? urn}` }
       }
     }),
@@ -94,12 +102,24 @@ export async function terminarConexionDePagina(deps: DepsDePagina, llegada: Lleg
 
   try {
     const acceso = await intercambiarCodigoLinkedin({ ...deps.app, codigo: llegada.codigo })
-    const scopes = acceso.scopes ?? [...SCOPES_DE_PAGINA]
-    if (!scopes.includes("w_organization_social") || !scopes.includes("rw_organization_admin")) {
+    if (
+      acceso.scopes !== null &&
+      (!acceso.scopes.includes("w_organization_social") || !acceso.scopes.includes("rw_organization_admin"))
+    ) {
       return { ok: false, motivo: "permisos" }
     }
     const titular = await leerMiembroPorMe({ token: acceso.token })
-    const paginas = await paginasQueAdministra({ token: acceso.token })
+    let paginas: string[]
+    try {
+      paginas = await paginasQueAdministra({ token: acceso.token })
+    } catch (error) {
+      // An answer without scopes says nothing of what was granted: the page list, which needs rw_organization_admin,
+      // is the check, and its 403 is a missing permission.
+      if (acceso.scopes === null && error instanceof RechazoDeLinkedin && error.http === 403) {
+        return { ok: false, motivo: "permisos" }
+      }
+      throw error
+    }
     if (paginas.length === 0) return { ok: false, motivo: "sin_pagina" }
 
     const comun: Acceso = {
@@ -108,7 +128,7 @@ export async function terminarConexionDePagina(deps: DepsDePagina, llegada: Lleg
       p_titular: titular,
       // The member's name is not read (no OpenID Connect) and the page's name is not kept.
       p_nombre: "",
-      p_scopes: scopes,
+      p_scopes: acceso.scopes ?? [...SCOPES_DE_PAGINA],
       p_expira_en: new Date(deps.ahora() + acceso.expiraEnSegundos * 1000).toISOString(),
       ...(acceso.refreshToken && acceso.refreshTokenExpiraEnSegundos
         ? {
@@ -120,16 +140,19 @@ export async function terminarConexionDePagina(deps: DepsDePagina, llegada: Lleg
 
     // Even a single page is confirmed by name: the owner sees which page will publish before it is linked.
     const { data, error } = await deps.guardarEleccion({ ...comun, p_paginas: await conNombres(acceso.token, paginas) })
-    if (error || !data) throw new Error(`No pude guardar la elección de página: ${error?.message ?? "sin id"}`)
+    if (error?.message === "cuenta_y_app_no_calzan") return { ok: false, motivo: "cuenta_es_perfil" }
+    if (error || !data) {
+      console.error(`No pude guardar la elección de página (${error?.code ?? "sin id"}).`)
+      return { ok: false, motivo: "fallo" }
+    }
     return { ok: true, eleccion: data }
   } catch (error) {
     if (error instanceof Falla) return { ok: false, motivo: "rechazada" }
     if (error instanceof FallaDeConfiguracion) {
-      // LinkedIn's own words, with the token already masked by `llamar`.
-      console.error("LinkedIn no aceptó la conexión de la página", error.message)
+      console.error(`LinkedIn no aceptó la conexión de la página (${tipoDeError(error)}).`)
       return { ok: false, motivo: "rechazada" }
     }
-    console.error("No pude conectar la página de LinkedIn", error)
+    console.error(`No pude conectar la página de LinkedIn (${tipoDeError(error)}).`)
     return { ok: false, motivo: "fallo" }
   }
 }
@@ -154,6 +177,6 @@ export async function elegirPagina(db: Db, entrada: unknown): Promise<"conectada
   })
   if (!error) return "conectada"
   if (error.message === "eleccion_vencida" || error.message === "eleccion_ajena") return "estado"
-  console.error("No pude conectar la página elegida", error)
+  console.error(`No pude conectar la página elegida (${error.code}).`)
   return "fallo"
 }

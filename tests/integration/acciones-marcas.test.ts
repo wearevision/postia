@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
 import { agregarCuenta, cambiarRuta, crearMarca } from "@/lib/marcas/acciones"
+import { piezasProgramadas } from "@/lib/marcas/programadas"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
 describe("brand and account actions", () => {
@@ -62,5 +63,37 @@ describe("brand and account actions", () => {
       ok: false,
       error: "Elige «sale sola» o «a mano».",
     })
+  })
+
+  test("counts each account's scheduled pieces, and only those", async () => {
+    const { db, userId } = await personaConSesion("programadas")
+    const marca = await marcaConDueno(userId)
+    const conPiezas = await cuentaDe(marca, "persona", "a_mano")
+    const sinPiezas = await cuentaDe(marca, "empresa", "a_mano")
+    for (const texto of ["Uno", "Dos", "Borrador"]) {
+      const { data: pieza, error } = await db.rpc("crear_pieza", {
+        p_cuenta: conPiezas,
+        p_formato: "texto",
+        p_texto: texto,
+      })
+      if (error) throw error
+      if (texto === "Borrador") continue
+      const { data: version } = await admin()
+        .from("versiones")
+        .select("huella")
+        .eq("pieza_id", pieza)
+        .order("numero", { ascending: false })
+        .limit(1)
+        .single()
+      const firma = await db.rpc("firmar_pieza", {
+        p_pieza: pieza,
+        p_huella: version?.huella ?? "",
+        p_programada_para: new Date(Date.now() + 86_400_000).toISOString(),
+      })
+      if (firma.error) throw firma.error
+    }
+    const cuentas = await piezasProgramadas(db, [conPiezas, sinPiezas])
+    expect(cuentas.get(conPiezas)).toBe(2)
+    expect(cuentas.get(sinPiezas) ?? 0).toBe(0)
   })
 })

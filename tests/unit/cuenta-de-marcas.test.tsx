@@ -37,13 +37,49 @@ describe("ConectarLinkedin", () => {
 })
 
 describe("RutaDeCuenta", () => {
-  function montar(ruta: string, conectada = false, resultado: Resultado = { ok: true }) {
+  function montar(ruta: string, conectada = false, resultado: Resultado = { ok: true }, programadas = 0) {
     const cambiar = vi.fn<Cambiar>(async () => resultado)
     render(
-      <RutaDeCuenta cuentaId={CUENTA} nombre="Página de WAV" ruta={ruta} conectada={conectada} cambiar={cambiar} />,
+      <RutaDeCuenta
+        cuentaId={CUENTA}
+        nombre="Página de WAV"
+        ruta={ruta}
+        conectada={conectada}
+        programadas={programadas}
+        cambiar={cambiar}
+      />,
     )
     return cambiar
   }
+
+  test("going out by itself with scheduled pieces warns once before switching", async () => {
+    const cambiar = montar("a_mano", true, { ok: true }, 2)
+    fireEvent.click(screen.getByRole("button", { name: "Sale sola" }))
+    expect(
+      screen.getByText(
+        "Esta cuenta tiene 2 piezas programadas. Si ya publicaste alguna a mano, márcala como publicada antes, para que no salga dos veces.",
+      ),
+    ).toBeVisible()
+    expect(cambiar).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: "Sí, que salga sola" }))
+    await waitFor(() => expect(cambiar).toHaveBeenCalledTimes(1))
+    expect(cambiar).toHaveBeenCalledWith(CUENTA, "api")
+  })
+
+  test("the warning can be dismissed, and one scheduled piece is said in the singular", () => {
+    const cambiar = montar("a_mano", false, { ok: true }, 1)
+    fireEvent.click(screen.getByRole("button", { name: "Sale sola" }))
+    expect(screen.getByText(/^Esta cuenta tiene 1 pieza programada\./)).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+    expect(screen.queryByText(/piezas? programadas?/)).toBeNull()
+    expect(cambiar).not.toHaveBeenCalled()
+  })
+
+  test("going by hand never asks, even with scheduled pieces", async () => {
+    const cambiar = montar("api", true, { ok: true }, 3)
+    fireEvent.click(screen.getByRole("button", { name: "A mano" }))
+    await waitFor(() => expect(cambiar).toHaveBeenCalledWith(CUENTA, "a_mano"))
+  })
 
   test("marks the current route and switches to the other one", async () => {
     const cambiar = montar("a_mano")
@@ -93,6 +129,11 @@ describe("mensajeDeLinkedin", () => {
     expect(mensajeDeLinkedin("permisos")).toBe(
       "LinkedIn no dio permiso para publicar. Vuelve a conectar y acepta todos los permisos.",
     )
+  })
+
+  test("tells the owner which button fits the account", () => {
+    expect(mensajeDeLinkedin("cuenta_es_pagina")).toBe("Esta cuenta es una página: usa «Conectar página de LinkedIn».")
+    expect(mensajeDeLinkedin("cuenta_es_perfil")).toBe("Esta cuenta es un perfil: usa «Conectar LinkedIn».")
   })
 
   test("keeps the profile's messages and ignores unknown words", () => {

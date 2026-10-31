@@ -9,6 +9,8 @@ const MENSAJES: Record<string, string> = {
   sin_app_pagina: "Falta configurar la app de la página de LinkedIn en el servidor.",
   sin_pagina:
     "Tu cuenta de LinkedIn no administra ninguna página. Pide el rol de administrador en la página de WAV y vuelve a conectar.",
+  cuenta_es_pagina: "Esta cuenta es una página: usa «Conectar página de LinkedIn».",
+  cuenta_es_perfil: "Esta cuenta es un perfil: usa «Conectar LinkedIn».",
   fallo: "No pude conectar LinkedIn. Inténtalo de nuevo en un rato.",
 }
 

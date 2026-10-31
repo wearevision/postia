@@ -1,3 +1,4 @@
+import { piezasProgramadas } from "@/lib/marcas/programadas"
 import { createClient } from "@/lib/supabase/server"
 import { cambiarRutaAccion, desconectarCuentaAccion } from "./acciones"
 import { ConectarLinkedin } from "./conectar-linkedin"
@@ -20,6 +21,10 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
     )
     .order("creada_en")
   if (error) throw new Error(`No pude leer las marcas: ${error.message}`, { cause: error })
+  const programadas = await piezasProgramadas(
+    db,
+    marcas.flatMap((marca) => marca.cuentas.map((cuenta) => cuenta.id)),
+  )
   const ahora = Date.now()
   const mensaje = mensajeDeLinkedin(linkedin)
 
@@ -46,6 +51,7 @@ export default async function Marcas({ searchParams }: { searchParams: Promise<{
                   nombre={cuenta.nombre}
                   ruta={cuenta.ruta}
                   conectada={cuenta.conexiones !== null}
+                  programadas={programadas.get(cuenta.id) ?? 0}
                   cambiar={cambiarRutaAccion}
                 />
                 {/* A paused account («a mano» with its connection) keeps its chip and its disconnect button. */}

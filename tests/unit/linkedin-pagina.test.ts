@@ -192,6 +192,44 @@ describe("terminarConexionDePagina", () => {
     })
   })
 
+  test("a token answer without scopes is checked against the page list: a 403 means missing permissions", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    linkedin([], {})
+    servidor.use(http.get(`${API}/rest/organizationAcls`, () => HttpResponse.text("forbidden", { status: 403 })))
+    const d = deps()
+    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "permisos" })
+    expect(d.guardarEleccion).not.toHaveBeenCalled()
+  })
+
+  test("a token answer without scopes whose page list answers goes on to the choice", async () => {
+    linkedin(["urn:li:organization:123"], {})
+    const d = deps()
+    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: true, eleccion: ELECCION })
+  })
+
+  test("a person account connected through the page app is told to use the profile button", async () => {
+    linkedin(["urn:li:organization:123"])
+    const d = {
+      ...deps(),
+      guardarEleccion: vi.fn(async () => ({ data: null, error: { message: "cuenta_y_app_no_calzan" } })),
+    }
+    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "cuenta_es_perfil" })
+  })
+
+  test("logs carry only an error's name or code, never the error object", async () => {
+    const registro = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    linkedin(["urn:li:organization:999"])
+    const d = {
+      ...deps(),
+      guardarEleccion: vi.fn(async () => ({ data: null, error: { message: "valor tok rechazado", code: "23514" } })),
+    }
+    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "fallo" })
+    const argumentos = registro.mock.calls.flat()
+    expect(argumentos.length).toBeGreaterThan(0)
+    expect(argumentos.every((a) => typeof a === "string")).toBe(true)
+    expect(JSON.stringify(argumentos)).not.toMatch(/\btok\b|rechazado|forbidden/)
+  })
+
   test("a refused exchange is reported as refused", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined)
     servidor.use(
@@ -267,13 +305,15 @@ describe("elegirPagina", () => {
     ).toBe("estado")
   })
 
-  test("any other refusal is a failure, logged", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
+  test("any other refusal is a failure, logged by its code only", async () => {
+    const registro = vi.spyOn(console, "error").mockImplementation(() => undefined)
     expect(
       await elegirPagina(db({ code: "22023", message: "pagina_fuera_de_la_lista" }).db, {
         eleccion: ELECCION,
         organizacion: "urn:li:organization:123",
       }),
     ).toBe("fallo")
+    expect(registro.mock.calls.flat().every((a) => typeof a === "string")).toBe(true)
+    expect(JSON.stringify(registro.mock.calls)).toContain("22023")
   })
 })
