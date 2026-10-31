@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { PorRevisar } from "@/app/(app)/por-revisar"
+import { leerConteos } from "@/lib/inicio/conteos"
 import { informesPorAprobar } from "@/lib/investigacion/lectura"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, type TarjetaDePieza } from "@/lib/piezas/lectura"
@@ -34,11 +35,12 @@ function Seccion({ titulo, tarjetas }: { titulo: string; tarjetas: TarjetaDePiez
 
 export default async function Inicio() {
   const db = await createClient()
-  const [{ porFirmar, aMano, revisar }, informes, ideas] = await Promise.all([
+  const [{ porFirmar, aMano, revisar }, conteos] = await Promise.all([
     bandeja(db),
-    informesPorAprobar(db),
-    ideasPorRevisar(db),
+    leerConteos({ informes: () => informesPorAprobar(db), ideas: () => ideasPorRevisar(db) }),
   ])
+  const informes = conteos.informes ?? 0
+  const ideas = conteos.ideas ?? 0
   const vacia = porFirmar.length + aMano.length + revisar.length + informes + ideas === 0
   return (
     <div className="mx-auto max-w-md space-y-6">
