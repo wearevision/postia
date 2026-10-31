@@ -5,7 +5,7 @@ import { rutaDeCalendario, rutaDePieza } from "@/lib/sesion/rutas"
 import { admin, correoUnico } from "../integration/entorno"
 import { entrar } from "./ingreso"
 import { leerHastaElFinal } from "./lectura"
-import { crearPiezaDeTexto } from "./piezas"
+import { clienteDe, crearPiezaDeTexto } from "./piezas"
 
 test("an owner creates a text piece, signs it with the proposed date and finds it in the calendar week", async ({
   page,
@@ -30,10 +30,10 @@ test("an owner creates a text piece, signs it with the proposed date and finds i
 
   await entrar(page, request, correo)
 
-  const piezaId = await crearPiezaDeTexto(db, {
+  const dueno = await clienteDe(db, correo)
+  const piezaId = await crearPiezaDeTexto(dueno, {
     cuentaId: cuenta.id,
     texto: "Una idea corta para probar la firma.",
-    correo,
   })
   await page.goto(rutaDePieza(piezaId))
 
@@ -75,7 +75,8 @@ test("a new piece arrives planned and, signed for the reserve, shows in the cale
 
   await entrar(page, request, correo)
 
-  const piezaId = await crearPiezaDeTexto(db, { cuentaId: cuenta.id, texto: "Una pieza para la reserva.", correo })
+  const dueno = await clienteDe(db, correo)
+  const piezaId = await crearPiezaDeTexto(dueno, { cuentaId: cuenta.id, texto: "Una pieza para la reserva." })
   await page.goto(rutaDePieza(piezaId))
 
   const plan = page.locator("section section", { has: page.getByRole("heading", { name: "Fecha planeada" }) })
@@ -112,9 +113,10 @@ test("a signed piece keeps the bottom bar and leads to the next one waiting; a m
   if (error) throw new Error(`No pude crear la cuenta de prueba: ${error.message}`)
 
   await entrar(page, request, correo)
+  const dueno = await clienteDe(db, correo)
   let piezaId = ""
   for (const texto of ["Primera pieza por firmar.", "Segunda pieza por firmar."]) {
-    piezaId = await crearPiezaDeTexto(db, { cuentaId: cuenta.id, texto, correo })
+    piezaId = await crearPiezaDeTexto(dueno, { cuentaId: cuenta.id, texto })
   }
   await page.goto(rutaDePieza(piezaId))
   await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeVisible()

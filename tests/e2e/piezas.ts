@@ -22,12 +22,14 @@ export async function clienteDe(admin: Db, correo: string): Promise<Db> {
   return db
 }
 
-/** Creates a text piece the way the app does (create, plan in the first free slot, optional pillar), so it arrives planned. */
+/**
+ * Creates a text piece the way the app does (create, plan in the first free slot, optional pillar), so it arrives planned.
+ * `db` is a signed-in client from `clienteDe`: open one per test and reuse it, because each session spends auth rate limit.
+ */
 export async function crearPiezaDeTexto(
-  admin: Db,
-  datos: { cuentaId: string; texto: string; correo: string; pilarId?: string },
+  db: Db,
+  datos: { cuentaId: string; texto: string; pilarId?: string },
 ): Promise<string> {
-  const db = await clienteDe(admin, datos.correo)
   const resultado = await crearPiezaCon(
     {
       crear: (entrada) => crearPieza(db, entrada),

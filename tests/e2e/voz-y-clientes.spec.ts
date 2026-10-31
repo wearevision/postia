@@ -5,7 +5,7 @@ import { rutaDePieza } from "@/lib/sesion/rutas"
 import { admin, correoUnico } from "../integration/entorno"
 import { entrar } from "./ingreso"
 import { leerHastaElFinal } from "./lectura"
-import { crearPiezaDeTexto } from "./piezas"
+import { clienteDe, crearPiezaDeTexto } from "./piezas"
 
 test("an owner writes the editorial line, marks a client not to be named, and gate 1 warns on a piece naming it", async ({
   page,
@@ -55,10 +55,10 @@ test("an owner writes the editorial line, marks a client not to be named, and ga
 
   const pilar = await db.from("pilares").select("id").eq("marca_id", marcaId).eq("nombre", "Oficio").single()
   if (pilar.error) throw new Error(`No encontré el pilar guardado: ${pilar.error.message}`)
-  const piezaId = await crearPiezaDeTexto(db, {
+  const dueno = await clienteDe(db, correo)
+  const piezaId = await crearPiezaDeTexto(dueno, {
     cuentaId: cuenta.data.id,
     texto: `Con ${cliente} en terreno.`,
-    correo,
     pilarId: pilar.data.id,
   })
   await page.goto(rutaDePieza(piezaId))
