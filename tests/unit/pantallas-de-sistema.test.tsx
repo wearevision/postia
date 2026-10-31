@@ -14,7 +14,10 @@ describe("system screens", () => {
   test("an error offers to retry and to go home, without the technical message", () => {
     const reintentar = vi.fn()
     render(
-      <ErrorDeLaApp error={Object.assign(new Error("relation does not exist"), { digest: "x" })} reset={reintentar} />,
+      <ErrorDeLaApp
+        error={Object.assign(new Error("relation does not exist"), { digest: "x" })}
+        unstable_retry={reintentar}
+      />,
     )
     expect(screen.getByRole("heading", { name: "Algo falló" })).toBeInTheDocument()
     expect(screen.queryByText(/relation/)).not.toBeInTheDocument()
