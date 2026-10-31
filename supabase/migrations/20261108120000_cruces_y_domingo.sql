@@ -277,24 +277,30 @@ begin
   end loop;
 end $$;
 
--- Calibration of the band (probar-cruces): the closest pairs between recent findings and the rest of the map, each pair
--- once, with whether both sit in one topic.
-create function public.similitudes_de_pares(p_desde timestamptz, p_limite integer)
-returns table (a uuid, b uuid, similitud real, mismo_tema boolean)
+-- Calibration of the band (probar-cruces): every pair of a finding created since p_desde with the rest of the map,
+-- each pair once, in 20 buckets of 0.05 (width_bucket: bucket n is [(n-1)/20, n/20); a negative similarity counts in the
+-- first and 1 in the last). Per bucket: pairs, pairs within one topic, and those of both inside the band.
+create function public.histograma_de_similitudes(p_desde timestamptz, p_minimo real, p_maximo real)
+returns table (cubeta integer, pares integer, mismo_tema integer, en_la_banda integer, en_la_banda_mismo_tema integer)
 language sql stable security definer set search_path = '' as $$
   with recientes as (
     select h.id, h.tema_id, h.vector from public.hallazgos h
      where h.estado <> 'descartado' and h.creado_en >= p_desde
-     order by h.creado_en desc
-     limit 200
+  ), todos as (
+    select (1 - (ha.vector operator(extensions.<=>) hb.vector))::real as sim,
+           coalesce(ha.tema_id = hb.tema_id, false) as mismo
+      from recientes ha
+      join public.hallazgos hb on hb.id <> ha.id and hb.estado <> 'descartado'
+     where not exists (select 1 from recientes r where r.id = hb.id) or hb.id > ha.id
   )
-  select ha.id, hb.id, (1 - (ha.vector operator(extensions.<=>) hb.vector))::real,
-         coalesce(ha.tema_id = hb.tema_id, false)
-    from recientes ha
-    join public.hallazgos hb on hb.id <> ha.id and hb.estado <> 'descartado'
-   where hb.id not in (select r.id from recientes r) or hb.id > ha.id
-   order by ha.vector operator(extensions.<=>) hb.vector, ha.id, hb.id
-   limit greatest(0, least(coalesce(p_limite, 0), 5000))
+  select least(greatest(width_bucket(sim::double precision, 0, 1, 20), 1), 20),
+         count(*)::integer,
+         (count(*) filter (where mismo))::integer,
+         (count(*) filter (where sim between p_minimo and p_maximo))::integer,
+         (count(*) filter (where mismo and sim between p_minimo and p_maximo))::integer
+    from todos
+   group by 1
+   order by 1
 $$;
 
 -- Leases --------------------------------------------------------------------------------------------------------
@@ -446,10 +452,10 @@ revoke execute on function public.cuenta_y_pilar_de_idea(jsonb) from public, ano
 revoke execute on function
   public.guardar_ideas_sueltas(jsonb, text),
   public.pares_para_cruzar(timestamptz, real, real, integer, uuid),
-  public.similitudes_de_pares(timestamptz, integer)
+  public.histograma_de_similitudes(timestamptz, real, real)
 from public, anon, authenticated;
 grant execute on function
   public.guardar_ideas_sueltas(jsonb, text),
   public.pares_para_cruzar(timestamptz, real, real, integer, uuid),
-  public.similitudes_de_pares(timestamptz, integer)
+  public.histograma_de_similitudes(timestamptz, real, real)
 to service_role;

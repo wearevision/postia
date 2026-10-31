@@ -188,13 +188,20 @@ export function repositorioDeIdeas(db: Db): Puertos {
       }))
     },
 
-    async similitudesDePares(desde, limite) {
-      const { data, error } = await db.rpc("similitudes_de_pares", {
+    async histogramaDeSimilitudes(desde, banda) {
+      const { data, error } = await db.rpc("histograma_de_similitudes", {
         p_desde: new Date(desde).toISOString(),
-        p_limite: limite,
+        p_minimo: banda.minimo,
+        p_maximo: banda.maximo,
       })
-      if (error) fallo("No pude leer las similitudes de los pares", error)
-      return data.map((p) => ({ similitud: p.similitud, mismoTema: p.mismo_tema }))
+      if (error) fallo("No pude leer el histograma de similitudes", error)
+      return data.map((c) => ({
+        cubeta: c.cubeta,
+        pares: c.pares,
+        mismoTema: c.mismo_tema,
+        enLaBanda: c.en_la_banda,
+        enLaBandaMismoTema: c.en_la_banda_mismo_tema,
+      }))
     },
   }
 }

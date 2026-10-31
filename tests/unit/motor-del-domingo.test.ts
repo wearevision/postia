@@ -272,24 +272,21 @@ describe("motorDelDomingo", () => {
 })
 
 describe("calibrarCruces", () => {
-  test("buckets pair similarities by 0.05, split by same topic, and counts those inside the band, paying nothing", async () => {
-    const similitudesDePares = vi.fn(async () => [
-      { similitud: 0.41, mismoTema: false },
-      { similitud: 0.57, mismoTema: false },
-      { similitud: 0.6, mismoTema: true },
-      { similitud: 0.62, mismoTema: false },
-      { similitud: 0.86, mismoTema: true },
+  test("turns the SQL histogram of every pair into 0.05 buckets split by topic, with the band's counts", async () => {
+    const histogramaDeSimilitudes = vi.fn(async () => [
+      { cubeta: 9, pares: 4, mismoTema: 1, enLaBanda: 0, enLaBandaMismoTema: 0 },
+      { cubeta: 12, pares: 10, mismoTema: 3, enLaBanda: 6, enLaBandaMismoTema: 2 },
+      { cubeta: 13, pares: 7, mismoTema: 2, enLaBanda: 7, enLaBandaMismoTema: 2 },
     ])
-    const r = await calibrarCruces({ similitudesDePares })
-    expect(similitudesDePares).toHaveBeenCalledWith(0, 5000)
-    expect(r.pares).toBe(5)
-    expect(r.banda).toEqual(UMBRALES.cruce)
+    const r = await calibrarCruces({ histogramaDeSimilitudes })
+    expect(histogramaDeSimilitudes).toHaveBeenCalledWith(0, UMBRALES.cruce)
+    expect(r.pares).toBe(21)
+    expect(r.banda).toEqual({ minimo: UMBRALES.cruce.minimo, maximo: UMBRALES.cruce.maximo })
     expect(r.cubetas).toEqual([
-      { desde: 0.4, hasta: 0.45, mismoTema: 0, otroTema: 1 },
-      { desde: 0.55, hasta: 0.6, mismoTema: 0, otroTema: 1 },
-      { desde: 0.6, hasta: 0.65, mismoTema: 1, otroTema: 1 },
-      { desde: 0.85, hasta: 0.9, mismoTema: 1, otroTema: 0 },
+      { desde: 0.4, hasta: 0.45, mismoTema: 1, otroTema: 3 },
+      { desde: 0.55, hasta: 0.6, mismoTema: 3, otroTema: 7 },
+      { desde: 0.6, hasta: 0.65, mismoTema: 2, otroTema: 5 },
     ])
-    expect(r.enLaBanda).toEqual({ mismoTema: 1, otroTema: 2 })
+    expect(r.enLaBanda).toEqual({ mismoTema: 4, otroTema: 9 })
   })
 })

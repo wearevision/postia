@@ -443,23 +443,24 @@ describe("another idea for an idea with no research", () => {
   })
 })
 
-describe("similitudes_de_pares", () => {
-  test("returns the closest pairs between recent findings and the rest, with whether they share a topic", async () => {
+describe("histograma_de_similitudes", () => {
+  test("buckets every pair of a recent finding with the map, once, with same-topic and in-band counts", async () => {
     const t1 = await tema("Focus groups")
     const t2 = await tema("Retail")
-    const a = await hallazgo({ vector: vectorDe(0), tema: t1 })
-    const mismo = await viejo(vectorDe(0, { hacia: 1, similitud: 0.65 }), { tema: t1 })
-    const otro = await viejo(vectorDe(0, { hacia: 2, similitud: 0.4 }), { tema: t2 })
+    await hallazgo({ vector: vectorDe(0), tema: t1 })
+    // Orthogonal to everything: three pairs at 0, its pair with `a` counted once.
+    await hallazgo({ vector: vectorDe(5) })
+    await viejo(vectorDe(0, { hacia: 1, similitud: 0.66 }), { tema: t1 })
+    await viejo(vectorDe(0, { hacia: 2, similitud: 0.41 }), { tema: t2 })
     await viejo(vectorDe(0, { hacia: 3, similitud: 0.9 }), { estado: "descartado" })
-    const { data, error } = await admin().rpc("similitudes_de_pares", { p_desde: haceHoras(1), p_limite: 10 })
+    const { data, error } = await admin().rpc("histograma_de_similitudes", { p_desde: haceHoras(1), ...BANDA })
     expect(error).toBeNull()
-    expect(data?.map((f) => [f.a, f.b, f.mismo_tema])).toEqual([
-      [a, mismo, true],
-      [a, otro, false],
+    // The two old findings form a pair too (0.66 × 0.41 ≈ 0.27), but neither is recent: it is not counted.
+    expect(data).toEqual([
+      { cubeta: 1, pares: 3, mismo_tema: 0, en_la_banda: 0, en_la_banda_mismo_tema: 0 },
+      { cubeta: 9, pares: 1, mismo_tema: 0, en_la_banda: 0, en_la_banda_mismo_tema: 0 },
+      { cubeta: 14, pares: 1, mismo_tema: 1, en_la_banda: 1, en_la_banda_mismo_tema: 1 },
     ])
-    expect(data?.[0].similitud).toBeCloseTo(0.65, 4)
-    const { data: uno } = await admin().rpc("similitudes_de_pares", { p_desde: haceHoras(1), p_limite: 1 })
-    expect(uno).toHaveLength(1)
   })
 })
 
@@ -469,7 +470,7 @@ describe("grants", () => {
     const llamadas = [
       dueno.db.rpc("pares_para_cruzar", { p_desde: haceHoras(1), ...BANDA, p_limite: 3 }),
       dueno.db.rpc("guardar_ideas_sueltas", { p_ideas: [idea({ fuentes: [h] })], p_origen: "domingo" }),
-      dueno.db.rpc("similitudes_de_pares", { p_desde: haceHoras(1), p_limite: 3 }),
+      dueno.db.rpc("histograma_de_similitudes", { p_desde: haceHoras(1), ...BANDA }),
     ]
     for (const { error } of await Promise.all(llamadas)) expect(error?.code).toBe("42501")
   })

@@ -437,13 +437,11 @@ describe("repositorioDeIdeas: the Sunday engine", () => {
     }
   })
 
-  test("reads pair similarities for the calibration, with whether both share a topic", async () => {
+  test("reads the similarity histogram for the calibration, with the band's counts", async () => {
     const retail = await tema("Retail")
     await hallazgo({ vector: vectorDe(0), tema: retail })
-    await hallazgo({ vector: vectorDe(0, { hacia: 1, similitud: 0.7 }), tema: retail, creado: haceHoras(24 * 30) })
-    const pares = await repo().similitudesDePares(0, 10)
-    expect(pares).toHaveLength(1)
-    expect(pares[0]?.similitud).toBeCloseTo(0.7, 4)
-    expect(pares[0]?.mismoTema).toBe(true)
+    await hallazgo({ vector: vectorDe(0, { hacia: 1, similitud: 0.71 }), tema: retail, creado: haceHoras(24 * 30) })
+    const cubetas = await repo().histogramaDeSimilitudes(0, { minimo: 0.56, maximo: 0.74 })
+    expect(cubetas).toEqual([{ cubeta: 15, pares: 1, mismoTema: 1, enLaBanda: 1, enLaBandaMismoTema: 1 }])
   })
 })

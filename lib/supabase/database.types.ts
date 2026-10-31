@@ -1735,6 +1735,16 @@ export type Database = {
           vector: string
         }[]
       }
+      histograma_de_similitudes: {
+        Args: { p_desde: string; p_maximo: number; p_minimo: number }
+        Returns: {
+          cubeta: number
+          en_la_banda: number
+          en_la_banda_mismo_tema: number
+          mismo_tema: number
+          pares: number
+        }[]
+      }
       ideas_parecidas: {
         Args: { p_excepto?: string[]; p_umbral: number; p_vector: string }
         Returns: {
@@ -1914,15 +1924,6 @@ export type Database = {
       resumen_de_gasto: { Args: never; Returns: Json }
       reubicar_pendientes: { Args: { p_umbral: number }; Returns: number }
       sacar_de_reserva: { Args: { p_pieza: string }; Returns: undefined }
-      similitudes_de_pares: {
-        Args: { p_desde: string; p_limite: number }
-        Returns: {
-          a: string
-          b: string
-          mismo_tema: boolean
-          similitud: number
-        }[]
-      }
       soltar_conexion: { Args: { p_conexion: string }; Returns: undefined }
       tema_de_la_voz: {
         Args: { p_tema: string; p_voz: string }
