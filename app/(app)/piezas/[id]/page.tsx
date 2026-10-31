@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
+import { bloqueoDeFirma } from "@/lib/piezas/bloqueo"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import type { EstadoDePieza } from "@/lib/piezas/estados"
@@ -145,6 +146,11 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
   const conPilar = SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && (pilares.length > 0 || pilarId !== null)
   // Claude's tools need its requests read and none in flight.
   const redaccionLista = conClaude && redaccion !== null && !redaccion.pedidoAbierto && !redaccion.revisandoAuto
+  const bloqueo = bloqueoDeFirma({
+    formato: pieza.formato,
+    laminasEsperadas: version.diseno?.laminas.length ?? null,
+    vistas: version.vistas.length,
+  })
 
   function estadoDelCarrusel() {
     if (!diseno) return <p className="text-sm">No pude leer si se está armando el carrusel. Recarga en un rato.</p>
@@ -173,7 +179,12 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <LecturaDePieza key={version.huella} laminas={version.vistas.length} className="mx-auto max-w-md space-y-5">
+    <LecturaDePieza
+      key={version.huella}
+      laminas={version.vistas.length}
+      bloqueo={bloqueo}
+      className="mx-auto max-w-md space-y-5"
+    >
       <Volver />
       <header className="space-y-2">
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
@@ -233,16 +244,11 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
           {(redaccion.pedidoAbierto || redaccion.revisandoAuto) && <Refrescar />}
         </>
       )}
-      {porFirmar && !armando && version.diseno === null && version.disenoCrudo != null && (
-        <div className="space-y-2">
-          <p className="text-sm">No pude leer las láminas de esta versión. Revisa el PDF antes de firmar.</p>
-          {/* The only place left with the PDF before signing: without readable slides it is the piece to review. */}
-          {version.archivoUrl && (
-            <a href={version.archivoUrl} className="boton w-full py-3">
-              Ver el PDF
-            </a>
-          )}
-        </div>
+      {/* The block's reason shows next to the signing button; the PDF is the only place left to see the slides. */}
+      {porFirmar && !armando && bloqueo && version.archivoUrl && (
+        <a href={version.archivoUrl} className="boton w-full py-3">
+          Ver el PDF
+        </a>
       )}
       {porFirmar && !armando && (
         <FirmaDePieza

@@ -47,9 +47,9 @@ const finDelTexto = () => screen.getByTestId("fin-del-texto")
 
 const VISTAS = ["/a.png", "/b.png", "/c.png"]
 
-function montar(vistas: string[] = VISTAS, clave = "v1") {
+function montar(vistas: string[] = VISTAS, clave = "v1", bloqueo: string | null = null) {
   const pieza = (
-    <LecturaDePieza key={clave} laminas={vistas.length}>
+    <LecturaDePieza key={clave} laminas={vistas.length} bloqueo={bloqueo}>
       {vistas.length > 0 && <VistasDelCarrusel vistas={vistas} />}
       <p>{"Primera línea\nSegunda línea"}</p>
       <FinDelTexto />
@@ -168,5 +168,21 @@ describe("reading gate before signing", () => {
     montar()
     expect(botonDeFirma()).toBeEnabled()
     expect(screen.queryByText(/Faltan|Falta leer/)).not.toBeInTheDocument()
+  })
+
+  test("a block keeps both buttons disabled with its reason even after everything was read", () => {
+    const MOTIVO = "No pude mostrar las láminas. Recarga o revisa el PDF; no se puede firmar sin verlas."
+    montar([], "v1", MOTIVO)
+    mostrar(finDelTexto(), 1)
+    expect(botonDeFirma()).toBeDisabled()
+    expect(botonDeReserva()).toBeDisabled()
+    expect(botonDeFirma()).toHaveAccessibleDescription(MOTIVO)
+  })
+
+  test("a block holds even when the browser cannot observe visibility", () => {
+    vi.unstubAllGlobals()
+    vi.stubGlobal("IntersectionObserver", undefined)
+    montar([], "v1", "No pude mostrar las láminas. Recarga o revisa el PDF; no se puede firmar sin verlas.")
+    expect(botonDeFirma()).toBeDisabled()
   })
 })
