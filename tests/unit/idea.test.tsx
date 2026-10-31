@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
-import { TarjetaDeIdea } from "@/app/(app)/ideas/idea"
+import { AprobarSerie, TarjetaDeIdea } from "@/app/(app)/ideas/idea"
 import type { IdeaDeSerie, IdeaSuelta } from "@/lib/series/lectura"
 
 const PERFIL = { id: "c-perfil", nombre: "Federico" }
@@ -272,5 +272,26 @@ describe("TarjetaDeIdea", () => {
         "Lo que dice uno\nLo que dice el otro",
       ),
     )
+  })
+})
+
+describe("AprobarSerie", () => {
+  test("asks to confirm with the number of pieces and the cost before approving", async () => {
+    const aprobar = vi.fn(async () => ({ ok: true as const }))
+    render(<AprobarSerie investigacionId="inv1" formatos={["texto", "carrusel_pdf"]} aprobar={aprobar} />)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
+    expect(aprobar).not.toHaveBeenCalled()
+    expect(screen.getByText("Claude escribe 2 piezas en unos minutos. Cuesta cerca de US$0,40.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }))
+    await waitFor(() => expect(aprobar).toHaveBeenCalledWith("inv1"))
+  })
+
+  test("cancel goes back without approving", () => {
+    const aprobar = vi.fn(async () => ({ ok: true as const }))
+    render(<AprobarSerie investigacionId="inv1" formatos={["texto"]} aprobar={aprobar} />)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+    expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeInTheDocument()
+    expect(aprobar).not.toHaveBeenCalled()
   })
 })

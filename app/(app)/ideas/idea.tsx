@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { useState, useTransition } from "react"
+import { enDolares } from "@/lib/gasto/precios"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { costoAproximado } from "@/lib/series/costo"
 import { lineaDelPaso, textoDelEsqueleto } from "@/lib/series/esqueleto"
 import type {
   AsignacionDeIdea,
@@ -14,6 +16,7 @@ import type {
   IdeaDeSerie,
   IdeaSuelta,
 } from "@/lib/series/lectura"
+import type { FormatoDeIdea } from "@/lib/series/propuestas"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 
 const BOTON = "boton w-full"
@@ -313,28 +316,45 @@ export function TarjetaDeIdea({
 /** Every proposal of the series with its suggested account, dates spread in the series' order. */
 export function AprobarSerie({
   investigacionId,
-  propuestas,
+  formatos,
   aprobar,
 }: {
   investigacionId: string
-  propuestas: number
+  formatos: readonly FormatoDeIdea[]
   aprobar: (investigacionId: string) => Promise<Resultado>
 }) {
   const { error, pendiente, ejecutar } = useAccion()
+  const [confirmando, setConfirmando] = useState(false)
+  const piezas = formatos.length === 1 ? "1 pieza" : `${formatos.length} piezas`
+  if (!confirmando)
+    return (
+      <div className="space-y-1">
+        <button type="button" onClick={() => setConfirmando(true)} className={PRIMARIO}>
+          Aprobar la serie
+        </button>
+        <p className="text-sm text-apagado">Aprueba {piezas} con su cuenta sugerida.</p>
+      </div>
+    )
   return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        disabled={pendiente}
-        onClick={() => ejecutar(() => aprobar(investigacionId))}
-        className={PRIMARIO}
-      >
-        Aprobar la serie
-      </button>
-      <p className="text-sm text-apagado">
-        {propuestas === 1 ? "Aprueba la propuesta" : `Aprueba las ${propuestas} propuestas`} con su cuenta sugerida.
+    <fieldset className="min-w-0 space-y-2 tarjeta p-3">
+      <legend className="sr-only">Confirmar la serie</legend>
+      <p>
+        Claude escribe {piezas} en unos minutos. Cuesta cerca de {enDolares(costoAproximado(formatos))}.
       </p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={pendiente}
+          onClick={() => ejecutar(() => aprobar(investigacionId))}
+          className={PRIMARIO}
+        >
+          Confirmar
+        </button>
+        <button type="button" disabled={pendiente} onClick={() => setConfirmando(false)} className={BOTON}>
+          Cancelar
+        </button>
+      </div>
       <Alerta error={error} />
-    </div>
+    </fieldset>
   )
 }
