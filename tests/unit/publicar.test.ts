@@ -62,7 +62,12 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
   const m = {
     tomarPendientes: vi.fn(async (): Promise<PiezaParaPublicar[]> => []),
     sinRespuesta: vi.fn(async (): Promise<{ id: string; marcaId: string; cuentaNombre: string }[]> => []),
-    credencial: vi.fn(async () => ({ token: "tok", titular: "urn:li:person:abc", expiraEn: "2026-12-27T00:00:00Z" })),
+    credencial: vi.fn(async () => ({
+      token: "tok",
+      titular: "urn:li:person:abc",
+      autor: "urn:li:person:abc",
+      expiraEn: "2026-12-27T00:00:00Z",
+    })),
     descargar: vi.fn(async () => PDF),
     reservarEnvio: vi.fn(async (p: PiezaParaPublicar): Promise<"reservado" | "ya_enviado"> => {
       orden.push("reservar")
@@ -135,6 +140,27 @@ describe("publicarPieza", () => {
     )
   })
 
+  test.each([
+    ["a text piece", () => pieza()],
+    ["a carousel", () => carrusel()],
+  ])("posts %s as the page when the connection is a page's, never as its administrator", async (_nombre, cual) => {
+    const pagina = {
+      token: "tok",
+      titular: "urn:li:person:admin",
+      autor: "urn:li:organization:123",
+      expiraEn: "2026-12-27T00:00:00Z",
+    }
+    const { p, m } = puertos({ credencial: vi.fn(async () => pagina) })
+    const unaPieza = cual()
+    expect(await publicarPieza(p, unaPieza)).toBe("publicada")
+    expect(m.linkedin.crearPost).toHaveBeenCalledWith(expect.objectContaining({ autor: "urn:li:organization:123" }))
+    if (unaPieza.formato === "carrusel_pdf") {
+      expect(m.linkedin.subirDocumento).toHaveBeenCalledWith(
+        expect.objectContaining({ autor: "urn:li:organization:123" }),
+      )
+    }
+  })
+
   test("sends a carousel back to the gate when its file no longer matches the signed hash", async () => {
     const { p, m, estadoDe } = puertos({ descargar: vi.fn(async () => new Uint8Array([9, 9])) })
     expect(await publicarPieza(p, carrusel())).toBe("por_aprobar")
@@ -170,6 +196,8 @@ describe("publicarPieza", () => {
     expect(m.linkedin.crearPost).toHaveBeenCalledTimes(1)
     expect(m.cerrarEnvio).not.toHaveBeenCalled()
     expect(m.mover).toHaveBeenCalledWith("pieza-1", "envio_dudoso", expect.stringContaining("Puede que haya salido"))
+    // The same words fit a profile and a page.
+    expect(m.mover).not.toHaveBeenCalledWith("pieza-1", "envio_dudoso", expect.stringContaining("perfil"))
     expect(m.avisar).toHaveBeenCalledTimes(1)
     expect(estadoDe("pieza-1")).toBe("envio_dudoso")
   })

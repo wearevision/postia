@@ -10,7 +10,9 @@ PostIA corre en **https://postia.wearevision.cl** (D23).
 | Base de datos, Auth y Vault | Supabase, organización WAV (plan Pro, US$10 al mes) | proyecto `postia`, ref `ipjszctraqhvpsyogbbd`, región `sa-east-1` |
 | Llaves de LinkedIn y VAPID | Secretos del Worker | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
 | URL de retorno de LinkedIn | `vars` en `wrangler.jsonc` | `LINKEDIN_REDIRECT_URI` |
-| Tokens de LinkedIn de cada cuenta | Supabase Vault del proyecto | `conexion:<id>` |
+| Llaves de la app «Estudio WAV» (página de WAV, Community Management) | Secretos del Worker y variables de Trigger.dev prod (secretas) | `LINKEDIN_PAGINA_CLIENT_ID`, `LINKEDIN_PAGINA_CLIENT_SECRET` |
+| URL de retorno de la página | `vars` en `wrangler.jsonc` | `LINKEDIN_PAGINA_REDIRECT_URI` |
+| Tokens de LinkedIn de cada cuenta | Supabase Vault del proyecto | `conexion:<id>`, `conexion:<id>:renovacion` (si LinkedIn manda token de renovación), `eleccion:<id>` (≤ 10 min, mientras se elige página) |
 | Publicador (cada 5 min, hora de Chile) | Trigger.dev, organización WAV | proyecto `postia`, ref `proj_cfileylububfgxfoqhyb`, tarea `publicar-pendientes` |
 | Llaves del publicador | Variables de Trigger.dev prod | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (secreta), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secreta), `VAPID_SUBJECT` |
 | PDFs de las piezas | Supabase Storage, bucket privado `piezas` | una carpeta por marca, hasta 30 MB por archivo |

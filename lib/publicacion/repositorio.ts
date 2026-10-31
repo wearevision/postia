@@ -167,7 +167,7 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       const { data, error } = await db.rpc("credencial_de_cuenta", { p_cuenta: cuentaId })
       if (error) fallo("No pude leer la conexión de la cuenta", error)
       const fila = data[0]
-      return fila ? { token: fila.token, titular: fila.titular, expiraEn: fila.expira_en } : null
+      return fila ? { token: fila.token, titular: fila.titular, autor: fila.autor, expiraEn: fila.expira_en } : null
     },
 
     async descargar(ruta) {

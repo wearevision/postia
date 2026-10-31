@@ -5,6 +5,7 @@ const AHORA = Date.parse("2026-11-03T11:00:00Z") // 8:00 in Chile, when the watc
 const DIA = 86_400_000
 const en = (ms: number) => new Date(AHORA + ms).toISOString()
 const base = { cuentas: ["Federico"], ultimaProgramada: null }
+const DIA_Y_UNA_HORA = 1 + 1 / 24
 
 describe("revisarConexion", () => {
   test("an expired connection is urgent", () => {
@@ -78,5 +79,53 @@ describe("revisarConexion", () => {
     const despues = revisarConexion({ ...base, expiraEn: en(-3 * DIA) }, AHORA)
     expect(despues.urgente).toBeNull()
     expect(despues.lineas[0]?.cuerpo).toBe("La conexión de LinkedIn de Federico venció. Reconéctala en Marcas.")
+  })
+
+  describe("a connection that renews itself", () => {
+    const seRenueva = (diasDeAcceso: number, diasDeRenovacion: number | null) => ({
+      ...base,
+      cuentas: ["Página de WAV"],
+      expiraEn: en(diasDeAcceso * DIA),
+      renovacionExpiraEn: diasDeRenovacion === null ? null : en(diasDeRenovacion * DIA),
+    })
+
+    test("says nothing at 14 days of its access token: the daily refresh has not had its turn yet", () => {
+      expect(revisarConexion(seRenueva(14, 300), AHORA)).toEqual({ urgente: null, lineas: [] })
+    })
+
+    test("an access token within 10 days despite a valid refresh token warns like any other: the refresh failed", () => {
+      expect(revisarConexion(seRenueva(3, 300), AHORA).lineas.map((l) => l.cuerpo)).toEqual([
+        "La conexión de LinkedIn de Página de WAV vence en 3 días. Reconéctala en Marcas.",
+      ])
+      const conPiezas = { ...seRenueva(DIA_Y_UNA_HORA, 300), ultimaProgramada: en(12 * DIA) }
+      expect(revisarConexion(conPiezas, AHORA).lineas).toHaveLength(1)
+    })
+
+    test("a refused refresh forgets the refresh token, and the 14, 3 and 1 day marks come back", () => {
+      expect(revisarConexion(seRenueva(14, null), AHORA).lineas.map((l) => l.cuerpo)).toEqual([
+        "La conexión de LinkedIn de Página de WAV vence en 14 días. Reconéctala en Marcas.",
+      ])
+      expect(revisarConexion(seRenueva(3, null), AHORA).lineas).toHaveLength(1)
+      const conPiezas = { ...seRenueva(DIA_Y_UNA_HORA, null), ultimaProgramada: en(12 * DIA) }
+      expect(revisarConexion(conPiezas, AHORA).lineas).toHaveLength(1)
+    })
+
+    test("queues a line 14 days before its refresh token runs out", () => {
+      expect(revisarConexion(seRenueva(12, 14), AHORA).lineas.map((l) => l.cuerpo)).toEqual([
+        "La conexión de LinkedIn de Página de WAV deja de renovarse sola en 14 días. Reconéctala en Marcas.",
+      ])
+      expect(revisarConexion(seRenueva(12, 13), AHORA).lineas).toEqual([])
+    })
+
+    test("is still urgent when the renewal failed and the token is about to run out or ran out", () => {
+      expect(revisarConexion(seRenueva(0.4, 300), AHORA).urgente?.cuerpo).toContain("menos de un día")
+      expect(revisarConexion(seRenueva(-0.1, 300), AHORA).urgente?.cuerpo).toContain("venció")
+    })
+
+    test("a refresh token that ends before the access token is no renewal: the access token's marks apply", () => {
+      expect(revisarConexion(seRenueva(14, 10), AHORA).lineas.map((l) => l.cuerpo)).toEqual([
+        "La conexión de LinkedIn de Página de WAV vence en 14 días. Reconéctala en Marcas.",
+      ])
+    })
   })
 })

@@ -48,7 +48,10 @@ export interface PendienteSinFirma {
 
 export interface Credencial {
   token: string
+  /** The member who connected: only for logs. */
   titular: string
+  /** Who the post is by: the organization for a page, the member for the profile. */
+  autor: string
   expiraEn: string
 }
 
@@ -198,7 +201,7 @@ export async function publicarPieza(
     if (sha256(datos) !== archivoSha256)
       return devolver(p, pieza, "por_aprobar", "El archivo cambió después de la firma.")
     try {
-      const id = await p.linkedin.subirDocumento({ token: credencial.token, autor: credencial.titular, datos })
+      const id = await p.linkedin.subirDocumento({ token: credencial.token, autor: credencial.autor, datos })
       const estado = await esperarDocumento(
         { estadoDelDocumento: p.linkedin.estadoDelDocumento, esperar: p.esperar },
         credencial.token,
@@ -245,7 +248,7 @@ export async function publicarPieza(
   try {
     const base = {
       token: credencial.token,
-      autor: credencial.titular,
+      autor: credencial.autor,
       commentary: aLittleText(pieza.version.texto),
       visibilidad: "PUBLIC",
     } as const
@@ -257,7 +260,7 @@ export async function publicarPieza(
     }
     console.error(`Envío dudoso de la pieza ${pieza.id}: ${describir(error)}`)
     const detalle = error instanceof RespuestaDudosa ? error.message : "LinkedIn no respondió."
-    return devolver(p, pieza, "envio_dudoso", `${detalle} Puede que haya salido: revisa el perfil antes de hacer algo.`)
+    return devolver(p, pieza, "envio_dudoso", `${detalle} Puede que haya salido: revisa LinkedIn antes de hacer algo.`)
   }
 
   const enlace = enlaceDePost(urn)

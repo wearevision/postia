@@ -15,7 +15,7 @@ async function piezaQueNombra(cliente: string) {
   const { error: errorDeConexion } = await dueno.db.rpc("conectar_linkedin", {
     p_cuenta: cuenta,
     p_token: "token-de-prueba",
-    p_titular: "urn:li:person:abc123",
+    p_titular: `urn:li:person:abc${crypto.randomUUID().slice(0, 8)}`,
     p_nombre: "Federico Elgueta",
     p_scopes: ["openid", "profile", "w_member_social"],
     p_expira_en: new Date(Date.now() + 60 * 86_400_000).toISOString(),

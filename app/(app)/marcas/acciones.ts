@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { agregarCuenta, crearMarca, desconectarCuenta, type Resultado } from "@/lib/marcas/acciones"
+import { agregarCuenta, cambiarRuta, crearMarca, desconectarCuenta, type Resultado } from "@/lib/marcas/acciones"
 import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
@@ -32,4 +32,8 @@ export async function desconectarCuentaAccion(datos: FormData): Promise<void> {
   const resultado = await desconectarCuenta(await createActionClient(), cuentaId)
   if (!resultado.ok) throw new Error(resultado.error)
   revalidatePath(RUTA_DE_MARCAS)
+}
+
+export async function cambiarRutaAccion(cuentaId: string, ruta: "api" | "a_mano"): Promise<Resultado> {
+  return despues(await cambiarRuta(await createActionClient(), { cuentaId, ruta }))
 }

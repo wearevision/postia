@@ -10,5 +10,8 @@
   "observability": { "enabled": true },
   "routes": [{ "pattern": "postia.wearevision.cl", "custom_domain": true }],
   // Not a secret: the address LinkedIn sends the owner back to. Keys are Worker secrets (docs/despliegue.md).
-  "vars": { "LINKEDIN_REDIRECT_URI": "https://postia.wearevision.cl/api/linkedin/callback" }
+  "vars": {
+    "LINKEDIN_REDIRECT_URI": "https://postia.wearevision.cl/api/linkedin/callback",
+    "LINKEDIN_PAGINA_REDIRECT_URI": "https://postia.wearevision.cl/api/linkedin/pagina/callback"
+  }
 }

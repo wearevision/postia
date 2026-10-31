@@ -66,6 +66,12 @@ describe("terminarConexionLinkedin", () => {
     expect(await terminarConexionLinkedin(d, llegadaValida)).toEqual({ ok: false, motivo: "fallo" })
   })
 
+  test("a page account connected through the profile app is told to use the page button", async () => {
+    linkedin()
+    const d = deps(vi.fn(async () => ({ error: { message: "cuenta_y_app_no_calzan" } })))
+    expect(await terminarConexionLinkedin(d, llegadaValida)).toEqual({ ok: false, motivo: "cuenta_es_pagina" })
+  })
+
   test("without the app configured nothing happens", async () => {
     expect(await terminarConexionLinkedin({ ...deps(), app: null }, llegadaValida)).toEqual({
       ok: false,
