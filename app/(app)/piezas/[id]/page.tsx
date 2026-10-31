@@ -1,12 +1,16 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
+import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { detalle } from "@/lib/piezas/lectura"
 import { lineaEnReserva } from "@/lib/piezas/textos"
+import { textoDeLasLaminas } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
+import { rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
 import { Refrescar } from "../refrescar"
@@ -32,9 +36,12 @@ import { PlanDePieza } from "./plan"
 import { CorregirTexto, PedirOtraVersion } from "./redaccion"
 import { RevisionDeClaude } from "./revision-ia"
 import { Veredicto } from "./veredicto"
+import { VistasDelCarrusel } from "./vistas"
 
 const SE_PUEDE_CAMBIAR_EL_PILAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada"]
 const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano", "error"]
+// The states pedir_diseno accepts an edit in.
+const SE_PUEDE_REARMAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano"]
 
 /** Set by the new-piece form when the plan or the pillar could not be set right after creating (rutaDePieza). */
 function avisosAlCrear(aviso: string | string[] | undefined): Set<string> {
@@ -72,7 +79,8 @@ export default async function Pieza({
       return null
     }
     const revisor = prepararRevision(excepciones, diaEnSantiago(Date.now()))
-    return revisor.revisar(textoARevisar(version.titulo, version.texto), cuenta.voz)
+    const laminas = version.diseno ? textoDeLasLaminas(version.diseno) : ""
+    return revisor.revisar(textoARevisar(version.titulo, version.texto, laminas), cuenta.voz)
   }
 
   const conClaude = estado === "por_aprobar" && pieza.formato === "texto"
@@ -92,13 +100,48 @@ export default async function Pieza({
     }
   }
 
-  const [pilares, hallazgos, redaccion] = await Promise.all([
+  const rearmable = version.diseno !== null && SE_PUEDE_REARMAR.includes(estado)
+
+  /** The carousel's render requests; null when they could not be read. */
+  async function leerDiseno(): Promise<DisenoDePieza | null> {
+    try {
+      return await disenoDePieza(db, piezaId)
+    } catch (error) {
+      // Like Claude's tools: the page must still open, and it says it could not read them.
+      console.error(
+        "No pude leer los carruseles pedidos para la pieza",
+        error instanceof Error ? error.message : String(error),
+      )
+      return null
+    }
+  }
+
+  const [pilares, hallazgos, redaccion, diseno] = await Promise.all([
     SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado)
       ? pilaresActivos(db).then((todos) => todos.filter((p) => p.marcaId === cuenta.marcaId))
       : [],
     estado === "por_aprobar" ? revisarAntesDeFirmar() : [],
     conClaude ? leerRedaccion() : null,
+    rearmable ? leerDiseno() : null,
   ])
+  const armando = diseno?.abierto ?? false
+
+  function estadoDelCarrusel() {
+    if (!diseno) return <p className="text-sm">No pude leer si se está armando el carrusel. Recarga en un rato.</p>
+    if (diseno.abierto)
+      return <Refrescar mensaje="Se está armando la nueva versión del carrusel. Esta página se actualiza sola." />
+    return (
+      <>
+        {diseno.ultimoFallo && <p className="text-sm">{diseno.ultimoFallo}</p>}
+        <Link
+          href={rutaDeEditarCarrusel(piezaId)}
+          className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
+        >
+          Editar el carrusel
+        </Link>
+      </>
+    )
+  }
 
   return (
     <section className="mx-auto max-w-md space-y-5">
@@ -123,14 +166,27 @@ export default async function Pieza({
         />
       )}
 
-      {estado !== "por_aprobar" && (
+      {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
+      {(estado !== "por_aprobar" || armando) && (
         <p className="whitespace-pre-wrap rounded-lg border border-borde p-3">{version.texto}</p>
       )}
-      {version.archivoUrl && estado !== "a_mano" && (
-        <a href={version.archivoUrl} className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center">
-          Ver el PDF
-        </a>
-      )}
+      {version.vistas.length > 0
+        ? version.archivoDescarga &&
+          estado !== "a_mano" && (
+            <a href={version.archivoDescarga} download className="inline-flex min-h-11 items-center text-sm underline">
+              Descargar el PDF
+            </a>
+          )
+        : version.archivoUrl &&
+          estado !== "a_mano" && (
+            <a
+              href={version.archivoUrl}
+              className="block min-h-11 rounded-lg border border-borde px-4 py-3 text-center"
+            >
+              Ver el PDF
+            </a>
+          )}
+      {rearmable && estadoDelCarrusel()}
 
       {estado === "por_aprobar" && (
         <PlanDePieza
@@ -175,7 +231,7 @@ export default async function Pieza({
           )}
         </>
       )}
-      {estado === "por_aprobar" && (
+      {estado === "por_aprobar" && !armando && (
         <FirmaDePieza
           key={pieza.fechaPropuesta}
           piezaId={pieza.id}
