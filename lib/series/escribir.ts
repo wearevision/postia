@@ -12,8 +12,12 @@ import type { FormatoDeIdea, HallazgoDeSerie, PasoDeEsqueleto } from "./propuest
 
 // Trigger.dev only: reaches the Claude client through 4c's writer and ./carrusel.
 
-/** Plano «Escribir texto»: 3 days before. The plano says «ajustable en Ajustes»; there is no settings table yet. */
-export const DIAS_ANTES_DE_ESCRIBIR = 3
+/**
+ * The plano said «3 días antes»; on 2026-10-31 Federico chose to write as soon as an idea is approved, so he sees the
+ * finished piece right away and signs it with its date (nothing is scheduled without that signature). Slots never go
+ * beyond 60 days, so a year ahead takes every approved assignment.
+ */
+export const DIAS_ANTES_DE_ESCRIBIR = 366
 const ASIGNACIONES_POR_CORRIDA = 3
 /**
  * No new piece starts after this: a carousel with its repair takes a few minutes, and the task's maxDuration (840 s)
