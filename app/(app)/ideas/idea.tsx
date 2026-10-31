@@ -220,7 +220,7 @@ function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonl
 
   return (
     <div className="space-y-3">
-      <fieldset className="space-y-1">
+      <fieldset disabled={ocupada} className="space-y-1">
         <legend className="text-sm">Cuentas</legend>
         {opciones.map((c) => (
           <label key={c.id} className="flex min-h-11 items-center gap-3">

@@ -306,6 +306,18 @@ describe("during the approval countdown", () => {
   })
 })
 
+describe("the accounts during the countdown", () => {
+  test("cannot change once the approval was captured, and can again after Deshacer", () => {
+    vi.useFakeTimers()
+    tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    expect(screen.getByRole("group", { name: "Cuentas" })).toBeDisabled()
+    expect(screen.getByRole("checkbox", { name: "Federico" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
+    expect(screen.getByRole("group", { name: "Cuentas" })).toBeEnabled()
+  })
+})
+
 describe("AprobarSerie", () => {
   test("asks to confirm with the number of pieces and the cost before approving", async () => {
     const aprobar = vi.fn(async () => ({ ok: true as const }))
