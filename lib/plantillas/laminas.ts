@@ -25,6 +25,7 @@ const CELDA = { palabras: 6, caracteres: 40 } as const
 export const LIMITES = {
   carrusel: { minimo: 3, maximo: 10 },
   antetitulo: { palabras: 6, caracteres: 50 },
+  fuente: { palabras: 8, caracteres: 60 },
   portada: { titulo: TITULO, bajada: { palabras: 30, caracteres: 200 } },
   punto: { numero: { caracteres: 4 }, titulo: TITULO, cuerpo: CUERPO },
   lista: { titulo: TITULO, items: { minimo: 2, maximo: 4, palabras: 10, caracteres: 80 } },
@@ -54,6 +55,20 @@ function texto(nombre: string, { palabras: maxPalabras, caracteres: maxCaractere
     .refine((s) => palabras(s) <= maxPalabras, `${N} pasa las ${maxPalabras} palabras.`)
 }
 
+/**
+ * The small-print source of a data slide: outlet and year, never a link. Absent or empty means no source line; a
+ * source made only of spaces is refused rather than silently dropped.
+ */
+const fuente = z
+  .string()
+  .refine((s) => s === "" || s.trim() !== "", "La fuente está en blanco.")
+  .trim()
+  .max(L.fuente.caracteres, `La fuente pasa los ${L.fuente.caracteres} caracteres.`)
+  .refine((s) => !/https?:|www\./i.test(s), "La fuente va sin enlaces: medio y año.")
+  .refine((s) => GLIFOS.test(s), "La fuente tiene un carácter que las fuentes no tienen.")
+  .refine((s) => palabras(s) <= L.fuente.palabras, `La fuente pasa las ${L.fuente.palabras} palabras.`)
+  .optional()
+
 const titulo = texto("el título", TITULO)
 const cuerpo = texto("el cuerpo", CUERPO)
 const celda = texto("cada celda", CELDA)
@@ -67,6 +82,7 @@ export const Punto = z.object({
     .max(L.punto.numero.caracteres, `El número lleva hasta ${L.punto.numero.caracteres} caracteres, como «01».`),
   titulo,
   cuerpo,
+  fuente,
 })
 const PUNTOS_DE_LISTA = `Una lista lleva de ${L.lista.items.minimo} a ${L.lista.items.maximo} puntos.`
 export const Lista = z.object({
@@ -76,6 +92,7 @@ export const Lista = z.object({
     .array(texto("cada punto", L.lista.items))
     .min(L.lista.items.minimo, PUNTOS_DE_LISTA)
     .max(L.lista.items.maximo, PUNTOS_DE_LISTA),
+  fuente,
 })
 const FILAS = `Una comparación lleva de ${L.comparacion.filas.minimo} a ${L.comparacion.filas.maximo} filas.`
 export const Comparacion = z.object({
@@ -95,12 +112,14 @@ export const Comparacion = z.object({
     )
     .min(L.comparacion.filas.minimo, FILAS)
     .max(L.comparacion.filas.maximo, FILAS),
+  fuente,
 })
 export const Cifra = z.object({
   tipo: z.literal("cifra"),
   cifra: texto("la cifra", L.cifra.cifra),
   etiqueta: texto("la etiqueta", L.cifra.etiqueta),
   cuerpo,
+  fuente,
 })
 const PORCENTAJE = /^(100|\d{1,2})(,\d)? ?%$/
 const MAL_PORCENTAJE = "Cada barra lleva un porcentaje entre 0 y 100, como «40,0 %»."
@@ -121,11 +140,13 @@ export const Barras = z.object({
     )
     .min(L.barras.barras.minimo, CIFRAS_DE_BARRAS)
     .max(L.barras.barras.maximo, CIFRAS_DE_BARRAS),
+  fuente,
 })
 export const Frase = z.object({
   tipo: z.literal("frase"),
   titulo: texto("la frase", L.frase.titulo),
   nota: texto("la nota", L.frase.nota),
+  fuente,
 })
 export const Cierre = z.object({
   tipo: z.literal("cierre"),

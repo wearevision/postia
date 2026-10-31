@@ -102,6 +102,22 @@ describe("EditorDeCarrusel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Lámina 2: El título pasa las 12 palabras.")
   })
 
+  test("a data slide offers an optional source, which travels with the slide; the cover has none", async () => {
+    const pedir = vi.fn(async () => ({ ok: false as const, error: "x" }))
+    render(<EditorDeCarrusel cuentas={[WAV]} pedir={pedir} />)
+    expect(within(laminas()[0] as HTMLElement).queryByLabelText("Fuente (opcional)")).toBeNull()
+    const segunda = laminas()[1] as HTMLElement
+    const campo = within(segunda).getByLabelText("Fuente (opcional)")
+    expect(campo).toHaveAccessibleDescription("Medio y año, como «Field Methods, 2006».")
+    fireEvent.change(campo, { target: { value: "Field Methods, 2006" } })
+    fireEvent.change(screen.getByLabelText("Texto del post"), { target: { value: "El post" } })
+    fireEvent.click(screen.getByRole("button", { name: "Armar carrusel" }))
+    await waitFor(() => expect(pedir).toHaveBeenCalled())
+    const [pedido] = pedir.mock.calls[0] as unknown as [{ diseno: { laminas: Record<string, unknown>[] } }]
+    expect(pedido.diseno.laminas[1]).toMatchObject({ fuente: "Field Methods, 2006" })
+    expect(pedido.diseno.laminas[2]).not.toHaveProperty("fuente")
+  })
+
   test("a queued new carousel goes back to the list of recent carousels", async () => {
     const pedir = vi.fn(async () => ({ ok: true as const, pedidoId: "p1" }))
     render(<EditorDeCarrusel cuentas={[WAV]} pedir={pedir} />)

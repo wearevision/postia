@@ -67,4 +67,30 @@ describe("textoDeLasLaminas", () => {
     expect(t).toContain("Tercera etapa")
     expect(t).toContain("wearevision.cl")
   })
+
+  test("includes each slide's source, which the client review reads too", () => {
+    const conFuente: Carrusel = {
+      antetitulo: "A",
+      laminas: [
+        { tipo: "portada", titulo: "T", bajada: "B" },
+        { tipo: "frase", titulo: "F", nota: "N", fuente: "Field Methods, 2006" },
+        { tipo: "cifra", cifra: "40 %", etiqueta: "E", cuerpo: "C", fuente: "" },
+        { tipo: "cierre", titulo: "Fin", cuerpo: "c", enlace: "a.cl" },
+      ],
+    }
+    expect(textoDeLasLaminas(conFuente).split("\n")).toEqual([
+      "A",
+      "T",
+      "B",
+      "F",
+      "N",
+      "Field Methods, 2006",
+      "40 %",
+      "E",
+      "C",
+      "Fin",
+      "c",
+      "a.cl",
+    ])
+  })
 })

@@ -23,7 +23,10 @@ function textos(l: Lamina): string[] {
 
 /** Every word the slides publish, one line each: the client review reads it like the post's text (D13). */
 export function textoDeLasLaminas(c: Carrusel): string {
-  return [c.antetitulo, ...c.laminas.flatMap(textos)].join("\n")
+  return [
+    c.antetitulo,
+    ...c.laminas.flatMap((l) => [...textos(l), ...("fuente" in l && l.fuente ? [l.fuente] : [])]),
+  ].join("\n")
 }
 
 /**
