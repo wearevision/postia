@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { estadoDelFiltro, parametroDelFiltro } from "@/lib/series/filtro"
 import {
   cuentasParaIdeas,
   type EstadoDeIdea,
@@ -36,7 +37,7 @@ function primero(valor: string | string[] | undefined): string | undefined {
 function rutaConFiltro(serie: string | undefined, estado: EstadoDeIdea | null): string {
   const params = new URLSearchParams()
   if (serie) params.set("serie", serie)
-  if (estado) params.set("estado", estado)
+  params.set("estado", parametroDelFiltro(estado))
   const consulta = params.toString()
   return consulta ? `${RUTA_DE_IDEAS}?${consulta}` : RUTA_DE_IDEAS
 }
@@ -127,12 +128,16 @@ function Serie({ serie, estado, cuentas }: { serie: SerieDeIdeas; estado: Estado
 export default async function Ideas({ searchParams }: { searchParams: Promise<Parametros> }) {
   const params = await searchParams
   const serie = primero(params.serie)
-  const estado = FILTROS.find((f) => f.estado !== null && f.estado === primero(params.estado))?.estado ?? null
+  const estado = estadoDelFiltro(primero(params.estado))
   const db = await createClient()
   const [{ cruces, sueltas, series: lista }, cuentas] = await Promise.all([
     ideasYSeries(db, { investigacionId: serie, estado }),
     cuentasParaIdeas(db),
   ])
+  const hayQueRevisar =
+    cruces.length > 0 || sueltas.length > 0 || lista.some((s) => s.ideas.some((i) => i.estado === "propuesta"))
+  // With no series yet the page keeps its own «Todavía no hay series» guidance.
+  const sinNadaPorRevisar = estado === "propuesta" && !hayQueRevisar && lista.length > 0
   const buscandoOtra = [...cruces, ...sueltas].some((i) => i.pidiendoOtra)
 
   return (
@@ -160,17 +165,28 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
       ) : (
         buscandoOtra && <Refrescar mensaje="Se está buscando otra idea. Esta página se actualiza sola." />
       )}
-      <Grupo titulo="Cruces" ideas={cruces} estado={estado} cuentas={cuentas} />
-      <Grupo titulo="Ideas sueltas del domingo" ideas={sueltas} estado={estado} cuentas={cuentas} />
-      {lista.length === 0 ? (
+      {sinNadaPorRevisar ? (
         <div className="space-y-3">
-          <p className="text-apagado">Todavía no hay series. Al aprobar un informe, PostIA arma la suya.</p>
-          <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
-            Ir a Investigar
+          <p className="text-apagado">No hay ideas por revisar.</p>
+          <Link href={rutaConFiltro(serie, null)} className="boton w-full py-3">
+            Ver todas
           </Link>
         </div>
       ) : (
-        lista.map((s) => <Serie key={s.investigacionId} serie={s} estado={estado} cuentas={cuentas} />)
+        <>
+          <Grupo titulo="Cruces" ideas={cruces} estado={estado} cuentas={cuentas} />
+          <Grupo titulo="Ideas sueltas del domingo" ideas={sueltas} estado={estado} cuentas={cuentas} />
+          {lista.length === 0 ? (
+            <div className="space-y-3">
+              <p className="text-apagado">Todavía no hay series. Al aprobar un informe, PostIA arma la suya.</p>
+              <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
+                Ir a Investigar
+              </Link>
+            </div>
+          ) : (
+            lista.map((s) => <Serie key={s.investigacionId} serie={s} estado={estado} cuentas={cuentas} />)
+          )}
+        </>
       )}
     </div>
   )

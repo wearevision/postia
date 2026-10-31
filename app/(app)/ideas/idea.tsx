@@ -213,104 +213,18 @@ function Edicion({
   )
 }
 
-function Revision({ idea, cuentas, ...a }: { idea: IdeaDeSerie; cuentas: readonly CuentaParaIdeas[] } & Acciones) {
-  const [elegidas, setElegidas] = useState<ReadonlySet<string>>(() => new Set([idea.cuentaSugerida.id]))
-  const [editando, setEditando] = useState(false)
-  const { error, setError, pendiente, ejecutar } = useAccion()
-  const diferida = useAccionDiferida()
-  const { contar } = useContext(ConteoDeSerieContexto)
-  useEffect(() => {
-    if (!diferida.esperando) return
-    contar(1)
-    return () => contar(-1)
-  }, [diferida.esperando, contar])
-  // While an approval counts down nothing else may run: a discard would land before the approval it cannot undo.
-  const ocupada = pendiente || diferida.esperando
-  // The suggested account always shows, even if it is not among the person's own.
-  const opciones = cuentas.some((c) => c.id === idea.cuentaSugerida.id) ? cuentas : [idea.cuentaSugerida, ...cuentas]
-
-  if (editando) return <Edicion idea={idea} editar={a.editar} alTerminar={() => setEditando(false)} />
-
-  function alternar(id: string) {
-    const nuevas = new Set(elegidas)
-    if (nuevas.has(id)) nuevas.delete(id)
-    else nuevas.add(id)
-    setElegidas(nuevas)
-  }
-
-  function aprobar() {
-    const ids = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.id)
-    if (ids.length === 0) return setError("Elige al menos una cuenta.")
-    diferida.programar(() => ejecutar(() => a.aprobar(idea.id, ids)))
-  }
-
+function BotonDeDetalle({ abierta, alternar }: { abierta: boolean; alternar: () => void }) {
   return (
-    <div className="space-y-3">
-      <fieldset disabled={ocupada} className="space-y-1">
-        <legend className="text-sm">Cuentas</legend>
-        {opciones.map((c) => (
-          <label key={c.id} className="flex min-h-11 items-center gap-3">
-            <input type="checkbox" checked={elegidas.has(c.id)} onChange={() => alternar(c.id)} className="size-5" />
-            <span>{c.nombre}</span>
-          </label>
-        ))}
-      </fieldset>
-      {diferida.esperando ? (
-        <div className="space-y-1">
-          <button type="button" onClick={diferida.cancelar} className={BOTON}>
-            Deshacer
-          </button>
-          <output className="block text-sm text-apagado">Se aprueba en 10 s. Si sales antes, no se aprueba.</output>
-        </div>
-      ) : (
-        <button type="button" disabled={pendiente} onClick={aprobar} className={PRIMARIO}>
-          Aprobar
-        </button>
-      )}
-      <div className="grid grid-cols-3 gap-2">
-        <button type="button" disabled={ocupada} onClick={() => setEditando(true)} className={BOTON}>
-          Editar
-        </button>
-        <button
-          type="button"
-          disabled={ocupada || idea.pidiendoOtra}
-          onClick={() => ejecutar(() => a.pedirOtra(idea.id))}
-          className={BOTON}
-        >
-          Pedir otra
-        </button>
-        <button type="button" disabled={ocupada} onClick={() => ejecutar(() => a.descartar(idea.id))} className={BOTON}>
-          Descartar
-        </button>
-      </div>
-      {idea.pidiendoOtra && <p className="text-sm text-apagado">Buscando otra idea…</p>}
-      <Alerta error={error} />
-    </div>
+    <button type="button" aria-expanded={abierta} onClick={alternar} className="min-h-11 text-sm underline">
+      {abierta ? "Ocultar detalle" : "Ver detalle"}
+    </button>
   )
 }
 
-export function TarjetaDeIdea({
-  idea,
-  cuentas,
-  ...acciones
-}: { idea: IdeaDeSerie | IdeaSuelta; cuentas: readonly CuentaParaIdeas[] } & Acciones) {
-  const origen = "origen" in idea ? idea.origen : "serie"
+/** Everything the compact card folds away: summary, beats, sources and why that account. */
+function Detalle({ idea }: { idea: IdeaDeSerie | IdeaSuelta }) {
   return (
-    <article
-      id={`idea-${idea.id}`}
-      aria-label={idea.gancho}
-      className={`scroll-mt-4 space-y-3 tarjeta p-4 ${idea.estado === "descartada" ? "opacity-60" : ""}`}
-    >
-      <div className="space-y-1">
-        <p className="text-sm text-apagado">
-          {FORMATO[idea.formato]}
-          {origen === "domingo" && " · "}
-          {origen === "domingo" && <span>Idea del domingo</span>}
-          {idea.estado === "descartada" && " · "}
-          {idea.estado === "descartada" && <span>Descartada</span>}
-        </p>
-        <h3 className="text-lg font-medium">{idea.gancho}</h3>
-      </div>
+    <div className="space-y-3">
       <p className="text-sm">{idea.resumen}</p>
       <ol aria-label="Esqueleto" className="list-decimal space-y-1 pl-5 text-sm">
         {idea.esqueleto.map((paso, i) => (
@@ -335,7 +249,180 @@ export function TarjetaDeIdea({
         <p>Sugerida para {idea.cuentaSugerida.nombre}</p>
         <p className="text-apagado">Por qué: {idea.razon}</p>
       </div>
-      {idea.estado === "propuesta" && <Revision idea={idea} cuentas={cuentas} {...acciones} />}
+    </div>
+  )
+}
+
+function Revision({
+  idea,
+  cuentas,
+  abierta,
+  alternarDetalle,
+  abrirDetalle,
+  elegidas,
+  alternar,
+  detalle,
+  ...a
+}: {
+  idea: IdeaDeSerie
+  cuentas: readonly CuentaParaIdeas[]
+  abierta: boolean
+  alternarDetalle: () => void
+  abrirDetalle: () => void
+  elegidas: ReadonlySet<string>
+  alternar: (id: string) => void
+  detalle: React.ReactNode
+} & Acciones) {
+  const [editando, setEditando] = useState(false)
+  const { error, setError, pendiente, ejecutar } = useAccion()
+  const diferida = useAccionDiferida()
+  const { contar } = useContext(ConteoDeSerieContexto)
+  useEffect(() => {
+    if (!diferida.esperando) return
+    contar(1)
+    return () => contar(-1)
+  }, [diferida.esperando, contar])
+  // While an approval counts down nothing else may run: a discard would land before the approval it cannot undo.
+  const ocupada = pendiente || diferida.esperando
+  const opciones = opcionesDeCuenta(idea, cuentas)
+  const nombres = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.nombre)
+
+  if (editando)
+    return (
+      <>
+        {detalle}
+        <Edicion idea={idea} editar={a.editar} alTerminar={() => setEditando(false)} />
+      </>
+    )
+
+  function aprobar() {
+    const ids = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.id)
+    if (ids.length === 0) return setError("Elige al menos una cuenta.")
+    diferida.programar(() => ejecutar(() => a.aprobar(idea.id, ids)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        disabled={ocupada}
+        onClick={abrirDetalle}
+        className="rounded-full border border-borde px-3 py-1 text-sm"
+      >
+        {nombres.length > 0 ? nombres.join(", ") : "Elegir cuenta"}
+      </button>
+      <div className="grid grid-cols-2 gap-2">
+        {diferida.esperando ? (
+          <button type="button" onClick={diferida.cancelar} className={BOTON}>
+            Deshacer
+          </button>
+        ) : (
+          <button type="button" disabled={pendiente} onClick={aprobar} className={PRIMARIO}>
+            Aprobar
+          </button>
+        )}
+        <button type="button" disabled={ocupada} onClick={() => ejecutar(() => a.descartar(idea.id))} className={BOTON}>
+          Descartar
+        </button>
+      </div>
+      {diferida.esperando && (
+        <output className="block text-sm text-apagado">Se aprueba en 10 s. Si sales antes, no se aprueba.</output>
+      )}
+      {idea.pidiendoOtra && <p className="text-sm text-apagado">Buscando otra idea…</p>}
+      <BotonDeDetalle abierta={abierta} alternar={alternarDetalle} />
+      {abierta && (
+        <div className="space-y-3">
+          {detalle}
+          <fieldset disabled={ocupada} className="space-y-1">
+            <legend className="text-sm">Cuentas</legend>
+            {opciones.map((c) => (
+              <label key={c.id} className="flex min-h-11 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={elegidas.has(c.id)}
+                  onChange={() => alternar(c.id)}
+                  className="size-5"
+                />
+                <span>{c.nombre}</span>
+              </label>
+            ))}
+          </fieldset>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" disabled={ocupada} onClick={() => setEditando(true)} className={BOTON}>
+              Editar
+            </button>
+            <button
+              type="button"
+              disabled={ocupada || idea.pidiendoOtra}
+              onClick={() => ejecutar(() => a.pedirOtra(idea.id))}
+              className={BOTON}
+            >
+              Pedir otra
+            </button>
+          </div>
+        </div>
+      )}
+      <Alerta error={error} />
+    </div>
+  )
+}
+
+/** The suggested account always shows, even if it is not among the person's own. */
+function opcionesDeCuenta(idea: IdeaDeSerie | IdeaSuelta, cuentas: readonly CuentaParaIdeas[]) {
+  return cuentas.some((c) => c.id === idea.cuentaSugerida.id) ? cuentas : [idea.cuentaSugerida, ...cuentas]
+}
+
+export function TarjetaDeIdea({
+  idea,
+  cuentas,
+  ...acciones
+}: { idea: IdeaDeSerie | IdeaSuelta; cuentas: readonly CuentaParaIdeas[] } & Acciones) {
+  const [abierta, setAbierta] = useState(false)
+  const [elegidas, setElegidas] = useState<ReadonlySet<string>>(() => new Set([idea.cuentaSugerida.id]))
+  const origen = "origen" in idea ? idea.origen : "serie"
+
+  function alternar(id: string) {
+    const nuevas = new Set(elegidas)
+    if (nuevas.has(id)) nuevas.delete(id)
+    else nuevas.add(id)
+    setElegidas(nuevas)
+  }
+
+  return (
+    <article
+      id={`idea-${idea.id}`}
+      aria-label={idea.gancho}
+      className={`scroll-mt-4 space-y-3 tarjeta p-4 ${idea.estado === "descartada" ? "opacity-60" : ""}`}
+    >
+      <div className="space-y-1">
+        <p className="text-sm text-apagado">
+          {FORMATO[idea.formato]}
+          {origen === "domingo" && " · "}
+          {origen === "domingo" && <span>Idea del domingo</span>}
+          {idea.estado === "descartada" && " · "}
+          {idea.estado === "descartada" && <span>Descartada</span>}
+        </p>
+        <h3 className="text-lg font-medium">{idea.gancho}</h3>
+      </div>
+      {idea.estado === "propuesta" && (
+        <Revision
+          idea={idea}
+          cuentas={cuentas}
+          abierta={abierta}
+          alternarDetalle={() => setAbierta(!abierta)}
+          abrirDetalle={() => setAbierta(true)}
+          elegidas={elegidas}
+          alternar={alternar}
+          detalle={<Detalle idea={idea} />}
+          {...acciones}
+        />
+      )}
+      {idea.estado === "aprobada" && (
+        <>
+          <BotonDeDetalle abierta={abierta} alternar={() => setAbierta(!abierta)} />
+          {abierta && <Detalle idea={idea} />}
+        </>
+      )}
       {idea.asignaciones.length > 0 && (
         <ul aria-label="Piezas" className="space-y-2">
           {idea.asignaciones.map((a) => (

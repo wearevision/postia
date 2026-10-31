@@ -7,7 +7,7 @@ import { entrar } from "./ingreso"
 import { leerHastaElFinal } from "./lectura"
 import { clienteDe, crearPiezaDeTexto } from "./piezas"
 
-test("an owner creates a text piece, signs it with the proposed date and finds it in the calendar week", async ({
+test("an owner creates a text piece, moves its date by the signature, signs it and finds it in the calendar week", async ({
   page,
   request,
 }) => {
@@ -37,9 +37,20 @@ test("an owner creates a text piece, signs it with the proposed date and finds i
   })
   await page.goto(rutaDePieza(piezaId))
 
-  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeVisible()
+  // One date control, by the signature: «Cambiar fecha» saves the plan and the signature follows it.
+  const firmar = page.getByRole("button", { name: /^Firmar (?!para).+ · / })
+  await expect(firmar).toBeVisible()
+  await expect(page.getByLabel("Fecha y hora de publicación")).toHaveCount(0)
+  const nombreAntes = (await firmar.textContent()) ?? ""
+  await page.getByRole("button", { name: "Cambiar fecha" }).click()
+  const campo = page.getByLabel("Fecha y hora de publicación")
+  await campo.fill(unaSemanaDespues(await campo.inputValue()))
+  await page.getByRole("button", { name: "Guardar fecha" }).click()
+  await expect(firmar).not.toHaveText(nombreAntes)
+  await expect(page.getByLabel("Fecha y hora de publicación")).toHaveCount(0)
+
   await leerHastaElFinal(page)
-  await page.getByRole("button", { name: /^Firmar (?!para).+ · / }).click()
+  await firmar.click()
   await expect(page.getByText("Programada", { exact: true })).toBeVisible()
 
   // Inicio only lists what is due today; the signed piece lives in the week of its date.
@@ -79,8 +90,7 @@ test("a new piece arrives planned and, signed for the reserve, shows in the cale
   const piezaId = await crearPiezaDeTexto(dueno, { cuentaId: cuenta.id, texto: "Una pieza para la reserva." })
   await page.goto(rutaDePieza(piezaId))
 
-  const plan = page.locator("section section", { has: page.getByRole("heading", { name: "Fecha planeada" }) })
-  await expect(plan.getByText(/^\p{L}+ \d+ de \p{L}+, \d{2}:\d{2}$/u)).toBeVisible()
+  await expect(page.locator("strong", { hasText: /^\p{L}+ \d+ de \p{L}+, \d{2}:\d{2}$/u })).toBeVisible()
   await leerHastaElFinal(page)
   await page.getByRole("button", { name: "Firmar para la reserva" }).click()
   await expect(page.getByText(/^En reserva: la app le pone fecha/)).toBeVisible()
@@ -133,3 +143,11 @@ test("a signed piece keeps the bottom bar and leads to the next one waiting; a m
   await expect(page.getByRole("heading", { name: "No encontré esta página" })).toBeVisible()
   await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible()
 })
+
+/** The same Chile wall-clock hour seven days later, as a datetime-local value: same weekday, free slot. */
+function unaSemanaDespues(valor: string): string {
+  const [dia, hora] = valor.split("T")
+  const fecha = new Date(`${dia}T00:00:00Z`)
+  fecha.setUTCDate(fecha.getUTCDate() + 7)
+  return `${fecha.toISOString().slice(0, 10)}T${hora}`
+}

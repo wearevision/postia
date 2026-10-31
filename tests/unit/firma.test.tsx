@@ -10,17 +10,18 @@ const ABIERTA_EN = "2026-11-02T20:00:00.000Z"
 function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
   const firmar = vi.fn(async () => ({ ok: true as const }))
   const firmarParaReserva = vi.fn(async (): Promise<Resultado> => ({ ok: true }))
+  const planear = vi.fn(async (): Promise<Resultado> => ({ ok: true }))
   render(
     <FirmaDePieza
       piezaId={PIEZA}
       huella={HUELLA}
-      texto={"Primera línea\nSegunda línea"}
       fechaPropuesta="2026-11-03T14:00:00.000Z"
       abiertaEn={ABIERTA_EN}
       ruta="api"
       cuenta="Federico"
       firmar={firmar}
       firmarParaReserva={firmarParaReserva}
+      planear={planear}
       {...sobre}
     />,
   )
@@ -28,12 +29,16 @@ function montar(sobre: Partial<Parameters<typeof FirmaDePieza>[0]> = {}) {
 }
 
 describe("FirmaDePieza", () => {
-  test("shows the exact text and the proposed date in Chile time, prefilled in the field", () => {
+  test("shows the date it will sign for, without a field until asked", () => {
     montar()
-    expect(screen.getByText(/Primera línea\s+Segunda línea/)).toBeInTheDocument()
-    expect(screen.getByText("martes 3 de noviembre, 11:00")).toBeInTheDocument()
-    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
-    expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeInTheDocument()
+    expect(screen.getByText("martes 3 de noviembre, 11:00", { exact: false })).toBeInTheDocument()
+    expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Firmar Federico · mar 3 nov, 11:00" })).toBeInTheDocument()
+  })
+
+  test("no longer renders the post text, which the page shows above", () => {
+    montar()
+    expect(screen.queryByText("Primera línea", { exact: false })).not.toBeInTheDocument()
   })
 
   test("warns that signing now drops the rewrite Claude is working on, only while it is", () => {
@@ -45,23 +50,14 @@ describe("FirmaDePieza", () => {
     expect(screen.queryByText(AVISO)).toBeNull()
   })
 
-  test("keeps one date line that follows the field", () => {
-    montar()
-    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:30" } })
-    expect(screen.getByText("miércoles 4 de noviembre, 15:30")).toBeInTheDocument()
-    expect(screen.queryByText("martes 3 de noviembre, 11:00")).not.toBeInTheDocument()
-    expect(screen.getAllByText(/^Sale el/)).toHaveLength(1)
-  })
-
-  test("signs with the ISO instant of the field read as Chile time", async () => {
+  test("signs for the shown date", async () => {
     const firmar = montar()
-    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:30" } })
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar Federico/ }))
     await waitFor(() =>
       expect(firmar).toHaveBeenCalledWith({
         piezaId: PIEZA,
         huella: HUELLA,
-        programadaPara: "2026-11-04T18:30:00.000Z",
+        programadaPara: "2026-11-03T14:00:00.000Z",
         abiertaEn: ABIERTA_EN,
       }),
     )
@@ -72,14 +68,6 @@ describe("FirmaDePieza", () => {
     montar({ firmar })
     fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
-  })
-
-  test("does not call firmar while the date field is incomplete", () => {
-    const firmar = montar()
-    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "" } })
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar (?!para)/ }))
-    expect(firmar).not.toHaveBeenCalled()
-    expect(screen.getByRole("alert")).toHaveTextContent("Elige la fecha y la hora.")
   })
 
   test("tells the person a page account is published by hand", () => {
@@ -128,21 +116,128 @@ describe("signing for the reserve", () => {
   })
 })
 
-describe("a new proposed date", () => {
-  test("shows in the field when the parent remounts the form with the new date", () => {
+describe("changing the date", () => {
+  test("Cambiar fecha opens the field prefilled with the shown date in Chile time", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
+  })
+
+  test("Cambiar fecha saves the new plan through planear", async () => {
+    const planear = vi.fn(async () => ({ ok: true as const }))
+    const firmar = montar({ planear })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    await waitFor(() =>
+      expect(planear).toHaveBeenCalledWith({ piezaId: PIEZA, planeadaPara: "2026-11-04T18:00:00.000Z" }),
+    )
+    expect(firmar).not.toHaveBeenCalled()
+  })
+
+  test("Enter in the date field saves the date and never signs", async () => {
+    const planear = vi.fn(async () => ({ ok: true as const }))
+    const firmar = montar({ planear })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    const campo = screen.getByLabelText("Fecha y hora de publicación")
+    fireEvent.change(campo, { target: { value: "2026-11-04T15:00" } })
+    expect(fireEvent.keyDown(campo, { key: "Enter" })).toBe(false)
+    await waitFor(() =>
+      expect(planear).toHaveBeenCalledWith({ piezaId: PIEZA, planeadaPara: "2026-11-04T18:00:00.000Z" }),
+    )
+    expect(firmar).not.toHaveBeenCalled()
+  })
+
+  test("asks for a date when the field is empty", () => {
+    const planear = vi.fn(async () => ({ ok: true as const }))
+    montar({ planear })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "" } })
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    expect(planear).not.toHaveBeenCalled()
+    expect(screen.getByRole("alert")).toHaveTextContent("Elige la fecha y la hora.")
+  })
+
+  test("shows a refusal to move the date as an alert", async () => {
+    montar({
+      planear: vi.fn(async () => ({
+        ok: false as const,
+        error: "Esa cuenta ya tiene una pieza a esa hora. Elige otra.",
+      })),
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Esa cuenta ya tiene una pieza a esa hora. Elige otra.")
+  })
+
+  test("shows the new date when the parent remounts the form with it", () => {
     const props = {
       piezaId: PIEZA,
       huella: HUELLA,
-      texto: "Texto",
       abiertaEn: ABIERTA_EN,
       ruta: "api" as const,
       cuenta: "Federico",
       firmar: vi.fn(async () => ({ ok: true as const })),
       firmarParaReserva: vi.fn(async () => ({ ok: true as const })),
+      planear: vi.fn(async () => ({ ok: true as const })),
     }
     const { rerender } = render(<FirmaDePieza key="a" fechaPropuesta="2026-11-03T14:00:00.000Z" {...props} />)
-    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
+    expect(screen.getByText("martes 3 de noviembre, 11:00")).toBeInTheDocument()
     rerender(<FirmaDePieza key="b" fechaPropuesta="2026-11-05T14:00:00.000Z" {...props} />)
-    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-05T11:00")
+    expect(screen.getByText("jueves 5 de noviembre, 11:00")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
+  })
+
+  test("an edited date that was not saved blocks signing for a date, with its reason", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    const firmar = screen.getByRole("button", { name: /^Firmar Federico/ })
+    expect(firmar).toBeDisabled()
+    expect(screen.getByText("Guarda la fecha antes de firmar.")).toBeInTheDocument()
+    expect(firmar).toHaveAccessibleDescription(/Guarda la fecha antes de firmar\./)
+    expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeEnabled()
+  })
+
+  test("an open editor with the shown date unchanged does not block signing", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeEnabled()
+    expect(screen.queryByText("Guarda la fecha antes de firmar.")).not.toBeInTheDocument()
+  })
+
+  test("blocks signing while the new date is being saved", () => {
+    montar({ planear: vi.fn(() => new Promise<Resultado>(() => {})) })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeDisabled()
+  })
+
+  test("a failed save keeps the editor open and signing blocked", async () => {
+    montar({ planear: vi.fn(async () => ({ ok: false as const, error: "Esa cuenta ya tiene una pieza a esa hora." })) })
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Esa cuenta ya tiene una pieza a esa hora.")
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeDisabled()
+  })
+
+  test("Cancelar closes the editor and resets the field", () => {
+    montar()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+    expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeEnabled()
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
+  })
+
+  test("a refusal because the date is past opens the date editor", async () => {
+    montar({ firmar: vi.fn(async () => ({ ok: false as const, error: "Elige una fecha y hora futuras." })) })
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar Federico/ }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
+    expect(screen.getByLabelText("Fecha y hora de publicación")).toBeInTheDocument()
   })
 })

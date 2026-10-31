@@ -2,6 +2,9 @@ import { enSantiago } from "@/lib/piezas/horarios"
 
 const ZONA = "America/Santiago"
 
+/** The refusal of a signature or plan for a past date; the signing form opens the date editor on it. */
+export const FECHA_EN_EL_PASADO = "Elige una fecha y hora futuras."
+
 const FORMATO_LARGO = new Intl.DateTimeFormat("es-CL", {
   timeZone: ZONA,
   weekday: "long",
@@ -33,6 +36,14 @@ export function fechaCorta(instante: string): string {
     FORMATO_CORTO.formatToParts(new Date(instante)).map((parte) => [parte.type, parte.value.replace(/\.$/, "")]),
   )
   return `${partes.weekday} ${partes.day} ${partes.month}, ${partes.hour}:${partes.minute}`
+}
+
+/** «mar 3 · 11:00»: a calendar row, where the week is already in the heading. */
+export function fechaDeFila(instante: string): string {
+  const partes = Object.fromEntries(
+    FORMATO_CORTO.formatToParts(new Date(instante)).map((parte) => [parte.type, parte.value.replace(/\.$/, "")]),
+  )
+  return `${partes.weekday} ${partes.day} · ${partes.hour}:${partes.minute}`
 }
 
 const PARTES = new Intl.DateTimeFormat("en-CA", {

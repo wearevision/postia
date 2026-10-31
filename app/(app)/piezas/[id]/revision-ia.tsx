@@ -48,7 +48,7 @@ export function RevisionDeClaude({
     )
   }
   return (
-    <section aria-labelledby="revision-ia" className="space-y-2 tarjeta p-3">
+    <section aria-labelledby="revision-ia" className="space-y-2">
       <h2 id="revision-ia" className="font-medium">
         Revisión de Claude
       </h2>

@@ -31,14 +31,17 @@ export const useLectura = () => useContext(Contexto)
 /**
  * Signing needs the whole piece seen: every slide at least 90% visible and the end of the text reached.
  * Mount it with `key` set to the version's fingerprint so a new version starts unread.
- * A browser that cannot observe visibility is never locked out.
+ * A browser that cannot observe visibility is never locked out by reading, but a `bloqueo` always holds.
  */
 export function LecturaDePieza({
   laminas,
+  bloqueo = null,
   className,
   children,
 }: {
   laminas: number
+  /** A reason signing stays blocked whatever is read (slides that could not be shown); null when none. */
+  bloqueo?: string | null
   className?: string
   children: React.ReactNode
 }) {
@@ -68,9 +71,10 @@ export function LecturaDePieza({
       marcarLamina,
       marcarTexto,
     }
+    if (bloqueo) return { puedeFirmar: false, motivo: bloqueo, ...comun }
     if (!observable) return { ...ABIERTA, ...comun }
     return { puedeFirmar: motivo === null, motivo, ...comun }
-  }, [laminas, vistas, textoLeido, observable, marcarLamina, marcarTexto])
+  }, [laminas, bloqueo, vistas, textoLeido, observable, marcarLamina, marcarTexto])
 
   return (
     <Contexto.Provider value={valor}>

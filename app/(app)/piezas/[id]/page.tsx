@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
+import { bloqueoDeFirma, DISENO_ILEGIBLE } from "@/lib/piezas/bloqueo"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import type { EstadoDePieza } from "@/lib/piezas/estados"
@@ -12,6 +13,7 @@ import { siguientePorFirmar } from "@/lib/piezas/siguiente"
 import { lineaEnReserva } from "@/lib/piezas/textos"
 import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
+import { type ClaudeEnLaRevision, resumenDeRevision } from "@/lib/redaccion/resumen"
 import { rutaDeEditarCarrusel, rutaDePieza } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
@@ -36,9 +38,8 @@ import { FirmaCaida } from "./caida"
 import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
 import { FirmaConfirmada } from "./firmada"
-import { LecturaDePieza } from "./lectura"
+import { FinDelTexto, LecturaDePieza } from "./lectura"
 import { PilarDePieza } from "./pilar"
-import { PlanDePieza } from "./plan"
 import { CorregirTexto, PedirOtraVersion } from "./redaccion"
 import { RevisionDeClaude } from "./revision-ia"
 import { Veredicto } from "./veredicto"
@@ -140,23 +141,65 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
   ])
   const armando = diseno?.abierto ?? false
   const firmaCaida = estado === "por_aprobar" && pieza.motivo === MOTIVO_DE_FIRMA_CAIDA
+  const porFirmar = estado === "por_aprobar"
+  const { pilarId, pilarNombre } = pieza
+  const conPilar = SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && (pilares.length > 0 || pilarId !== null)
+  // Claude's tools need its requests read and none in flight.
+  const redaccionLista = conClaude && redaccion !== null && !redaccion.pedidoAbierto && !redaccion.revisandoAuto
+  const resumen = resumenDeRevision({ hallazgos, claude: claudeEnLaRevision() })
+  const bloqueo = bloqueoDeFirma({
+    formato: pieza.formato,
+    laminasEsperadas: version.diseno?.laminas.length ?? null,
+    vistas: version.vistas.length,
+    disenoIlegible: rearmable && diseno === null,
+  })
 
-  function estadoDelCarrusel() {
-    if (!diseno) return <p className="text-sm">No pude leer si se está armando el carrusel. Recarga en un rato.</p>
+  function claudeEnLaRevision(): ClaudeEnLaRevision | undefined {
+    if (!conClaude) return undefined
+    if (!redaccion) return { estado: "ilegible" }
+    // A review already stored for this version is shown even while another request runs.
+    if (!redaccion.revision && (redaccion.revisandoAuto || redaccion.pedidoAbierto)) return { estado: "revisando" }
+    return { estado: "lista", revision: redaccion.revision }
+  }
+
+  /** What the carousel's render requests say; it stays outside «Cambiar», where the person signing sees it. */
+  function avisosDelCarrusel() {
+    // While signing, the lock already says it next to the button.
+    if (!diseno) return porFirmar ? null : <p className="text-sm">{DISENO_ILEGIBLE}</p>
     if (diseno.abierto)
       return <Refrescar mensaje="Se está armando la nueva versión del carrusel. Esta página se actualiza sola." />
+    return diseno.ultimoFallo ? <p className="text-sm">{diseno.ultimoFallo}</p> : null
+  }
+
+  const editable = rearmable && diseno !== null && !diseno.abierto
+
+  function editarCarrusel() {
     return (
-      <>
-        {diseno.ultimoFallo && <p className="text-sm">{diseno.ultimoFallo}</p>}
-        <Link href={rutaDeEditarCarrusel(piezaId)} className="boton w-full py-3">
-          Editar el carrusel
-        </Link>
-      </>
+      <Link href={rutaDeEditarCarrusel(piezaId)} className="boton w-full py-3">
+        Editar el carrusel
+      </Link>
+    )
+  }
+
+  function pilarDePieza() {
+    return (
+      <PilarDePieza
+        piezaId={piezaId}
+        pilarId={pilarId}
+        pilarNombre={pilarNombre}
+        pilares={pilares}
+        poner={ponerPilarAccion}
+      />
     )
   }
 
   return (
-    <LecturaDePieza key={version.huella} laminas={version.vistas.length} className="mx-auto max-w-md space-y-5">
+    <LecturaDePieza
+      key={version.huella}
+      laminas={version.vistas.length}
+      bloqueo={bloqueo}
+      className="mx-auto max-w-md space-y-5"
+    >
       <Volver />
       <header className="space-y-2">
         <p className="inline-block rounded-full border border-borde px-3 py-1 text-sm">{cuenta.nombre}</p>
@@ -172,37 +215,32 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
 
       {firmaCaida && <FirmaCaida cambio={pieza.cambio} />}
 
-      {SE_PUEDE_CAMBIAR_EL_PILAR.includes(estado) && (pilares.length > 0 || pieza.pilarId) && (
-        <PilarDePieza
-          piezaId={pieza.id}
-          pilarId={pieza.pilarId}
-          pilarNombre={pieza.pilarNombre}
-          pilares={pilares}
-          poner={ponerPilarAccion}
-        />
-      )}
+      {!porFirmar && conPilar && pilarDePieza()}
 
+      {/* The piece as it goes out comes first. FinDelTexto must follow the text: reaching it unlocks signing. */}
       {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
-      {(estado !== "por_aprobar" || armando) && <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>}
-      {version.vistas.length > 0
-        ? version.archivoDescarga &&
-          estado !== "a_mano" && (
-            <a href={version.archivoDescarga} download className="inline-flex min-h-11 items-center text-sm underline">
-              Descargar el PDF
-            </a>
-          )
-        : version.archivoUrl &&
-          estado !== "a_mano" && (
-            <a href={version.archivoUrl} className="boton w-full py-3">
-              Ver el PDF
-            </a>
-          )}
-      {rearmable && estadoDelCarrusel()}
+      <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>
+      {porFirmar && !armando && <FinDelTexto />}
+      {rearmable && avisosDelCarrusel()}
+      {!porFirmar && editable && editarCarrusel()}
 
-      {estado === "por_aprobar" && (
-        <PlanDePieza piezaId={pieza.id} planeadaPara={pieza.planeadaPara} planear={planearAccion} />
+      {porFirmar && (
+        <details className="tarjeta p-3" open={resumen.abierta}>
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">Revisión · {resumen.texto}</summary>
+          <div className="space-y-3 pt-2">
+            <Veredicto hallazgos={hallazgos} />
+            {redaccionLista && redaccion && (
+              <RevisionDeClaude
+                piezaId={pieza.id}
+                revision={redaccion.revision}
+                pedirRevision={pedirRevisionAccion}
+                puedePedir={!redaccion.pedidoAbierto}
+              />
+            )}
+          </div>
+        </details>
       )}
-      {estado === "por_aprobar" && <Veredicto hallazgos={hallazgos} />}
+
       {conClaude && !redaccion && <p className="text-sm">No pude leer lo que hizo Claude. Recarga en un rato.</p>}
       {conClaude && redaccion && (
         <>
@@ -212,48 +250,54 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
             </p>
           )}
           {redaccion.ultimoFallo && <p className="text-sm">{redaccion.ultimoFallo}</p>}
-          {redaccion.pedidoAbierto || redaccion.revisandoAuto ? (
-            <Refrescar />
-          ) : (
-            <>
-              <RevisionDeClaude
-                piezaId={pieza.id}
-                revision={redaccion.revision}
-                pedirRevision={pedirRevisionAccion}
-                puedePedir={!redaccion.pedidoAbierto}
-              />
-              <CorregirTexto
-                key={version.huella}
-                piezaId={pieza.id}
-                texto={version.texto}
-                corregir={corregirTextoAccion}
-              />
-              <PedirOtraVersion
-                piezaId={pieza.id}
-                quedan={redaccion.reescriturasQuedan}
-                pedir={pedirReescrituraAccion}
-              />
-            </>
-          )}
+          {(redaccion.pedidoAbierto || redaccion.revisandoAuto) && <Refrescar />}
         </>
       )}
-      {estado === "por_aprobar" && !armando && version.diseno === null && version.disenoCrudo != null && (
-        <p className="text-sm">No pude leer las láminas de esta versión. Revisa el PDF antes de firmar.</p>
+      {/* The block's reason shows next to the signing button; the PDF is the only place left to see the slides. */}
+      {porFirmar && !armando && bloqueo && version.archivoUrl && (
+        <a href={version.archivoUrl} className="boton w-full py-3">
+          Ver el PDF
+        </a>
       )}
-      {estado === "por_aprobar" && !armando && (
+      {porFirmar && !armando && (
         <FirmaDePieza
           key={pieza.fechaPropuesta}
           piezaId={pieza.id}
           huella={version.huella}
-          texto={version.texto}
           fechaPropuesta={pieza.fechaPropuesta}
           abiertaEn={abiertaEn}
           ruta={cuenta.ruta}
           cuenta={cuenta.nombre}
           firmar={firmarAccion}
           firmarParaReserva={firmarParaReservaAccion}
+          planear={planearAccion}
           reescribiendo={redaccion?.reescribiendo ?? false}
         />
+      )}
+
+      {porFirmar && (conPilar || redaccionLista || editable) && (
+        <details className="tarjeta p-3">
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">Cambiar</summary>
+          <div className="space-y-3 pt-2">
+            {conPilar && pilarDePieza()}
+            {redaccionLista && redaccion && (
+              <>
+                <CorregirTexto
+                  key={version.huella}
+                  piezaId={pieza.id}
+                  texto={version.texto}
+                  corregir={corregirTextoAccion}
+                />
+                <PedirOtraVersion
+                  piezaId={pieza.id}
+                  quedan={redaccion.reescriturasQuedan}
+                  pedir={pedirReescrituraAccion}
+                />
+              </>
+            )}
+            {editable && editarCarrusel()}
+          </div>
+        </details>
       )}
       {recienFirmada && <FirmaConfirmada huella={version.huella} />}
       {recienFirmada && siguiente && (

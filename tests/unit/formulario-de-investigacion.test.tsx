@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 import { FormularioDeInvestigacion } from "@/app/(app)/investigar/formulario"
+import { NuevaInvestigacion } from "@/app/(app)/investigar/nueva"
 
 const SUGERENCIAS = [
   { id: "11111111-1111-4111-8111-111111111111", tema: "Neuromarketing", enriquece: "Cruza con focus groups." },
@@ -76,5 +77,29 @@ describe("FormularioDeInvestigacion", () => {
       "Ya hay 3 investigaciones en curso. Espera a que terminen.",
     )
     expect(tema()).toHaveValue("Algo")
+  })
+})
+
+describe("NuevaInvestigacion", () => {
+  test("shows only the button until it is tapped, then the form", () => {
+    render(
+      <NuevaInvestigacion abierta={false}>
+        <FormularioDeInvestigacion sugerencias={[]} pedir={vi.fn()} />
+      </NuevaInvestigacion>,
+    )
+    expect(screen.queryByLabelText("¿Qué quieres investigar?")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Nueva investigación" }))
+    expect(screen.getByLabelText("¿Qué quieres investigar?")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Nueva investigación" })).toBeNull()
+  })
+
+  test("starts open when there is nothing to approve and nothing in the list", () => {
+    render(
+      <NuevaInvestigacion abierta>
+        <FormularioDeInvestigacion sugerencias={[]} pedir={vi.fn()} />
+      </NuevaInvestigacion>,
+    )
+    expect(screen.getByLabelText("¿Qué quieres investigar?")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Nueva investigación" })).toBeNull()
   })
 })

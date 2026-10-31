@@ -3,6 +3,7 @@ import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
 import { type Excepcion, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
+import { FECHA_EN_EL_PASADO } from "@/lib/piezas/fechas"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { normalizarTexto } from "@/lib/piezas/huella"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
@@ -23,7 +24,7 @@ const MENSAJES: Record<string, string> = {
   ruta_de_archivo_invalida: "La ruta del archivo no es válida.",
   pieza_no_editable: "Esta pieza ya no se puede editar.",
   firma_de_otra_version: "La pieza cambió desde que la abriste. Revísala de nuevo antes de firmar.",
-  fecha_en_el_pasado: "Elige una fecha y hora futuras.",
+  fecha_en_el_pasado: FECHA_EN_EL_PASADO,
   pieza_no_esta_por_aprobar: "Esta pieza ya no espera tu firma.",
   pieza_no_programada: "Esta pieza no está programada.",
   pieza_ya_cerrada: "Esta pieza ya está cerrada.",

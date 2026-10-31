@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { huecosDeLaSemana, sumarDias } from "@/lib/piezas/calendario"
-import { fechaLarga } from "@/lib/piezas/fechas"
+import { fechaDeFila } from "@/lib/piezas/fechas"
 import type { AsignacionDelCalendario, CuentaDelCalendario, PiezaDelCalendario } from "@/lib/piezas/lectura"
 import { rutaDeCalendario, rutaDeIdea, rutaDePieza } from "@/lib/sesion/rutas"
 import { MarcaDeEstado } from "../marca-de-estado"
@@ -26,7 +26,7 @@ interface Props {
 function Pieza({ p }: { p: PiezaDelCalendario }) {
   return (
     <Link href={rutaDePieza(p.id)} className={`${ENLACE} space-y-1 ${p.firmada ? "" : "border-dashed text-apagado"}`}>
-      <span className="block">{fechaLarga(p.instante)}</span>
+      <span className="block whitespace-nowrap">{fechaDeFila(p.instante)}</span>
       <span className="block">{p.extracto}</span>
       <span className="block text-apagado">
         {p.firmada ? <MarcaDeEstado estado={p.estado} /> : "Planeada, sin firma"}
@@ -38,7 +38,7 @@ function Pieza({ p }: { p: PiezaDelCalendario }) {
 function Asignacion({ a }: { a: AsignacionDelCalendario }) {
   return (
     <Link href={rutaDeIdea(a.ideaId, a.investigacionId)} className={`${ENLACE} space-y-1 border-dashed text-apagado`}>
-      <span className="block">{fechaLarga(a.instante)}</span>
+      <span className="block whitespace-nowrap">{fechaDeFila(a.instante)}</span>
       <span className="block">{`${a.estado === "escribiendo" ? "Escribiendo" : "Por escribir"} · ${a.gancho}`}</span>
     </Link>
   )

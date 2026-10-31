@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
-import { LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
+import { FinDelTexto, LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
 import { VistasDelCarrusel } from "@/app/(app)/piezas/[id]/vistas"
 
 type Entrada = { target: Element; isIntersecting: boolean; intersectionRatio: number }
@@ -47,20 +47,22 @@ const finDelTexto = () => screen.getByTestId("fin-del-texto")
 
 const VISTAS = ["/a.png", "/b.png", "/c.png"]
 
-function montar(vistas: string[] = VISTAS, clave = "v1") {
+function montar(vistas: string[] = VISTAS, clave = "v1", bloqueo: string | null = null) {
   const pieza = (
-    <LecturaDePieza key={clave} laminas={vistas.length}>
+    <LecturaDePieza key={clave} laminas={vistas.length} bloqueo={bloqueo}>
       {vistas.length > 0 && <VistasDelCarrusel vistas={vistas} />}
+      <p>{"Primera línea\nSegunda línea"}</p>
+      <FinDelTexto />
       <FirmaDePieza
         piezaId="11111111-1111-4111-8111-111111111111"
         huella={"a".repeat(64)}
-        texto={"Primera línea\nSegunda línea"}
         fechaPropuesta="2026-11-03T14:00:00.000Z"
         abiertaEn="2026-11-02T20:00:00.000Z"
         ruta="api"
         cuenta="Federico"
         firmar={vi.fn(async () => ({ ok: true as const }))}
         firmarParaReserva={vi.fn(async () => ({ ok: true as const }))}
+        planear={vi.fn(async () => ({ ok: true as const }))}
       />
     </LecturaDePieza>
   )
@@ -141,16 +143,18 @@ describe("reading gate before signing", () => {
     rerender(
       <LecturaDePieza key="v2" laminas={3}>
         <VistasDelCarrusel vistas={VISTAS} />
+        <p>Otro texto</p>
+        <FinDelTexto />
         <FirmaDePieza
           piezaId="11111111-1111-4111-8111-111111111111"
           huella={"b".repeat(64)}
-          texto="Otro texto"
           fechaPropuesta="2026-11-03T14:00:00.000Z"
           abiertaEn="2026-11-02T20:00:00.000Z"
           ruta="api"
           cuenta="Federico"
           firmar={vi.fn(async () => ({ ok: true as const }))}
           firmarParaReserva={vi.fn(async () => ({ ok: true as const }))}
+          planear={vi.fn(async () => ({ ok: true as const }))}
         />
       </LecturaDePieza>,
     )
@@ -164,5 +168,21 @@ describe("reading gate before signing", () => {
     montar()
     expect(botonDeFirma()).toBeEnabled()
     expect(screen.queryByText(/Faltan|Falta leer/)).not.toBeInTheDocument()
+  })
+
+  test("a block keeps both buttons disabled with its reason even after everything was read", () => {
+    const MOTIVO = "No pude mostrar las láminas. Recarga o revisa el PDF; no se puede firmar sin verlas."
+    montar([], "v1", MOTIVO)
+    mostrar(finDelTexto(), 1)
+    expect(botonDeFirma()).toBeDisabled()
+    expect(botonDeReserva()).toBeDisabled()
+    expect(botonDeFirma()).toHaveAccessibleDescription(MOTIVO)
+  })
+
+  test("a block holds even when the browser cannot observe visibility", () => {
+    vi.unstubAllGlobals()
+    vi.stubGlobal("IntersectionObserver", undefined)
+    montar([], "v1", "No pude mostrar las láminas. Recarga o revisa el PDF; no se puede firmar sin verlas.")
+    expect(botonDeFirma()).toBeDisabled()
   })
 })
