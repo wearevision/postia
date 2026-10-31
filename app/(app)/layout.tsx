@@ -13,8 +13,12 @@ export default async function LayoutDeLaApp({ children }: { children: React.Reac
   const gasto = await leerGasto()
   return (
     <div className="flex min-h-dvh flex-col">
-      {gasto && <Encabezado gastadoMicro={gasto.gastadoMicro} topeMicro={gasto.topeMicro} />}
-      <main className="flex-1 px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">{children}</main>
+      {gasto ? (
+        <Encabezado gastadoMicro={gasto.gastadoMicro} topeMicro={gasto.topeMicro} />
+      ) : (
+        <div aria-hidden="true" className="pt-[env(safe-area-inset-top)]" />
+      )}
+      <main className="flex-1 px-4 pb-28 pt-4">{children}</main>
       <Navegacion />
     </div>
   )
