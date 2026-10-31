@@ -43,7 +43,7 @@ export type Visibilidad = "PUBLIC" | "CONNECTIONS"
 
 const base = () => baseDe(process.env, "LINKEDIN_API_BASE_URL", BASE_API)
 
-function cabeceras(token: string): Record<string, string> {
+export function cabeceras(token: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
     "Linkedin-Version": VERSION_DE_LINKEDIN,
@@ -52,7 +52,7 @@ function cabeceras(token: string): Record<string, string> {
   }
 }
 
-async function llamar(
+export async function llamar(
   url: string,
   init: RequestInit,
   ruta: string,
