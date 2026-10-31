@@ -240,12 +240,19 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
               )
             })}
             <div className="flex gap-2">
-              <button type="button" onClick={() => mover(i, -1)} disabled={fija || i <= 1} className={BOTON}>
+              <button
+                type="button"
+                onClick={() => mover(i, -1)}
+                aria-label={`Subir la lámina ${i + 1}`}
+                disabled={fija || i <= 1}
+                className={BOTON}
+              >
                 Subir
               </button>
               <button
                 type="button"
                 onClick={() => mover(i, 1)}
+                aria-label={`Bajar la lámina ${i + 1}`}
                 disabled={fija || i >= laminas.length - 2}
                 className={BOTON}
               >
@@ -254,6 +261,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
               <button
                 type="button"
                 onClick={() => quitar(l.id)}
+                aria-label={`Quitar la lámina ${i + 1}`}
                 disabled={fija || laminas.length <= MINIMO_DE_LAMINAS}
                 className={BOTON}
               >

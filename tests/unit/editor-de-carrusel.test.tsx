@@ -62,18 +62,17 @@ describe("EditorDeCarrusel", () => {
     expect(leyendas().at(-2)).toBe(`Lámina ${antes} · Cifra`)
     expect(leyendas().at(-1)).toBe(`Lámina ${antes + 1} · Cierre`)
 
-    fireEvent.click(within(laminas()[antes - 1] as HTMLElement).getByRole("button", { name: "Subir" }))
+    fireEvent.click(screen.getByRole("button", { name: `Subir la lámina ${antes}` }))
     expect(leyendas()[antes - 2]).toBe(`Lámina ${antes - 1} · Cifra`)
-    fireEvent.click(within(laminas()[antes - 2] as HTMLElement).getByRole("button", { name: "Bajar" }))
+    fireEvent.click(screen.getByRole("button", { name: `Bajar la lámina ${antes - 1}` }))
     expect(leyendas()[antes - 1]).toBe(`Lámina ${antes} · Cifra`)
 
-    const portada = laminas()[0] as HTMLElement
-    const cierre = laminas().at(-1) as HTMLElement
-    expect(within(portada).getByRole("button", { name: "Quitar" })).toBeDisabled()
-    expect(within(cierre).getByRole("button", { name: "Quitar" })).toBeDisabled()
-    expect(within(portada).getByRole("button", { name: "Bajar" })).toBeDisabled()
-    expect(within(cierre).getByRole("button", { name: "Subir" })).toBeDisabled()
-    fireEvent.click(within(laminas()[1] as HTMLElement).getByRole("button", { name: "Quitar" }))
+    const ultima = laminas().length
+    expect(screen.getByRole("button", { name: "Quitar la lámina 1" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: `Quitar la lámina ${ultima}` })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Bajar la lámina 1" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: `Subir la lámina ${ultima}` })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: "Quitar la lámina 2" }))
     expect(laminas()).toHaveLength(antes)
   })
 
@@ -120,7 +119,7 @@ describe("EditorDeCarrusel", () => {
     fireEvent.change(screen.getByLabelText("Antetítulo"), { target: { value: "Otro antetítulo" } })
     fireEvent.change(screen.getByLabelText("Título del documento"), { target: { value: "Guía propia" } })
     fireEvent.change(within(laminas()[1] as HTMLElement).getByLabelText("Título"), { target: { value: "Cambiado" } })
-    fireEvent.click(within(laminas()[2] as HTMLElement).getByRole("button", { name: "Quitar" }))
+    fireEvent.click(screen.getByRole("button", { name: "Quitar la lámina 3" }))
     fireEvent.change(screen.getByLabelText("Texto del post"), { target: { value: "El post" } })
     fireEvent.click(screen.getByRole("button", { name: "Armar carrusel" }))
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/piezas/carrusel"))
