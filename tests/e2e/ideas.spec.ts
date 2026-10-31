@@ -70,12 +70,19 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   await entrar(page, request, correo)
   await page.getByRole("link", { name: "Ideas", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Ideas y series" })).toBeVisible()
+  // Ideas opens on what waits for a decision; «Todas» is a link to every state.
+  await expect(page.getByRole("link", { name: "Por revisar", exact: true })).toHaveAttribute("aria-current", "page")
+  await expect(page.getByRole("link", { name: "Todas", exact: true })).toHaveAttribute("href", "/ideas?estado=todas")
   const serie = page.getByRole("region", { name: tema })
   await expect(serie.getByText("Salieron 2 de las 3 pedidas.")).toBeVisible()
   await expect(serie.getByRole("button", { name: "Aprobar la serie" })).toBeVisible()
 
   const primera = serie.getByRole("article", { name: "Los focus groups no mueren" })
   const segunda = serie.getByRole("article", { name: "Cuánto cuesta un focus group" })
+  // The card is compact: the chip names the account and the rest sits behind «Ver detalle».
+  await expect(primera.getByRole("button", { name: nombreDeCuenta })).toBeVisible()
+  await expect(primera.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toHaveCount(0)
+  await primera.getByRole("button", { name: "Ver detalle" }).click()
   await expect(primera.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toBeVisible()
   await expect(primera.getByRole("link", { name: "La Tercera · 20 de octubre de 2026" })).toHaveAttribute(
     "target",
@@ -85,12 +92,18 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
 
   await primera.getByRole("button", { name: "Aprobar" }).click()
   await expect(primera.getByText("Se aprueba en 10 s")).toBeVisible()
-  const pieza = primera.getByRole("listitem", { name: nombreDeCuenta })
-  await expect(pieza.getByText("Por escribir")).toBeVisible({ timeout: 15_000 })
-  await expect(pieza.getByRole("button", { name: "Mover fecha" })).toBeVisible()
-  await expect(primera.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
+  // Approved, it leaves «Por revisar».
+  await expect(primera).toHaveCount(0, { timeout: 15_000 })
 
   await segunda.getByRole("button", { name: "Descartar" }).click()
+  await expect(segunda).toHaveCount(0)
+
+  await page.getByRole("link", { name: "Todas", exact: true }).click()
+  await expect(page).toHaveURL(/estado=todas/)
+  const pieza = primera.getByRole("listitem", { name: nombreDeCuenta })
+  await expect(pieza.getByText("Por escribir")).toBeVisible()
+  await expect(pieza.getByRole("button", { name: "Mover fecha" })).toBeVisible()
+  await expect(primera.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
   await expect(segunda.getByText("Descartada")).toBeVisible()
   await expect(serie.getByRole("button", { name: "Aprobar la serie" })).toHaveCount(0)
 
@@ -164,6 +177,7 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
   const cruces = page.getByRole("region", { name: "Cruces" })
   const cruce = cruces.getByRole("article", { name: gancho })
   await expect(cruce).toBeVisible()
+  await cruce.getByRole("button", { name: "Ver detalle" }).click()
   const origen = cruce.getByRole("list", { name: "Nace de:" })
   await expect(origen.getByRole("link", { name: "La Tercera · 22 de octubre de 2026" })).toHaveAttribute(
     "href",
@@ -177,9 +191,10 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
 
   await cruce.getByRole("button", { name: "Aprobar" }).click()
   await expect(cruce.getByText("Se aprueba en 10 s")).toBeVisible()
-  await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible({
-    timeout: 15_000,
-  })
+  // Approved, it leaves «Por revisar»: «Todas» shows its slot.
+  await expect(cruce).toHaveCount(0, { timeout: 15_000 })
+  await page.getByRole("link", { name: "Todas", exact: true }).click()
+  await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible()
   await expect(cruce.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
 
   // Open assignments are leased globally by escribir-piezas: leave none behind. Local test database only.

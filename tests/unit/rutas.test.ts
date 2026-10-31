@@ -64,7 +64,7 @@ describe("Ideas y series", () => {
   test("the page, one series, and one idea inside its series", () => {
     expect(RUTA_DE_IDEAS).toBe("/ideas")
     expect(rutaDeSerie("inv1")).toBe("/ideas?serie=inv1")
-    expect(rutaDeIdea("i1", "inv1")).toBe("/ideas?serie=inv1#idea-i1")
-    expect(rutaDeIdea("i1", null)).toBe("/ideas#idea-i1")
+    expect(rutaDeIdea("i1", "inv1")).toBe("/ideas?serie=inv1&estado=todas#idea-i1")
+    expect(rutaDeIdea("i1", null)).toBe("/ideas?estado=todas#idea-i1")
   })
 })

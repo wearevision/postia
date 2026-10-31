@@ -93,6 +93,10 @@ function tarjeta(idea: IdeaDeSerie, a = acciones()) {
   return a
 }
 
+function verDetalle() {
+  fireEvent.click(screen.getByRole("button", { name: "Ver detalle" }))
+}
+
 afterEach(() => {
   vi.useRealTimers()
 })
@@ -100,6 +104,7 @@ afterEach(() => {
 describe("TarjetaDeIdea", () => {
   test("shows the hook, summary, format, numbered skeleton, sources and why that account", () => {
     tarjeta(PROPUESTA)
+    verDetalle()
     const card = screen.getByRole("article", { name: "Los focus groups no mueren" })
     expect(card).toHaveAttribute("id", "idea-i1")
     expect(within(card).getByRole("heading", { name: "Los focus groups no mueren" })).toBeVisible()
@@ -122,6 +127,7 @@ describe("TarjetaDeIdea", () => {
   test("a proposal offers the accounts with the suggested one checked, and approves the chosen ones", async () => {
     vi.useFakeTimers()
     const a = tarjeta(PROPUESTA)
+    verDetalle()
     expect(screen.getByRole("checkbox", { name: "Página de WAV" })).toBeChecked()
     expect(screen.getByRole("checkbox", { name: "Federico" })).not.toBeChecked()
     fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
@@ -132,6 +138,7 @@ describe("TarjetaDeIdea", () => {
 
   test("with no account checked it asks for one instead of calling", () => {
     const a = tarjeta(PROPUESTA)
+    verDetalle()
     fireEvent.click(screen.getByRole("checkbox", { name: "Página de WAV" }))
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     expect(screen.getByRole("alert")).toHaveTextContent("Elige al menos una cuenta.")
@@ -142,6 +149,7 @@ describe("TarjetaDeIdea", () => {
     const a = tarjeta(PROPUESTA)
     fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
     await waitFor(() => expect(a.descartar).toHaveBeenCalledWith("i1"))
+    verDetalle()
     // The buttons stay disabled until the discard settles; a click before that is ignored.
     await waitFor(() => expect(screen.getByRole("button", { name: "Pedir otra" })).toBeEnabled())
     fireEvent.click(screen.getByRole("button", { name: "Pedir otra" }))
@@ -150,12 +158,14 @@ describe("TarjetaDeIdea", () => {
 
   test("while another is being looked for, it says so and does not ask twice", () => {
     tarjeta({ ...PROPUESTA, pidiendoOtra: true })
+    verDetalle()
     expect(screen.getByText("Buscando otra idea…")).toBeVisible()
     expect(screen.getByRole("button", { name: "Pedir otra" })).toBeDisabled()
   })
 
   test("edits the hook and the skeleton as one line per slide", async () => {
     const a = tarjeta(PROPUESTA)
+    verDetalle()
     fireEvent.click(screen.getByRole("button", { name: "Editar" }))
     expect(screen.getByLabelText("Gancho")).toHaveValue("Los focus groups no mueren")
     const esqueleto = screen.getByLabelText("Esqueleto, una línea por lámina")
@@ -226,6 +236,7 @@ describe("TarjetaDeIdea", () => {
   test("a text post's skeleton reads as bare beats", () => {
     tarjeta({ ...PROPUESTA, formato: "texto", esqueleto: [{ idea: "El dato" }, { idea: "La pregunta" }] })
     expect(screen.getByText("Post de texto")).toBeVisible()
+    verDetalle()
     const pasos = within(screen.getByRole("list", { name: "Esqueleto" })).getAllByRole("listitem")
     expect(pasos.map((p) => p.textContent)).toEqual(["El dato", "La pregunta"])
   })
@@ -238,6 +249,7 @@ describe("TarjetaDeIdea", () => {
 
   test("a cross shows «Nace de:» with both sources, each with its outlet, date, link and excerpt", () => {
     tarjeta(CRUCE)
+    verDetalle()
     const card = screen.getByRole("article", { name: "Lo que el retail le enseña a la minería" })
     const origen = within(card).getByRole("list", { name: "Nace de:" })
     const fuentes = within(origen).getAllByRole("listitem")
@@ -260,12 +272,14 @@ describe("TarjetaDeIdea", () => {
     tarjeta(DEL_DOMINGO)
     const card = screen.getByRole("article", { name: "Una idea suelta" })
     expect(within(card).getByText("Idea del domingo")).toBeVisible()
+    verDetalle()
     expect(within(card).queryByRole("list", { name: "Nace de:" })).toBeNull()
   })
 
   test("a cross is approved, discarded, edited and replaced like a series idea", async () => {
     vi.useFakeTimers()
     const a = tarjeta(CRUCE)
+    verDetalle()
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     await act(() => vi.advanceTimersByTimeAsync(10_000))
     expect(a.aprobar).toHaveBeenCalledWith("c1", [PAGINA.id])
@@ -291,10 +305,64 @@ describe("TarjetaDeIdea", () => {
   })
 })
 
+describe("compact card", () => {
+  test("shows the hook, format, account and the two decisions; the rest stays folded", () => {
+    tarjeta(PROPUESTA)
+    expect(screen.getByRole("heading", { name: "Los focus groups no mueren" })).toBeInTheDocument()
+    expect(screen.getByText("Carrusel PDF")).toBeVisible()
+    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeInTheDocument()
+    expect(screen.queryByRole("list", { name: "Esqueleto" })).not.toBeInTheDocument()
+    expect(screen.queryByText("Tres mitos sobre los focus groups.")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("group", { name: "Cuentas" })).not.toBeInTheDocument()
+  })
+
+  test("Ver detalle opens the beats, sources and the rest of the actions, and Ocultar detalle folds them", () => {
+    tarjeta(PROPUESTA)
+    verDetalle()
+    expect(screen.getByRole("list", { name: "Esqueleto" })).toBeInTheDocument()
+    expect(screen.getByRole("list", { name: "Fuentes" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Pedir otra" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar detalle" }))
+    expect(screen.queryByRole("list", { name: "Esqueleto" })).not.toBeInTheDocument()
+  })
+
+  test("the account chip names the chosen accounts and opens the account choice", () => {
+    tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Página de WAV" }))
+    expect(screen.getByRole("group", { name: "Cuentas" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
+    expect(screen.getByRole("button", { name: "Federico, Página de WAV" })).toBeInTheDocument()
+  })
+
+  test("an approved idea stays compact but keeps its slots visible", () => {
+    tarjeta(APROBADA)
+    expect(screen.queryByRole("list", { name: "Esqueleto" })).not.toBeInTheDocument()
+    expect(screen.getByRole("listitem", { name: "Página de WAV" })).toBeVisible()
+    verDetalle()
+    expect(screen.getByRole("list", { name: "Esqueleto" })).toBeInTheDocument()
+  })
+
+  test("during the countdown the folded card cannot discard or change accounts either", () => {
+    vi.useFakeTimers()
+    tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeDisabled()
+    fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeEnabled()
+  })
+})
+
 describe("during the approval countdown", () => {
   test("the other actions wait, so a discard can never follow an approval already on its way", async () => {
     vi.useFakeTimers()
     tarjeta(PROPUESTA)
+    verDetalle()
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     for (const nombre of ["Editar", "Pedir otra", "Descartar"]) {
       expect(screen.getByRole("button", { name: nombre })).toBeDisabled()
@@ -310,6 +378,7 @@ describe("the accounts during the countdown", () => {
   test("cannot change once the approval was captured, and can again after Deshacer", () => {
     vi.useFakeTimers()
     tarjeta(PROPUESTA)
+    verDetalle()
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     expect(screen.getByRole("group", { name: "Cuentas" })).toBeDisabled()
     expect(screen.getByRole("checkbox", { name: "Federico" })).toBeDisabled()

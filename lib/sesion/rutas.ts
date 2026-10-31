@@ -36,9 +36,13 @@ export function rutaDeSerie(investigacionId: string): string {
   return `${RUTA_DE_IDEAS}?serie=${encodeURIComponent(investigacionId)}`
 }
 
-/** An idea inside its series' page; an idea whose research is gone is still on the full list. */
+/**
+ * An idea inside its series' page; an idea whose research is gone is still on the full list. It asks for every
+ * state because the idea linked from the calendar is usually already approved, and Ideas opens on «Por revisar».
+ */
 export function rutaDeIdea(ideaId: string, investigacionId: string | null): string {
-  return `${investigacionId ? rutaDeSerie(investigacionId) : RUTA_DE_IDEAS}#idea-${encodeURIComponent(ideaId)}`
+  const base = investigacionId ? `${rutaDeSerie(investigacionId)}&` : `${RUTA_DE_IDEAS}?`
+  return `${base}estado=todas#idea-${encodeURIComponent(ideaId)}`
 }
 
 const PUBLICAS = new Set([RUTA_DE_INGRESO])
