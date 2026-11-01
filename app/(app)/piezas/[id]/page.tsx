@@ -7,14 +7,13 @@ import { bloqueoDeFirma, DISENO_ILEGIBLE } from "@/lib/piezas/bloqueo"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import type { EstadoDePieza } from "@/lib/piezas/estados"
-import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
 import { type SiguientePorFirmar, siguientePorFirmar } from "@/lib/piezas/siguiente"
 import { lineaEnReserva, tituloDeCambios } from "@/lib/piezas/textos"
 import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
 import { type ClaudeEnLaRevision, resumenDeRevision } from "@/lib/redaccion/resumen"
-import { rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
+import { CAMBIAR_FECHA, rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
 import { MarcaDeEstado } from "../../marca-de-estado"
@@ -35,7 +34,7 @@ import {
   sacarDeReservaAccion,
 } from "./acciones"
 import { FirmaCaida } from "./caida"
-import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
+import { CambiarFechaProgramada, Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
 import { DespuesDeFirmar, FirmaConfirmada } from "./firmada"
 import { FinDelTexto, LecturaDePieza } from "./lectura"
@@ -51,8 +50,14 @@ const SE_PUEDE_DESCARTAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva
 // The states pedir_diseno accepts an edit in.
 const SE_PUEDE_REARMAR: readonly EstadoDePieza[] = ["por_aprobar", "en_reserva", "programada", "a_mano"]
 
-export default async function Pieza({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function Pieza({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ cambiar?: string | string[] }>
+}) {
+  const [{ id }, { cambiar }] = await Promise.all([params, searchParams])
   const db = await createClient()
   const pieza = await detalle(db, id)
   if (!pieza) notFound()
@@ -282,6 +287,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
           firmarParaReserva={firmarParaReservaAccion}
           planear={planearAccion}
           reescribiendo={redaccion?.reescribiendo ?? false}
+          abrirFecha={cambiar === CAMBIAR_FECHA}
         />
       )}
 
@@ -319,10 +325,9 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
       )}
       {estado === "programada" && pieza.programadaPara && (
         <div className="space-y-3">
-          <p>
-            Sale el <strong>{fechaLarga(pieza.programadaPara)}</strong>
-            {cuenta.ruta === "a_mano" && ". Te aviso a esa hora para que la publiques a mano."}
-          </p>
+          {/* The date it goes out is in the confirmation at the top. */}
+          {cuenta.ruta === "a_mano" && <p>Te aviso a esa hora para que la publiques a mano.</p>}
+          <CambiarFechaProgramada piezaId={pieza.id} desprogramar={desprogramarAccion} />
           <Desprogramar piezaId={pieza.id} desprogramar={desprogramarAccion} />
         </div>
       )}

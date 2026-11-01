@@ -27,6 +27,8 @@ interface Props {
   planear: (entrada: { piezaId: string; planeadaPara: string }) => Promise<Resultado>
   /** A rewrite is open: signing now keeps this version and Claude's is dropped as obsolete. */
   reescribiendo?: boolean
+  /** Opens with the date editor focused: the person unscheduled a signed piece to move its date. */
+  abrirFecha?: boolean
   /** Pause between automatic attempts after the connection drops, in milliseconds. */
   esperaEntreIntentos?: number
 }
@@ -48,9 +50,10 @@ export function FirmaDePieza({
   firmarParaReserva,
   planear,
   reescribiendo = false,
+  abrirFecha = false,
   esperaEntreIntentos = ESPERA_ENTRE_INTENTOS,
 }: Props) {
-  const [cambiando, setCambiando] = useState(false)
+  const [cambiando, setCambiando] = useState(abrirFecha)
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -68,7 +71,12 @@ export function FirmaDePieza({
   // Signing for a date needs the date it shows: an edited date not saved yet, or being saved, is not that date.
   const fechaSinGuardar = guardando || (cambiando && fecha !== valorLocal(fechaPropuesta))
   const motivos = [lectura.motivo && "motivo-de-lectura", fechaSinGuardar && "motivo-de-fecha"].filter(Boolean)
-  const [enfocarFecha, setEnfocarFecha] = useState(false)
+  const [enfocarFecha, setEnfocarFecha] = useState(abrirFecha)
+
+  useEffect(() => {
+    // The request lives in the address; dropped once read, saving the date (which remounts this form) leaves it closed.
+    if (abrirFecha) window.history.replaceState(window.history.state, "", window.location.pathname)
+  }, [abrirFecha])
 
   useEffect(() => {
     if (sinRed) avisoDeRed.current?.focus()

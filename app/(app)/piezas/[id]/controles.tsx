@@ -1,7 +1,9 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { rutaParaCambiarFecha } from "@/lib/sesion/rutas"
 
 const BOTON = "boton w-full"
 
@@ -47,6 +49,44 @@ export function Desprogramar({
         Deshacer firma
       </button>
       <p className="text-sm text-apagado">Puedes deshacer la firma hasta que salga.</p>
+      <Alerta error={error} />
+    </div>
+  )
+}
+
+/**
+ * A signed date cannot be moved under the signature: the piece is unscheduled and goes back to the signing view,
+ * with the date editor open, where the new date is saved and signed again.
+ */
+export function CambiarFechaProgramada({
+  piezaId,
+  desprogramar,
+}: {
+  piezaId: string
+  desprogramar: (id: string) => Promise<Resultado>
+}) {
+  const router = useRouter()
+  const { error, pendiente, ejecutar } = useAccion()
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        disabled={pendiente}
+        aria-describedby="explicacion-de-cambiar-fecha"
+        onClick={() =>
+          ejecutar(async () => {
+            const resultado = await desprogramar(piezaId)
+            if (resultado.ok) router.replace(rutaParaCambiarFecha(piezaId))
+            return resultado
+          })
+        }
+        className={BOTON}
+      >
+        Cambiar fecha
+      </button>
+      <p id="explicacion-de-cambiar-fecha" className="text-sm text-apagado">
+        Cambiar la fecha pide firmarla de nuevo.
+      </p>
       <Alerta error={error} />
     </div>
   )
