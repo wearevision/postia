@@ -71,16 +71,16 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   await page.getByRole("link", { name: "Ideas", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Ideas y series" })).toBeVisible()
   // Ideas opens on what waits for a decision; «Todas» is a link to every state.
-  await expect(page.getByRole("link", { name: "Por revisar", exact: true })).toHaveAttribute("aria-current", "page")
-  await expect(page.getByRole("link", { name: "Todas", exact: true })).toHaveAttribute("href", "/ideas?estado=todas")
+  await expect(page.getByRole("link", { name: /^Por revisar \(\d+\)$/ })).toHaveAttribute("aria-current", "page")
+  await expect(page.getByRole("link", { name: /^Todas \(\d+\)$/ })).toHaveAttribute("href", "/ideas?estado=todas")
   const serie = page.getByRole("region", { name: tema })
   await expect(serie.getByText("Salieron 2 de las 3 pedidas.")).toBeVisible()
   await expect(serie.getByRole("button", { name: "Aprobar la serie" })).toBeVisible()
 
   const primera = serie.getByRole("article", { name: "Los focus groups no mueren" })
   const segunda = serie.getByRole("article", { name: "Cuánto cuesta un focus group" })
-  // The card is compact: the chip names the account and the rest sits behind «Ver detalle».
-  await expect(primera.getByRole("button", { name: nombreDeCuenta })).toBeVisible()
+  // The card is compact: the «Para:» chip names the account and the rest sits behind «Ver detalle».
+  await expect(primera.getByRole("button", { name: `Para: ${nombreDeCuenta}` })).toBeVisible()
   await expect(primera.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toHaveCount(0)
   await primera.getByRole("button", { name: "Ver detalle" }).click()
   await expect(primera.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toBeVisible()
@@ -91,14 +91,19 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   await expect(primera.getByRole("checkbox", { name: nombreDeCuenta })).toBeChecked()
 
   await primera.getByRole("button", { name: "Aprobar" }).click()
-  await expect(primera.getByText("Se aprueba en 10 s")).toBeVisible()
-  // Approved, it leaves «Por revisar».
+  await expect(primera.getByText(/Se aprueba en \d+ s/)).toBeVisible()
+  // Approved, it leaves «Por revisar» but the page confirms where it went, with a link to it under «Todas».
   await expect(primera).toHaveCount(0, { timeout: 15_000 })
+  await expect(page.getByText(`Aprobada · Claude la escribe para ${nombreDeCuenta}`, { exact: false })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Ver", exact: true })).toHaveAttribute(
+    "href",
+    /\/ideas\?estado=todas#idea-/,
+  )
 
   await segunda.getByRole("button", { name: "Descartar" }).click()
   await expect(segunda).toHaveCount(0)
 
-  await page.getByRole("link", { name: "Todas", exact: true }).click()
+  await page.getByRole("link", { name: /^Todas \(\d+\)$/ }).click()
   await expect(page).toHaveURL(/estado=todas/)
   const pieza = primera.getByRole("listitem", { name: nombreDeCuenta })
   await expect(pieza.getByText("Por escribir")).toBeVisible()
@@ -190,10 +195,11 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
   await expect(origen.getByText("La minería empieza a medir a sus comunidades.")).toBeVisible()
 
   await cruce.getByRole("button", { name: "Aprobar" }).click()
-  await expect(cruce.getByText("Se aprueba en 10 s")).toBeVisible()
-  // Approved, it leaves «Por revisar»: «Todas» shows its slot.
+  await expect(cruce.getByText(/Se aprueba en \d+ s/)).toBeVisible()
+  // Approved, it leaves «Por revisar»: the page confirms it and «Todas» shows its slot.
   await expect(cruce).toHaveCount(0, { timeout: 15_000 })
-  await page.getByRole("link", { name: "Todas", exact: true }).click()
+  await expect(page.getByText(`Aprobada · Claude la escribe para ${nombreDeCuenta}`, { exact: false })).toBeVisible()
+  await page.getByRole("link", { name: /^Todas \(\d+\)$/ }).click()
   await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible()
   await expect(cruce.getByRole("button", { name: "Aprobar" })).toHaveCount(0)
 

@@ -12,7 +12,7 @@ import {
   pedirOtraIdea,
   pedirSerie,
 } from "@/lib/series/acciones"
-import { cuentasParaIdeas, ideasPorRevisar, ideasYSeries, series } from "@/lib/series/lectura"
+import { conteosDeIdeas, cuentasParaIdeas, ideasPorRevisar, ideasYSeries, series } from "@/lib/series/lectura"
 import type { Db } from "@/lib/supabase/database"
 import { admin, cuentaDe, literal, marcaConDueno, personaConSesion, piezaDe, vectorDe } from "./entorno"
 
@@ -181,7 +181,7 @@ describe("aprobarIdea", () => {
 
     const r = await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil] }, ahora)
 
-    expect(r).toEqual({ ok: true })
+    expect(r).toEqual({ ok: true, asignaciones: [{ cuentaId: perfil, planeadaPara: esperada.toISOString() }] })
     expect(await estadoDe(idea)).toBe("aprobada")
     const [a] = await asignacionesDe(idea)
     expect(a).toMatchObject({ cuenta_id: perfil, estado: "por_escribir" })
@@ -191,9 +191,16 @@ describe("aprobarIdea", () => {
   test("one idea for two accounts is one assignment per account, each on its own slot hour", async () => {
     const informe = await informeAprobado()
     const [idea] = await serieDe(informe, [{ gancho: "Dos cuentas", cuenta: perfil }])
-    expect(await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil, pagina] })).toEqual({ ok: true })
+    const r = await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil, pagina] })
     const asignaciones = await asignacionesDe(idea)
     expect(asignaciones.map((a) => a.cuenta_id).sort()).toEqual([perfil, pagina].sort())
+    expect(r).toEqual({
+      ok: true,
+      asignaciones: [perfil, pagina].map((cuentaId) => ({
+        cuentaId,
+        planeadaPara: new Date(asignaciones.find((a) => a.cuenta_id === cuentaId)?.planeada_para ?? "").toISOString(),
+      })),
+    })
   })
 
   test("retries once with fresh slots when the proposed one was taken meanwhile", async () => {
@@ -223,7 +230,7 @@ describe("aprobarIdea", () => {
       },
     })
 
-    expect(await aprobarIdea(conCarrera, { ideaId: idea, cuentas: [perfil] })).toEqual({ ok: true })
+    expect(await aprobarIdea(conCarrera, { ideaId: idea, cuentas: [perfil] })).toMatchObject({ ok: true })
     expect(robadas).toBe(1)
     const [robada] = await asignacionesDe(otra)
     const [mia] = await asignacionesDe(idea)
@@ -488,6 +495,23 @@ describe("readers", () => {
     expect(cuentas.map((c) => c.id).sort()).toEqual([perfil, pagina].sort())
   })
 
+  test("conteosDeIdeas counts the ideas of each state, replaced ones left out, and narrows to one series", async () => {
+    const informe = await informeAprobado()
+    const [, aprobada, descartada] = await serieDe(informe, [
+      { gancho: "Se queda", cuenta: perfil },
+      { gancho: "Se aprueba", cuenta: pagina },
+      { gancho: "Se descarta", cuenta: perfil },
+    ])
+    await aprobarIdea(dueno.db, { ideaId: aprobada, cuentas: [pagina] })
+    await descartarIdea(dueno.db, descartada)
+    expect(await conteosDeIdeas(dueno.db, informe.id)).toEqual({ propuesta: 1, aprobada: 1, descartada: 1 })
+    const global = await conteosDeIdeas(dueno.db)
+    expect(global.propuesta).toBeGreaterThanOrEqual(1)
+    expect(global.aprobada).toBeGreaterThanOrEqual(1)
+    expect(global.descartada).toBeGreaterThanOrEqual(1)
+    expect(await conteosDeIdeas(dueno.db, "no-es-un-uuid")).toEqual({ propuesta: 0, aprobada: 0, descartada: 0 })
+  })
+
   test("informesPorAprobar counts only the reports waiting for approval", async () => {
     const antes = await informesPorAprobar(dueno.db)
     await informeAprobado()
@@ -548,7 +572,7 @@ describe("readers", () => {
       { gancho: "Se aprueba", fuentes: [a, b] },
       { gancho: "Se reemplaza", fuentes: [a, b] },
     ])
-    expect(await aprobarIdea(dueno.db, { ideaId: aprobar, cuentas: [perfil] })).toEqual({ ok: true })
+    expect(await aprobarIdea(dueno.db, { ideaId: aprobar, cuentas: [perfil] })).toMatchObject({ ok: true })
     await admin().from("ideas").update({ estado: "reemplazada" }).eq("id", reemplazada)
 
     const { cruces } = await ideasYSeries(dueno.db)

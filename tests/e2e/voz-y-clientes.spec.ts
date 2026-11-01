@@ -64,15 +64,15 @@ test("an owner writes the editorial line, marks a client not to be named, and ga
   await page.goto(rutaDePieza(piezaId))
 
   // The review's summary counts what it found, and a finding opens it on its own (no click: that would fold it).
-  await expect(page.locator("summary", { hasText: "Revisión · 1 comentario" })).toBeVisible()
+  await expect(page.locator("summary", { hasText: "Revisión: 1 alerta de clientes" })).toBeVisible()
   const veredicto = page.getByRole("region", { name: "Revisa antes de firmar" })
   await expect(veredicto).toBeVisible()
   await expect(veredicto.getByText(`Nombra a ${cliente}, que no se nombra.`)).toBeVisible()
   await leerHastaElFinal(page)
-  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeEnabled()
+  await expect(page.getByRole("button", { name: /^Firmar para el / })).toBeEnabled()
   await page
     .locator("summary")
-    .filter({ hasText: /^Cambiar$/ })
+    .filter({ hasText: /^(Corregir o pedir otra versión|Cambiar el pilar)$/ })
     .click()
   await expect(page.getByLabel("Pilar").locator("option:checked")).toHaveText("Oficio")
 

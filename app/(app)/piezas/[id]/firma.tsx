@@ -1,11 +1,12 @@
 "use client"
 
 import { Loader2, Lock } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { FECHA_EN_EL_PASADO, fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
-import { useLectura } from "./lectura"
+import { botonDeLaHoja, useLectura } from "./lectura"
 
 interface Props {
   piezaId: string
@@ -27,6 +28,8 @@ interface Props {
   planear: (entrada: { piezaId: string; planeadaPara: string }) => Promise<Resultado>
   /** A rewrite is open: signing now keeps this version and Claude's is dropped as obsolete. */
   reescribiendo?: boolean
+  /** Opens with the date editor focused: the person unscheduled a signed piece to move its date. */
+  abrirFecha?: boolean
   /** Pause between automatic attempts after the connection drops, in milliseconds. */
   esperaEntreIntentos?: number
 }
@@ -48,9 +51,10 @@ export function FirmaDePieza({
   firmarParaReserva,
   planear,
   reescribiendo = false,
+  abrirFecha = false,
   esperaEntreIntentos = ESPERA_ENTRE_INTENTOS,
 }: Props) {
-  const [cambiando, setCambiando] = useState(false)
+  const [cambiando, setCambiando] = useState(abrirFecha)
   const [fecha, setFecha] = useState(() => valorLocal(fechaPropuesta))
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -60,12 +64,15 @@ export function FirmaDePieza({
   const [sinRed, setSinRed] = useState(false)
   const avisoDeRed = useRef<HTMLDivElement>(null)
   const campoDeFecha = useRef<HTMLInputElement>(null)
+  // A saved signature keeps the button busy: the page swaps this form for the signed view when it re-renders.
+  const [firmada, setFirmada] = useState(false)
+  const ocupada = pendiente || firmada
   const lectura = useLectura()
-  const bloqueada = pendiente || !lectura.puedeFirmar
+  const bloqueada = ocupada || !lectura.puedeFirmar
   // Signing for a date needs the date it shows: an edited date not saved yet, or being saved, is not that date.
   const fechaSinGuardar = guardando || (cambiando && fecha !== valorLocal(fechaPropuesta))
   const motivos = [lectura.motivo && "motivo-de-lectura", fechaSinGuardar && "motivo-de-fecha"].filter(Boolean)
-  const [enfocarFecha, setEnfocarFecha] = useState(false)
+  const [enfocarFecha, setEnfocarFecha] = useState(abrirFecha)
 
   useEffect(() => {
     if (sinRed) avisoDeRed.current?.focus()
@@ -101,7 +108,8 @@ export function FirmaDePieza({
           : firmarParaReserva({ piezaId, huella, abiertaEn }),
       )
       if (resultado === null) setSinRed(true)
-      else if (!resultado.ok) {
+      else if (resultado.ok) setFirmada(true)
+      else {
         setError(resultado.error)
         if (resultado.error === FECHA_EN_EL_PASADO) {
           setCambiando(true)
@@ -141,10 +149,10 @@ export function FirmaDePieza({
 
   return (
     <form onSubmit={enviar} className="space-y-4">
+      {abrirFecha && <QuitarPedidoDeFecha />}
       <section className="space-y-2">
         <p>
           Sale el <strong>{fechaLarga(fechaPropuesta)}</strong>
-          <span className="block text-sm text-apagado">Hora de Chile.</span>
         </p>
         {cambiando ? (
           <div className="space-y-2">
@@ -185,7 +193,7 @@ export function FirmaDePieza({
       {lectura.motivo && (
         <p id="motivo-de-lectura" className="flex items-start gap-2 text-sm">
           <Lock aria-hidden="true" strokeWidth={1.75} className="mt-0.5 size-4 flex-none" />
-          {lectura.motivo}
+          <MotivoDeLectura />
         </p>
       )}
       {fechaSinGuardar && (
@@ -197,26 +205,28 @@ export function FirmaDePieza({
       <button
         type="submit"
         disabled={bloqueada || fechaSinGuardar}
-        aria-busy={pendiente && cual === "fecha"}
+        aria-busy={ocupada && cual === "fecha"}
         aria-describedby={motivos.length > 0 ? motivos.join(" ") : undefined}
         className="boton-primario w-full gap-2"
       >
-        {pendiente && cual === "fecha" ? <Ocupado /> : `Firmar ${cuenta} · ${fechaCorta(fechaPropuesta)}`}
+        {ocupada && cual === "fecha" ? <Ocupado /> : `Firmar para el ${fechaCorta(fechaPropuesta)}`}
       </button>
       {ruta === "a_mano" && <p className="text-sm text-apagado">Te aviso a la hora para publicarla a mano.</p>}
-      <button
-        type="button"
-        disabled={bloqueada}
-        onClick={() => lanzar("reserva")}
-        aria-busy={pendiente && cual === "reserva"}
-        aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
-        className="boton w-full gap-2"
-      >
-        {pendiente && cual === "reserva" ? <Ocupado /> : "Firmar para la reserva"}
-      </button>
-      <p id="explicacion-de-reserva" className="text-sm text-apagado">
-        {explicacionDeReserva(ruta, cuenta)}
-      </p>
+      <div className="space-y-1">
+        <button
+          type="button"
+          disabled={bloqueada}
+          onClick={() => lanzar("reserva")}
+          aria-busy={ocupada && cual === "reserva"}
+          aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
+          className="inline-flex min-h-11 items-center gap-2 font-medium underline disabled:cursor-not-allowed disabled:text-apagado disabled:no-underline"
+        >
+          {ocupada && cual === "reserva" ? <Ocupado /> : "Guardar en la reserva, sin fecha"}
+        </button>
+        <p id="explicacion-de-reserva" className="text-sm text-apagado">
+          {explicacionDeReserva(ruta, cuenta)}
+        </p>
+      </div>
       <output aria-live="polite" className="sr-only">
         {pendiente ? (intento > 1 ? `Reintentando solo · ${intento} de ${INTENTOS}` : "Firmando…") : ""}
       </output>
@@ -247,6 +257,23 @@ export function FirmaDePieza({
   )
 }
 
+/** The reading lock's reason; when slides are missing, the sheet's name in it is the button that opens the sheet. */
+function MotivoDeLectura() {
+  const { motivo, laminasPorVer, laminas, abrirHoja } = useLectura()
+  const nombre = botonDeLaHoja(laminas)
+  if (!motivo || laminasPorVer === 0 || !motivo.includes(nombre)) return <span>{motivo}</span>
+  const [antes, despues] = motivo.split(nombre)
+  return (
+    <span>
+      {antes}
+      <button type="button" onClick={(evento) => abrirHoja(evento.currentTarget)} className="font-medium underline">
+        {nombre}
+      </button>
+      {despues}
+    </span>
+  )
+}
+
 function Ocupado() {
   return (
     <>
@@ -254,4 +281,17 @@ function Ocupado() {
       Firmando…
     </>
   )
+}
+
+/**
+ * The «change date» request lives in the address (?cambiar=fecha). It is dropped through the router, not
+ * history.replaceState: the refresh after saving re-renders the server page with the router's URL, and a lingering
+ * request reopened the editor. Mounted only when the request is present, so other screens need no router.
+ */
+function QuitarPedidoDeFecha() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace(window.location.pathname, { scroll: false })
+  }, [router])
+  return null
 }

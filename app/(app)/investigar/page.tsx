@@ -1,6 +1,5 @@
 import Link from "next/link"
 import {
-  estaAbierta,
   type InvestigacionReciente,
   investigacionesRecientes,
   NOMBRE_DEL_ESTADO_DE_INVESTIGACION,
@@ -12,7 +11,7 @@ import { rutaDeInvestigacion } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { Refrescar } from "../piezas/refrescar"
 import { pedirInvestigacionAccion } from "./acciones"
-import { FormularioDeInvestigacion } from "./formulario"
+import { TarjetaEnCurso } from "./en-curso"
 import { NuevaInvestigacion } from "./nueva"
 
 function cuantos(n: number): string {
@@ -38,12 +37,22 @@ function Tarjeta({ i }: { i: InvestigacionReciente }) {
 export default async function Investigar() {
   const db = await createClient()
   const [recientes, sugeridas] = await Promise.all([investigacionesRecientes(db, 20), sugerencias(db)])
-  const abiertas = recientes.some((i) => estaAbierta(i.estado))
-  const { porAprobar, resto, ultimaVigilanciaVacia } = ordenarInvestigaciones(recientes)
+  const { enCurso, porAprobar, resto, ultimaVigilanciaVacia } = ordenarInvestigaciones(recientes)
 
   return (
     <section className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Investigar</h1>
+      {enCurso.length > 0 && (
+        <section aria-label="En curso" className="space-y-2">
+          <h2 className="font-medium">En curso</h2>
+          <Refrescar mensaje="" />
+          <ul className="space-y-2">
+            {enCurso.map((i) => (
+              <TarjetaEnCurso key={i.id} i={i} />
+            ))}
+          </ul>
+        </section>
+      )}
       {porAprobar.length > 0 && (
         <section className="space-y-2">
           <h2 className="font-medium">Por aprobar</h2>
@@ -54,13 +63,14 @@ export default async function Investigar() {
           </ul>
         </section>
       )}
-      <NuevaInvestigacion abierta={porAprobar.length + resto.length === 0}>
-        <FormularioDeInvestigacion sugerencias={sugeridas} pedir={pedirInvestigacionAccion} />
-      </NuevaInvestigacion>
+      <NuevaInvestigacion
+        abierta={enCurso.length + porAprobar.length + resto.length === 0}
+        sugerencias={sugeridas}
+        pedir={pedirInvestigacionAccion}
+      />
       {resto.length > 0 && (
         <section className="space-y-2">
           <h2 className="font-medium">Investigaciones</h2>
-          {abiertas && <Refrescar mensaje="Se está investigando. Esta página se actualiza sola." />}
           <ul className="space-y-2">
             {resto.map((i) => (
               <Tarjeta key={i.id} i={i} />

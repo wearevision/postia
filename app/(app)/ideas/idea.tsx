@@ -1,10 +1,12 @@
 "use client"
 
+import { ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { createContext, useContext, useEffect, useState, useTransition } from "react"
 import { enDolares } from "@/lib/gasto/precios"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import type { AsignacionAprobada } from "@/lib/series/acciones"
 import { costoAproximado } from "@/lib/series/costo"
 import { lineaDelPaso, textoDelEsqueleto } from "@/lib/series/esqueleto"
 import type {
@@ -19,6 +21,7 @@ import type {
 import type { FormatoDeIdea } from "@/lib/series/propuestas"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 import { useAccionDiferida } from "./aprobacion-diferida"
+import { useAvisar } from "./confirmaciones"
 
 interface ConteoDeSerie {
   /** Cards of the series whose single approval is counting down. */
@@ -90,11 +93,14 @@ function NaceDe({ fuentes }: { fuentes: readonly FuenteConResumen[] }) {
 function useAccion() {
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
-  function ejecutar(accion: () => Promise<Resultado>, alTerminar?: () => void) {
+  function ejecutar<T extends object>(
+    accion: () => Promise<Resultado<T>>,
+    alTerminar?: (resultado: { ok: true } & T) => void,
+  ) {
     setError(null)
     iniciar(async () => {
       const resultado = await accion()
-      if (resultado.ok) alTerminar?.()
+      if (resultado.ok) alTerminar?.(resultado)
       else setError(resultado.error)
     })
   }
@@ -112,7 +118,7 @@ function Alerta({ error }: { error: string | null }) {
 }
 
 interface Acciones {
-  aprobar: (ideaId: string, cuentas: string[]) => Promise<Resultado>
+  aprobar: (ideaId: string, cuentas: string[]) => Promise<Resultado<{ asignaciones: AsignacionAprobada[] }>>
   descartar: (ideaId: string) => Promise<Resultado>
   pedirOtra: (ideaId: string) => Promise<Resultado>
   editar: (ideaId: string, gancho: string, esqueleto: string) => Promise<Resultado>
@@ -276,6 +282,7 @@ function Revision({
   const [editando, setEditando] = useState(false)
   const { error, setError, pendiente, ejecutar } = useAccion()
   const diferida = useAccionDiferida()
+  const avisar = useAvisar()
   const { contar } = useContext(ConteoDeSerieContexto)
   useEffect(() => {
     if (!diferida.esperando) return
@@ -292,7 +299,17 @@ function Revision({
   function aprobar() {
     const ids = opciones.filter((c) => elegidas.has(c.id)).map((c) => c.id)
     if (ids.length === 0) return setError("Elige al menos una cuenta.")
-    diferida.programar(() => ejecutar(() => a.aprobar(idea.id, ids)))
+    diferida.programar(() =>
+      ejecutar(
+        () => a.aprobar(idea.id, ids),
+        ({ asignaciones }) => {
+          if (asignaciones.length === 0) return
+          const porFecha = [...asignaciones].sort((x, y) => x.planeadaPara.localeCompare(y.planeadaPara))
+          const cuentasAprobadas = opciones.filter((c) => ids.includes(c.id)).map((c) => c.nombre)
+          avisar({ tipo: "idea", ideaId: idea.id, cuentas: cuentasAprobadas, primera: porFecha[0].planeadaPara })
+        },
+      ),
+    )
   }
 
   return (
@@ -301,9 +318,11 @@ function Revision({
         type="button"
         disabled={ocupada}
         onClick={abrirDetalle}
-        className="rounded-full border border-borde px-3 py-1 text-sm"
+        aria-expanded={abierta}
+        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-borde px-4 text-sm disabled:opacity-60"
       >
-        {nombres.length > 0 ? nombres.join(", ") : "Elegir cuenta"}
+        Para: {nombres.length > 0 ? nombres.join(", ") : "elegir cuenta"}
+        <ChevronDown aria-hidden="true" strokeWidth={1.75} className="size-4 shrink-0" />
       </button>
       <div className="grid grid-cols-2 gap-2">
         {diferida.esperando ? (
@@ -320,7 +339,9 @@ function Revision({
         </button>
       </div>
       {diferida.esperando && (
-        <output className="block text-sm text-apagado">Se aprueba en 10 s. Si sales antes, no se aprueba.</output>
+        <output className="block text-sm text-apagado">
+          Se aprueba en {diferida.restante} s · si sales antes, no se aprueba
+        </output>
       )}
       {idea.pidiendoOtra && <p className="text-sm text-apagado">Buscando otra idea…</p>}
       <BotonDeDetalle abierta={abierta} alternar={alternarDetalle} />
@@ -436,9 +457,10 @@ export function AprobarSerie({
 }: {
   investigacionId: string
   formatos: readonly FormatoDeIdea[]
-  aprobar: (investigacionId: string) => Promise<Resultado>
+  aprobar: (investigacionId: string) => Promise<Resultado<{ aprobadas: number }>>
 }) {
   const { error, pendiente, ejecutar } = useAccion()
+  const avisar = useAvisar()
   const { enCurso } = useContext(ConteoDeSerieContexto)
   const [confirmando, setConfirmando] = useState(false)
   const esperaAprobacion = enCurso > 0
@@ -464,7 +486,12 @@ export function AprobarSerie({
         <button
           type="button"
           disabled={pendiente || esperaAprobacion}
-          onClick={() => ejecutar(() => aprobar(investigacionId))}
+          onClick={() =>
+            ejecutar(
+              () => aprobar(investigacionId),
+              ({ aprobadas }) => avisar({ tipo: "serie", aprobadas }),
+            )
+          }
           className={PRIMARIO}
         >
           Confirmar

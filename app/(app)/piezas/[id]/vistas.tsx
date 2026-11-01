@@ -3,17 +3,15 @@
 import { LayoutGrid } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { useLectura } from "./lectura"
+import { botonDeLaHoja as nombreDelBoton, useLectura } from "./lectura"
 
 /** A slide counts as seen once at least this share of it is on screen. */
 const PROPORCION_VISTA = 0.9
 
 export function VistasDelCarrusel({ vistas }: { vistas: string[] }) {
   const lectura = useLectura()
-  const { marcarLamina } = lectura
+  const { marcarLamina, hojaAbierta, abrirHoja, cerrarHoja } = lectura
   const lista = useRef<HTMLOListElement>(null)
-  const [hojaAbierta, setHojaAbierta] = useState(false)
-  const botonDeLaHoja = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const raiz = lista.current
@@ -53,24 +51,15 @@ export function VistasDelCarrusel({ vistas }: { vistas: string[] }) {
       </ol>
       {vistas.length > 1 && (
         <button
-          ref={botonDeLaHoja}
           type="button"
-          onClick={() => setHojaAbierta(true)}
+          onClick={(evento) => abrirHoja(evento.currentTarget)}
           className="flex min-h-11 items-center gap-2 px-1 font-medium underline"
         >
           <LayoutGrid aria-hidden="true" strokeWidth={1.75} className="size-4" />
-          Ver las {vistas.length} juntas
+          {nombreDelBoton(vistas.length)}
         </button>
       )}
-      {hojaAbierta && (
-        <HojaDeLaminas
-          vistas={vistas}
-          alCerrar={() => {
-            setHojaAbierta(false)
-            botonDeLaHoja.current?.focus()
-          }}
-        />
-      )}
+      {hojaAbierta && vistas.length > 1 && <HojaDeLaminas vistas={vistas} alCerrar={cerrarHoja} />}
       {lectura.laminas > 0 && (
         <div role="img" aria-label={`Viste ${lectura.vistas} de ${lectura.laminas} láminas`} className="flex gap-2">
           {vistas.map((src, i) => (
@@ -125,18 +114,27 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
     const observador = new IntersectionObserver(
       (entradas) => {
         for (const entrada of entradas) {
-          if (entrada.target === fin.current) {
-            if (entrada.isIntersecting) setAlFinal(true)
-          } else if (entrada.intersectionRatio >= PROPORCION_VISTA) {
+          if (entrada.intersectionRatio >= PROPORCION_VISTA || pasoEntera(entrada))
             marcarLamina(Number((entrada.target as HTMLElement).dataset.i))
-          }
         }
       },
-      { root: zona, threshold: [PROPORCION_VISTA, 1] },
+      // 0 too, to hear a slide leave: a fast scroll can carry it past without any frame at 90 %.
+      { root: zona, threshold: [0, PROPORCION_VISTA, 1] },
+    )
+    // Its own observer at threshold 0: the 1 px marker can sit at a fractional position where only part of it ever
+    // shows at full scroll, so a 90 % threshold never fired and «Listo» stayed disabled on shorter screens.
+    const alLlegar = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((entrada) => entrada.isIntersecting)) setAlFinal(true)
+      },
+      { root: zona, threshold: 0 },
     )
     for (const lamina of laminas.querySelectorAll("li")) observador.observe(lamina)
-    if (fin.current) observador.observe(fin.current)
-    return () => observador.disconnect()
+    if (fin.current) alLlegar.observe(fin.current)
+    return () => {
+      observador.disconnect()
+      alLlegar.disconnect()
+    }
   }, [marcarLamina])
 
   return createPortal(
@@ -155,7 +153,7 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
           Cerrar
         </button>
       </div>
-      <div ref={desplazable} className="flex-1 overflow-y-auto px-4">
+      <div ref={desplazable} className="flex-1 overflow-y-auto overscroll-contain px-4">
         <ol ref={lista} className="grid grid-cols-2 gap-3">
           {vistas.map((src, i) => (
             <li key={src} data-i={i}>
@@ -185,4 +183,15 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
     </div>,
     document.body,
   )
+}
+
+/**
+ * A slide that left through the top of the sheet crossed all of it; if it is shorter than the sheet it was whole on
+ * screen at some point, even when the scroll was too fast for the observer to catch that frame.
+ */
+function pasoEntera(entrada: IntersectionObserverEntry): boolean {
+  const caja = entrada.rootBounds
+  if (entrada.isIntersecting || !caja) return false
+  const lamina = entrada.boundingClientRect
+  return lamina.bottom <= caja.top && lamina.height <= caja.height
 }

@@ -1,11 +1,9 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import {
-  estaAbierta,
-  type HallazgoDeInforme,
-  informe,
-  NOMBRE_DEL_ESTADO_DE_INVESTIGACION,
-} from "@/lib/investigacion/lectura"
+import { enDolares } from "@/lib/gasto/precios"
+import { estaAbierta, informe, NOMBRE_DEL_ESTADO_DE_INVESTIGACION } from "@/lib/investigacion/lectura"
+import { resumenDelInforme, textoDelResumen } from "@/lib/investigacion/resumen"
+import { CANTIDAD_POR_DEFECTO, estimarSerie } from "@/lib/series/costo"
 import { serieDelInforme } from "@/lib/series/lectura"
 import { RUTA_DE_INVESTIGAR, rutaDeSerie } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
@@ -17,50 +15,8 @@ import {
   descartarInformeAccion,
   pedirAmpliacionAccion,
 } from "../acciones"
-import { AmpliarAngulo, AprobarInforme, ArmarSerie, DescartarHallazgo, DescartarInforme } from "./controles"
-
-const FECHA = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })
-
-/** A finding's date is a calendar day (YYYY-MM-DD), not an instant: read in UTC so it never shifts a day. */
-function fechaDePublicacion(dia: string): string {
-  return FECHA.format(new Date(`${dia}T00:00:00Z`))
-}
-
-function Hallazgo({
-  hallazgo,
-  investigacionId,
-  descartable,
-}: {
-  hallazgo: HallazgoDeInforme
-  investigacionId: string
-  descartable: boolean
-}) {
-  const descartado = hallazgo.estado === "descartado"
-  return (
-    <li
-      aria-label={descartado ? "Hallazgo descartado" : "Hallazgo"}
-      className={`space-y-2 tarjeta p-3 text-sm ${descartado ? "opacity-50" : ""}`}
-    >
-      <p>{hallazgo.resumen}</p>
-      {hallazgo.cita && <p className="text-apagado">«{hallazgo.cita}»</p>}
-      <a href={hallazgo.enlace} target="_blank" rel="noopener noreferrer" className="block underline">
-        {hallazgo.medio}
-        {hallazgo.publicadoEn && ` · ${fechaDePublicacion(hallazgo.publicadoEn)}`}
-      </a>
-      {descartado ? (
-        <p className="text-apagado">Descartado</p>
-      ) : (
-        descartable && (
-          <DescartarHallazgo
-            investigacionId={investigacionId}
-            hallazgoId={hallazgo.id}
-            descartar={descartarHallazgoAccion}
-          />
-        )
-      )}
-    </li>
-  )
-}
+import { AmpliarAngulo, AprobarInforme, ArmarSerie, DescartarInforme } from "./controles"
+import { Hallazgo } from "./hallazgo"
 
 export default async function Informe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -70,6 +26,16 @@ export default async function Informe({ params }: { params: Promise<{ id: string
   const serie = leido.estado === "aprobada" ? await serieDelInforme(db, leido.id) : null
   const porAprobar = leido.estado === "informe_por_aprobar"
   const total = leido.angulos.reduce((n, a) => n + a.hallazgos.length, 0)
+  const propuestas = leido.cantidad ?? CANTIDAD_POR_DEFECTO
+  const costo = enDolares(
+    estimarSerie({
+      caracteresDelInforme: leido.angulos.reduce(
+        (n, a) => n + a.hallazgos.reduce((m, h) => m + h.resumen.length + h.medio.length + h.enlace.length, 0),
+        0,
+      ),
+      cantidad: propuestas,
+    }),
+  )
 
   return (
     <article className="mx-auto max-w-md space-y-6">
@@ -84,6 +50,17 @@ export default async function Informe({ params }: { params: Promise<{ id: string
         </p>
         {leido.motivo && <p className="text-sm text-peligro">{leido.motivo}</p>}
       </header>
+      {porAprobar && (
+        <section aria-label="Decisión" className="space-y-3 tarjeta p-3">
+          <p className="text-sm font-medium">{textoDelResumen(resumenDelInforme(leido.angulos))}</p>
+          <AprobarInforme
+            investigacionId={leido.id}
+            aprobar={aprobarInformeAccion}
+            propuestas={propuestas}
+            costo={costo}
+          />
+        </section>
+      )}
       {(leido.repetidos > 0 || leido.descartados > 0) && (
         <ul className="space-y-1 text-sm text-apagado">
           {leido.repetidos > 0 && (
@@ -111,7 +88,13 @@ export default async function Informe({ params }: { params: Promise<{ id: string
           {a.hallazgos.length > 0 && (
             <ul className="space-y-2">
               {a.hallazgos.map((h) => (
-                <Hallazgo key={h.id} hallazgo={h} investigacionId={leido.id} descartable={porAprobar} />
+                <Hallazgo
+                  key={h.id}
+                  hallazgo={h}
+                  investigacionId={leido.id}
+                  descartable={porAprobar}
+                  descartar={descartarHallazgoAccion}
+                />
               ))}
             </ul>
           )}
@@ -130,8 +113,7 @@ export default async function Informe({ params }: { params: Promise<{ id: string
         </section>
       )}
       {porAprobar && (
-        <section className="space-y-3 border-t border-borde pt-4">
-          <AprobarInforme investigacionId={leido.id} aprobar={aprobarInformeAccion} />
+        <section className="mt-10 border-t border-borde pt-6">
           <DescartarInforme investigacionId={leido.id} descartar={descartarInformeAccion} />
         </section>
       )}

@@ -1,15 +1,26 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
+import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
+import { FinDelTexto, LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
 import { VistasDelCarrusel } from "@/app/(app)/piezas/[id]/vistas"
 
-type Entrada = { target: Element; isIntersecting: boolean; intersectionRatio: number }
+type Caja = { top: number; bottom: number; height: number }
+type Entrada = {
+  target: Element
+  isIntersecting: boolean
+  intersectionRatio: number
+  boundingClientRect?: Caja
+  rootBounds?: Caja | null
+}
 
 const observadores: FalsoObservador[] = []
 
 class FalsoObservador {
   elementos = new Set<Element>()
-  constructor(readonly aviso: (entradas: Entrada[]) => void) {
+  constructor(
+    readonly aviso: (entradas: Entrada[]) => void,
+    readonly opciones: IntersectionObserverInit = {},
+  ) {
     observadores.push(this)
   }
   observe(elemento: Element) {
@@ -45,7 +56,8 @@ function montar(vistas = VISTAS) {
   )
 }
 
-const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Ver las 3 juntas" }))
+// The first one is the carousel's; a signing form adds another inside the lock reason.
+const abrir = () => fireEvent.click(screen.getAllByRole("button", { name: "Ver las 3 juntas" })[0] as HTMLElement)
 const hoja = () => screen.getByRole("dialog")
 const laminaEnLaHoja = (n: number) =>
   within(hoja())
@@ -120,6 +132,63 @@ describe("the sheet with every slide together", () => {
   })
 })
 
+describe("the end of the sheet", () => {
+  test("counts as reached as soon as any of it shows: a 1 px marker at a fractional position never shows 90 %", () => {
+    montar()
+    abrir()
+    const fin = within(hoja()).getByTestId("fin-de-la-hoja")
+    const suyo = observadores.find((o) => o.elementos.has(fin))
+    const umbral = suyo?.opciones.threshold
+    expect(Array.isArray(umbral) ? umbral : [umbral ?? 0]).toContain(0)
+    mostrar(fin, 0.75)
+    expect(within(hoja()).getByRole("button", { name: "Listo" })).toBeEnabled()
+  })
+})
+
+describe("a fast scroll", () => {
+  test("counts a slide that went past the top whole, even if no frame caught it 90 % visible", () => {
+    montar()
+    abrir()
+    const lamina = laminaEnLaHoja(2)
+    act(() => {
+      for (const observador of observadores) {
+        if (observador.elementos.has(lamina))
+          observador.aviso([
+            {
+              target: lamina,
+              isIntersecting: false,
+              intersectionRatio: 0,
+              boundingClientRect: { top: -260, bottom: -40, height: 220 },
+              rootBounds: { top: 60, bottom: 440, height: 380 },
+            },
+          ])
+      }
+    })
+    expect(screen.getByRole("img", { name: "Viste 1 de 3 láminas" })).toBeInTheDocument()
+  })
+
+  test("does not count a slide taller than the sheet that went past, since it was never whole on screen", () => {
+    montar()
+    abrir()
+    const lamina = laminaEnLaHoja(2)
+    act(() => {
+      for (const observador of observadores) {
+        if (observador.elementos.has(lamina))
+          observador.aviso([
+            {
+              target: lamina,
+              isIntersecting: false,
+              intersectionRatio: 0,
+              boundingClientRect: { top: -560, bottom: -40, height: 520 },
+              rootBounds: { top: 60, bottom: 440, height: 380 },
+            },
+          ])
+      }
+    })
+    expect(screen.getByRole("img", { name: "Viste 0 de 3 láminas" })).toBeInTheDocument()
+  })
+})
+
 describe("while the sheet is open", () => {
   test("keeps the focus where the person put it when a slide is marked as seen", () => {
     montar()
@@ -128,5 +197,54 @@ describe("while the sheet is open", () => {
     cerrar.focus()
     mostrar(laminaEnLaHoja(1), 1)
     expect(cerrar).toHaveFocus()
+  })
+})
+
+describe("slides seen in the sheet unlock signing like swiping does", () => {
+  function montarConFirma() {
+    render(
+      <LecturaDePieza laminas={3}>
+        <VistasDelCarrusel vistas={VISTAS} />
+        <FinDelTexto />
+        <FirmaDePieza
+          piezaId="11111111-1111-4111-8111-111111111111"
+          huella={"a".repeat(64)}
+          fechaPropuesta="2026-11-03T14:00:00.000Z"
+          abiertaEn="2026-11-02T20:00:00.000Z"
+          ruta="api"
+          cuenta="Federico"
+          firmar={vi.fn(async () => ({ ok: true as const }))}
+          firmarParaReserva={vi.fn(async () => ({ ok: true as const }))}
+          planear={vi.fn(async () => ({ ok: true as const }))}
+        />
+      </LecturaDePieza>,
+    )
+  }
+  const motivo = () => document.getElementById("motivo-de-lectura")
+
+  test("keeps the missing-slides reason while the sheet showed only some, even after closing it", () => {
+    montarConFirma()
+    abrir()
+    mostrar(laminaEnLaHoja(1), 1)
+    mostrar(within(hoja()).getByTestId("fin-de-la-hoja"), 1)
+    fireEvent.click(within(hoja()).getByRole("button", { name: "Listo" }))
+    expect(motivo()).toHaveTextContent("Te faltan 2 láminas")
+    expect(motivo()).not.toHaveTextContent("Falta leer el texto hasta el final.")
+  })
+
+  test("every slide shown in the sheet counts as seen, leaving only the text to read", () => {
+    montarConFirma()
+    abrir()
+    for (const n of [1, 2, 3]) mostrar(laminaEnLaHoja(n), 0.95)
+    fireEvent.click(within(hoja()).getByRole("button", { name: "Cerrar" }))
+    expect(motivo()).toHaveTextContent("Falta leer el texto hasta el final.")
+  })
+
+  test("a slide only partly shown in the sheet does not count", () => {
+    montarConFirma()
+    abrir()
+    mostrar(laminaEnLaHoja(3), 0.5)
+    fireEvent.click(within(hoja()).getByRole("button", { name: "Cerrar" }))
+    expect(screen.getByRole("img", { name: "Viste 0 de 3 láminas" })).toBeInTheDocument()
   })
 })

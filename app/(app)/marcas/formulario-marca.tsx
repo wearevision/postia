@@ -14,10 +14,10 @@ export function FormularioMarca() {
       </label>
       <fieldset className="space-y-1">
         <legend className="text-sm">Habla como</legend>
-        <label className="mr-4">
+        <label className="mr-4 inline-flex min-h-11 items-center gap-2">
           <input type="radio" name="voz" value="yo" defaultChecked /> «yo»
         </label>
-        <label>
+        <label className="inline-flex min-h-11 items-center gap-2">
           <input type="radio" name="voz" value="nosotros" /> «nosotros»
         </label>
       </fieldset>

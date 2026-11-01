@@ -2,6 +2,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod"
 import { Falla } from "@/lib/dominio/falla"
 import type { Pedir, RespuestaDeClaude } from "@/lib/ia/claude"
 import { UMBRALES } from "@/lib/mapa/umbrales"
+import { MAX_TOKENS_DE_SERIE, MODELO_DE_SERIE } from "./costo"
 import { type InformeDeSerie, mensajeDeOtraIdea, mensajeDeSerie, sistemaDeSerie } from "./instrucciones"
 import {
   type CuentaDeSerie,
@@ -55,7 +56,7 @@ export interface ResultadoDeSerie {
   invalidas: number
 }
 
-const MODELO = "claude-opus-5-5" as const
+const MODELO = MODELO_DE_SERIE
 const ILEGIBLE = "Claude devolvió ideas que no pude leer. Pide la serie de nuevo."
 const SIN_CUENTAS = "No hay cuentas con ritmo de publicación para proponer ideas."
 const SIN_VALIDAS = "Claude no propuso ideas que pueda usar con este informe. Pide la serie de nuevo."
@@ -139,7 +140,7 @@ export async function armarSerie(p: PuertosDeSerie, trabajo: TrabajoDeSerie): Pr
       modelo: MODELO,
       sistema: sistemaDeSerie(cuentas, noNombrar),
       mensajes: [{ role: "user", content: mensajeDeSerie(informe, informe.cantidad, previas) }],
-      maxTokens: 16_000,
+      maxTokens: MAX_TOKENS_DE_SERIE,
       esfuerzo: "high",
       formato: zodOutputFormat(Serie),
     },

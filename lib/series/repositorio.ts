@@ -10,6 +10,7 @@ import { nombresVetados } from "@/lib/redaccion/instrucciones"
 import { contextoDeRedaccion, repositorioDeRedaccion } from "@/lib/redaccion/repositorio"
 import type { Db } from "@/lib/supabase/database"
 import { fallaDeGuardarSerie, type PuertosDeSerie } from "./armar"
+import { CANTIDAD_POR_DEFECTO } from "./costo"
 import type { AsignacionAEscribir, PuertosDeEscritura } from "./escribir"
 import { PREVIAS_EN_EL_MENSAJE } from "./instrucciones"
 import type { CuentaDeSerie, PasoDeEsqueleto } from "./propuestas"
@@ -22,8 +23,6 @@ function fallo(accion: string, error: { message: string }): never {
 
 const Angulos = z.array(z.object({ nombre: z.string(), por_que: z.string().catch("") }))
 const Formato = z.enum(["texto", "carrusel_pdf"])
-/** A report asked for before 4f could miss its count; the plano's default series is five ideas. */
-const CANTIDAD_POR_DEFECTO = 5
 
 export function repositorioDeSeries(db: Db): Omit<PuertosDeSerie, "pedir" | "embeberIdeas"> {
   return {

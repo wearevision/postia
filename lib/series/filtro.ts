@@ -1,4 +1,5 @@
 import { ESTADOS_DE_IDEA, type EstadoDeIdea } from "@/lib/series/lectura"
+import { RUTA_DE_IDEAS } from "@/lib/sesion/rutas"
 
 /**
  * The Ideas screen opens on what waits for a decision; «todas» is the only way to see everything.
@@ -22,4 +23,13 @@ export function sinNadaPorRevisar(
 ): boolean {
   if (estado !== "propuesta" || hayPropuestas || series.length === 0) return false
   return !series.some((s) => s.trabajando || s.fallo)
+}
+
+export type ConteoDeIdeas = Record<EstadoDeIdea, number>
+
+export function rutaConFiltro(serie: string | undefined, estado: EstadoDeIdea | null): string {
+  const params = new URLSearchParams()
+  if (serie) params.set("serie", serie)
+  params.set("estado", parametroDelFiltro(estado))
+  return `${RUTA_DE_IDEAS}?${params.toString()}`
 }
