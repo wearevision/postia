@@ -226,7 +226,9 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
 
       {porFirmar && (
         <details className="tarjeta p-3" open={resumen.abierta}>
-          <summary className="min-h-11 cursor-pointer py-2 font-medium">Revisión · {resumen.texto}</summary>
+          <summary className={`min-h-11 cursor-pointer py-2 font-medium ${resumen.peligro ? "text-peligro" : ""}`}>
+            {resumen.texto}
+          </summary>
           <div className="space-y-3 pt-2">
             <Veredicto hallazgos={hallazgos} />
             {redaccionLista && redaccion && (
