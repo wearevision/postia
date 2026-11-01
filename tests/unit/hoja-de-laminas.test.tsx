@@ -46,7 +46,8 @@ function montar(vistas = VISTAS) {
   )
 }
 
-const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Ver las 3 juntas" }))
+// The first one is the carousel's; a signing form adds another inside the lock reason.
+const abrir = () => fireEvent.click(screen.getAllByRole("button", { name: "Ver las 3 juntas" })[0] as HTMLElement)
 const hoja = () => screen.getByRole("dialog")
 const laminaEnLaHoja = (n: number) =>
   within(hoja())
@@ -160,7 +161,7 @@ describe("slides seen in the sheet unlock signing like swiping does", () => {
     mostrar(laminaEnLaHoja(1), 1)
     mostrar(within(hoja()).getByTestId("fin-de-la-hoja"), 1)
     fireEvent.click(within(hoja()).getByRole("button", { name: "Listo" }))
-    expect(motivo()).toHaveTextContent(/2/)
+    expect(motivo()).toHaveTextContent("Te faltan 2 láminas")
     expect(motivo()).not.toHaveTextContent("Falta leer el texto hasta el final.")
   })
 

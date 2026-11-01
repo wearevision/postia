@@ -3,17 +3,15 @@
 import { LayoutGrid } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { useLectura } from "./lectura"
+import { botonDeLaHoja as nombreDelBoton, useLectura } from "./lectura"
 
 /** A slide counts as seen once at least this share of it is on screen. */
 const PROPORCION_VISTA = 0.9
 
 export function VistasDelCarrusel({ vistas }: { vistas: string[] }) {
   const lectura = useLectura()
-  const { marcarLamina } = lectura
+  const { marcarLamina, hojaAbierta, abrirHoja, cerrarHoja } = lectura
   const lista = useRef<HTMLOListElement>(null)
-  const [hojaAbierta, setHojaAbierta] = useState(false)
-  const botonDeLaHoja = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const raiz = lista.current
@@ -53,24 +51,15 @@ export function VistasDelCarrusel({ vistas }: { vistas: string[] }) {
       </ol>
       {vistas.length > 1 && (
         <button
-          ref={botonDeLaHoja}
           type="button"
-          onClick={() => setHojaAbierta(true)}
+          onClick={(evento) => abrirHoja(evento.currentTarget)}
           className="flex min-h-11 items-center gap-2 px-1 font-medium underline"
         >
           <LayoutGrid aria-hidden="true" strokeWidth={1.75} className="size-4" />
-          Ver las {vistas.length} juntas
+          {nombreDelBoton(vistas.length)}
         </button>
       )}
-      {hojaAbierta && (
-        <HojaDeLaminas
-          vistas={vistas}
-          alCerrar={() => {
-            setHojaAbierta(false)
-            botonDeLaHoja.current?.focus()
-          }}
-        />
-      )}
+      {hojaAbierta && vistas.length > 1 && <HojaDeLaminas vistas={vistas} alCerrar={cerrarHoja} />}
       {lectura.laminas > 0 && (
         <div role="img" aria-label={`Viste ${lectura.vistas} de ${lectura.laminas} láminas`} className="flex gap-2">
           {vistas.map((src, i) => (

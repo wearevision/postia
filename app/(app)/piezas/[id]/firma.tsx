@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { FECHA_EN_EL_PASADO, fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
-import { useLectura } from "./lectura"
+import { botonDeLaHoja, useLectura } from "./lectura"
 
 interface Props {
   piezaId: string
@@ -189,7 +189,7 @@ export function FirmaDePieza({
       {lectura.motivo && (
         <p id="motivo-de-lectura" className="flex items-start gap-2 text-sm">
           <Lock aria-hidden="true" strokeWidth={1.75} className="mt-0.5 size-4 flex-none" />
-          {lectura.motivo}
+          <MotivoDeLectura />
         </p>
       )}
       {fechaSinGuardar && (
@@ -250,6 +250,23 @@ export function FirmaDePieza({
         </div>
       )}
     </form>
+  )
+}
+
+/** The reading lock's reason; when slides are missing, the sheet's name in it is the button that opens the sheet. */
+function MotivoDeLectura() {
+  const { motivo, laminasPorVer, laminas, abrirHoja } = useLectura()
+  const nombre = botonDeLaHoja(laminas)
+  if (!motivo || laminasPorVer === 0 || !motivo.includes(nombre)) return <span>{motivo}</span>
+  const [antes, despues] = motivo.split(nombre)
+  return (
+    <span>
+      {antes}
+      <button type="button" onClick={(evento) => abrirHoja(evento.currentTarget)} className="font-medium underline">
+        {nombre}
+      </button>
+      {despues}
+    </span>
   )
 }
 

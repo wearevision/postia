@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
 import { FinDelTexto, LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
@@ -44,6 +44,7 @@ function mostrar(elemento: Element, proporcion: number) {
 const laminaDe = (n: number, de: number) =>
   screen.getByRole("img", { name: `Lámina ${n} de ${de}` }).closest("li") as Element
 const finDelTexto = () => screen.getByTestId("fin-del-texto")
+const motivo = () => document.getElementById("motivo-de-lectura")
 
 const VISTAS = ["/a.png", "/b.png", "/c.png"]
 
@@ -87,16 +88,45 @@ describe("reading gate before signing", () => {
     montar()
     expect(botonDeFirma()).toBeDisabled()
     expect(botonDeReserva()).toBeDisabled()
-    expect(screen.getByText("Viste 0 de 3 láminas. Faltan 3 por ver.")).toBeInTheDocument()
-    expect(botonDeFirma()).toHaveAccessibleDescription(/Faltan 3 por ver/)
+    expect(motivo()).toHaveTextContent("Te faltan 3 láminas: desliza o toca «Ver las 3 juntas».")
+    expect(botonDeFirma()).toHaveAccessibleDescription(/Te faltan 3 láminas/)
   })
 
   test("counts a slide only once at least 90% of it is visible", () => {
     montar()
     mostrar(laminaDe(1, 3), 0.6)
-    expect(screen.getByText("Viste 0 de 3 láminas. Faltan 3 por ver.")).toBeInTheDocument()
+    expect(motivo()).toHaveTextContent("Te faltan 3 láminas: desliza o toca «Ver las 3 juntas».")
     mostrar(laminaDe(1, 3), 0.95)
-    expect(screen.getByText("Viste 1 de 3 láminas. Faltan 2 por ver.")).toBeInTheDocument()
+    expect(motivo()).toHaveTextContent("Te faltan 2 láminas: desliza o toca «Ver las 3 juntas».")
+  })
+
+  test("says a single missing slide in the singular", () => {
+    montar()
+    mostrar(laminaDe(1, 3), 1)
+    mostrar(laminaDe(2, 3), 1)
+    expect(motivo()).toHaveTextContent("Te falta 1 lámina: desliza o toca «Ver las 3 juntas».")
+  })
+
+  test("the reason itself opens the sheet with every slide", () => {
+    montar()
+    fireEvent.click(within(motivo() as HTMLElement).getByRole("button", { name: "Ver las 3 juntas" }))
+    expect(screen.getByRole("dialog", { name: "Las 3 láminas" })).toBeInTheDocument()
+  })
+
+  test("closing the sheet opened from the reason gives the focus back to the reason's button", () => {
+    montar()
+    const desdeElMotivo = within(motivo() as HTMLElement).getByRole("button", { name: "Ver las 3 juntas" })
+    desdeElMotivo.focus()
+    fireEvent.click(desdeElMotivo)
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(desdeElMotivo).toHaveFocus()
+  })
+
+  test("a one-slide carousel asks to see the slide, with no sheet to offer", () => {
+    montar(["/a.png"])
+    expect(motivo()).toHaveTextContent("Te falta ver la lámina entera.")
+    expect(screen.queryByRole("button", { name: /juntas/ })).not.toBeInTheDocument()
   })
 
   test("reports the slides seen as an accessible progress mark", () => {
@@ -124,7 +154,7 @@ describe("reading gate before signing", () => {
     mostrar(finDelTexto(), 1)
     expect(botonDeFirma()).toBeEnabled()
     expect(botonDeReserva()).toBeEnabled()
-    expect(screen.queryByText(/Faltan|Falta leer/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Te falta|Falta leer/)).not.toBeInTheDocument()
   })
 
   test("a text-only piece unlocks as soon as the end of the text is visible", () => {
@@ -159,7 +189,7 @@ describe("reading gate before signing", () => {
       </LecturaDePieza>,
     )
     expect(botonDeFirma()).toBeDisabled()
-    expect(screen.getByText("Viste 0 de 3 láminas. Faltan 3 por ver.")).toBeInTheDocument()
+    expect(motivo()).toHaveTextContent("Te faltan 3 láminas: desliza o toca «Ver las 3 juntas».")
   })
 
   test("does not lock the person out when the browser cannot observe visibility", () => {
@@ -167,7 +197,7 @@ describe("reading gate before signing", () => {
     vi.stubGlobal("IntersectionObserver", undefined)
     montar()
     expect(botonDeFirma()).toBeEnabled()
-    expect(screen.queryByText(/Faltan|Falta leer/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Te falta|Falta leer/)).not.toBeInTheDocument()
   })
 
   test("a block keeps both buttons disabled with its reason even after everything was read", () => {

@@ -8,9 +8,17 @@ interface Lectura {
   motivo: string | null
   laminas: number
   vistas: number
+  /** Slides still to see when they are what blocks signing; 0 otherwise. */
+  laminasPorVer: number
   fueVista: (indice: number) => boolean
   marcarLamina: (indice: number) => void
   marcarTexto: () => void
+  /** The sheet with every slide together, opened from the carousel or from the lock reason. */
+  hojaAbierta: boolean
+  /** `origen`: the control that opened it, which gets the focus back on close. */
+  abrirHoja: (origen: HTMLElement | null) => void
+  /** Closes the sheet and gives the focus back to the control that opened it. */
+  cerrarHoja: () => void
 }
 
 /** Outside a reading gate nothing blocks signing. */
@@ -19,9 +27,13 @@ const ABIERTA: Lectura = {
   motivo: null,
   laminas: 0,
   vistas: 0,
+  laminasPorVer: 0,
   fueVista: () => false,
   marcarLamina: () => {},
   marcarTexto: () => {},
+  hojaAbierta: false,
+  abrirHoja: () => {},
+  cerrarHoja: () => {},
 }
 
 const Contexto = createContext<Lectura>(ABIERTA)
@@ -55,26 +67,35 @@ export function LecturaDePieza({
     setVistas((antes) => (antes.has(indice) ? antes : new Set(antes).add(indice)))
   }, [])
   const marcarTexto = useCallback(() => setTextoLeido(true), [])
+  const [hojaAbierta, setHojaAbierta] = useState(false)
+  const abiertaDesde = useRef<HTMLElement | null>(null)
+  const abrirHoja = useCallback((origen: HTMLElement | null) => {
+    abiertaDesde.current = origen
+    setHojaAbierta(true)
+  }, [])
+  const cerrarHoja = useCallback(() => {
+    setHojaAbierta(false)
+    abiertaDesde.current?.focus()
+  }, [])
 
   const valor = useMemo<Lectura>(() => {
     const faltan = Math.max(0, laminas - vistas.size)
-    const motivo =
-      faltan > 0
-        ? `Viste ${vistas.size} de ${laminas} láminas. Faltan ${faltan} por ver.`
-        : textoLeido
-          ? null
-          : "Falta leer el texto hasta el final."
+    const motivo = faltan > 0 ? faltanLaminas(faltan, laminas) : textoLeido ? null : "Falta leer el texto hasta el final."
     const comun = {
       laminas,
       vistas: vistas.size,
+      laminasPorVer: 0,
       fueVista: (indice: number) => vistas.has(indice),
       marcarLamina,
       marcarTexto,
+      hojaAbierta,
+      abrirHoja,
+      cerrarHoja,
     }
-    if (bloqueo) return { puedeFirmar: false, motivo: bloqueo, ...comun }
+    if (bloqueo) return { ...comun, puedeFirmar: false, motivo: bloqueo }
     if (!observable) return { ...ABIERTA, ...comun }
-    return { puedeFirmar: motivo === null, motivo, ...comun }
-  }, [laminas, bloqueo, vistas, textoLeido, observable, marcarLamina, marcarTexto])
+    return { ...comun, puedeFirmar: motivo === null, motivo, laminasPorVer: faltan }
+  }, [laminas, bloqueo, vistas, textoLeido, observable, marcarLamina, marcarTexto, hojaAbierta, abrirHoja, cerrarHoja])
 
   return (
     <Contexto.Provider value={valor}>
@@ -82,6 +103,15 @@ export function LecturaDePieza({
     </Contexto.Provider>
   )
 }
+
+/** The lock reason for unseen slides, saying how to see them; the sheet is offered only with more than one slide. */
+export function faltanLaminas(faltan: number, laminas: number): string {
+  if (laminas === 1) return "Te falta ver la lámina entera."
+  const cuantas = faltan === 1 ? "Te falta 1 lámina" : `Te faltan ${faltan} láminas`
+  return `${cuantas}: desliza o toca «${botonDeLaHoja(laminas)}».`
+}
+
+export const botonDeLaHoja = (laminas: number) => `Ver las ${laminas} juntas`
 
 /** A hairline after the text: when it scrolls into view the person has reached the end. */
 export function FinDelTexto() {
