@@ -91,7 +91,7 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
   await expect(primera.getByRole("checkbox", { name: nombreDeCuenta })).toBeChecked()
 
   await primera.getByRole("button", { name: "Aprobar" }).click()
-  await expect(primera.getByText("Se aprueba en 10 s")).toBeVisible()
+  await expect(primera.getByText(/Se aprueba en \d+ s/)).toBeVisible()
   // Approved, it leaves «Por revisar».
   await expect(primera).toHaveCount(0, { timeout: 15_000 })
 
@@ -190,7 +190,7 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
   await expect(origen.getByText("La minería empieza a medir a sus comunidades.")).toBeVisible()
 
   await cruce.getByRole("button", { name: "Aprobar" }).click()
-  await expect(cruce.getByText("Se aprueba en 10 s")).toBeVisible()
+  await expect(cruce.getByText(/Se aprueba en \d+ s/)).toBeVisible()
   // Approved, it leaves «Por revisar»: «Todas» shows its slot.
   await expect(cruce).toHaveCount(0, { timeout: 15_000 })
   await page.getByRole("link", { name: "Todas", exact: true }).click()

@@ -477,11 +477,25 @@ describe("approving one idea", () => {
     vi.useFakeTimers()
     const a = tarjeta(PROPUESTA)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
-    expect(screen.getByText("Se aprueba en 10 s. Si sales antes, no se aprueba.")).toBeInTheDocument()
+    expect(screen.getByText("Se aprueba en 10 s · si sales antes, no se aprueba")).toBeInTheDocument()
     await act(() => vi.advanceTimersByTimeAsync(9_900))
     expect(a.aprobar).not.toHaveBeenCalled()
     await act(() => vi.advanceTimersByTimeAsync(100))
     expect(a.aprobar).toHaveBeenCalledWith("i1", ["c-pagina"])
+  })
+
+  test("the countdown text ticks down every second until it approves", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(3_000))
+    expect(screen.getByText("Se aprueba en 7 s · si sales antes, no se aprueba")).toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(6_000))
+    expect(screen.getByText("Se aprueba en 1 s · si sales antes, no se aprueba")).toBeInTheDocument()
+    expect(a.aprobar).not.toHaveBeenCalled()
+    await act(() => vi.advanceTimersByTimeAsync(1_000))
+    expect(a.aprobar).toHaveBeenCalledOnce()
+    expect(screen.queryByText(/Se aprueba en/)).not.toBeInTheDocument()
   })
 
   test("Deshacer cancels it for good", async () => {

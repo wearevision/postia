@@ -320,7 +320,9 @@ function Revision({
         </button>
       </div>
       {diferida.esperando && (
-        <output className="block text-sm text-apagado">Se aprueba en 10 s. Si sales antes, no se aprueba.</output>
+        <output className="block text-sm text-apagado">
+          Se aprueba en {diferida.restante} s · si sales antes, no se aprueba
+        </output>
       )}
       {idea.pidiendoOtra && <p className="text-sm text-apagado">Buscando otra idea…</p>}
       <BotonDeDetalle abierta={abierta} alternar={alternarDetalle} />
