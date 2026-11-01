@@ -447,6 +447,31 @@ describe("aprobar_idea", () => {
     expect(otra.error?.message).toBe("idea_no_esta_propuesta")
   })
 
+  test("keeps the theme Federico chose for a carousel; refuses an unknown one or one on a text idea", async () => {
+    const wav = await cuentaDe(marcaWav, "empresa", "a_mano")
+    const { id, hallazgos } = await informeAprobado()
+    const [carrusel, texto] = await guardarSerie(id, [
+      idea({ fuentes: hallazgos, cuenta: wav, formato: "carrusel_pdf", eje: 520 }),
+      idea({ fuentes: hallazgos, cuenta: wav, formato: "texto", eje: 521 }),
+    ])
+    const desconocido = await dueno.db.rpc("aprobar_idea", {
+      p_idea: carrusel,
+      p_asignaciones: [{ cuenta: wav, planeada_para: habil(13), tema: "neon" }],
+    })
+    expect(desconocido.error?.message).toBe("asignaciones_invalidas")
+    const enTexto = await dueno.db.rpc("aprobar_idea", {
+      p_idea: texto,
+      p_asignaciones: [{ cuenta: wav, planeada_para: habil(13), tema: "wav-papel" }],
+    })
+    expect(enTexto.error?.message).toBe("asignaciones_invalidas")
+    const { error } = await dueno.db.rpc("aprobar_idea", {
+      p_idea: carrusel,
+      p_asignaciones: [{ cuenta: wav, planeada_para: habil(13), tema: "personal-arena" }],
+    })
+    expect(error).toBeNull()
+    expect((await asignacionesDe(carrusel)).map((a) => a.tema)).toEqual(["personal-arena"])
+  })
+
   test("refuses while another version of the idea is being written, and approves once that job closes", async () => {
     const wav = await cuentaDe(marcaWav, "empresa", "a_mano")
     const { id, hallazgos } = await informeAprobado()
@@ -937,6 +962,42 @@ describe("carousels", () => {
     expect((await dueno.db.rpc("pedir_diseno_de_asignacion", base)).error?.code).toBe("42501")
     const otroTema = await admin().rpc("pedir_diseno_de_asignacion", { ...base, p_tema: "personal-claro" })
     expect(otroTema.error?.message).toBe("tema_de_otra_marca")
+  })
+
+  test("pedir_diseno_de_asignacion takes the theme chosen at approval, of any family, and only that one", async () => {
+    const wav = await cuentaDe(marcaWav, "empresa", "a_mano")
+    const informe = await informeAprobado()
+    const [ideaId] = await guardarSerie(informe.id, [
+      idea({ fuentes: informe.hallazgos, cuenta: wav, formato: "carrusel_pdf", eje: 530, pilar: pilarWav }),
+    ])
+    const fecha = habil(1, 59)
+    const { data, error } = await dueno.db.rpc("aprobar_idea", {
+      p_idea: ideaId,
+      p_asignaciones: [{ cuenta: wav, planeada_para: fecha, tema: "personal-grafito" }],
+    })
+    if (error) throw error
+    const [asignacion] = data as string[]
+    await cerrarAsignacionesSalvo([asignacion])
+    await tomarAsignaciones(habil(4, 59))
+    const base = {
+      p_asignacion: asignacion,
+      p_tema: "wav-noche",
+      p_titulo: "Documento",
+      p_texto: "Texto",
+      p_diseno: diseno,
+      p_linea_version: 1,
+      p_planeada_para: fecha,
+    }
+    const otro = await admin().rpc("pedir_diseno_de_asignacion", base)
+    expect(otro.error?.message).toBe("tema_no_elegido")
+    const elegido = await admin().rpc("pedir_diseno_de_asignacion", { ...base, p_tema: "personal-grafito" })
+    expect(elegido.error).toBeNull()
+    const { data: pedido } = await admin()
+      .from("pedidos_de_diseno")
+      .select("tema")
+      .eq("id", elegido.data as string)
+      .single()
+    expect(pedido?.tema).toBe("personal-grafito")
   })
 
   test("a hand-made carousel still saves as before", async () => {

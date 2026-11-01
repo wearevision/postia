@@ -34,6 +34,8 @@ export interface AsignacionAEscribir {
   id: string
   cuentaId: string
   formato: FormatoDeIdea
+  /** The template Federico chose when approving a carousel; null when it was approved before he could choose. */
+  tema: IdDeTema | null
   planeadaPara: number
   idea: {
     gancho: string
@@ -155,7 +157,7 @@ async function escribirUna(p: PuertosDeEscritura, a: AsignacionAEscribir, ahora:
     clave: `carrusel:asignacion:${a.id}`,
     idea: a.idea,
     hallazgos: a.hallazgos,
-    temas: temasDeLaVoz(c.marca.voz),
+    temas: a.tema ? [a.tema] : temasDeLaVoz(c.marca.voz),
   })
   await p.pedirDisenoDeAsignacion(a.id, {
     ...carrusel,

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { temaInicial } from "@/lib/plantillas/temas"
 import { estadoDelFiltro, rutaConFiltro, sinNadaPorRevisar } from "@/lib/series/filtro"
 import {
   conteosDeIdeas,
@@ -78,7 +79,9 @@ function Grupo({
 }
 
 function Serie({ serie, estado, cuentas }: { serie: SerieDeIdeas; estado: EstadoDeIdea | null; cuentas: Cuentas }) {
-  const formatos = serie.ideas.filter((i) => i.estado === "propuesta").map((i) => i.formato)
+  const propuestas = serie.ideas.filter((i) => i.estado === "propuesta")
+  const formatos = propuestas.map((i) => i.formato)
+  const primerCarrusel = propuestas.find((i) => i.formato === "carrusel_pdf")
   const visibles = estado ? serie.ideas.filter((i) => i.estado === estado) : serie.ideas
   const cortas = !serie.trabajando && serie.cantidad !== null && serie.ideas.length < serie.cantidad
   return (
@@ -101,7 +104,12 @@ function Serie({ serie, estado, cuentas }: { serie: SerieDeIdeas; estado: Estado
       </div>
       <SerieEnCurso>
         {formatos.length > 0 && (
-          <AprobarSerie investigacionId={serie.investigacionId} formatos={formatos} aprobar={aprobarSerieAccion} />
+          <AprobarSerie
+            investigacionId={serie.investigacionId}
+            formatos={formatos}
+            temaInicial={temaInicial(primerCarrusel?.cuentaSugerida.voz ?? "nosotros")}
+            aprobar={aprobarSerieAccion}
+          />
         )}
         {visibles.length > 0 ? (
           <Tarjetas ideas={visibles} cuentas={cuentas} />
