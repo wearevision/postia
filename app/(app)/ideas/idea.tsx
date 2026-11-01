@@ -1,5 +1,6 @@
 "use client"
 
+import { ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { createContext, useContext, useEffect, useState, useTransition } from "react"
 import { enDolares } from "@/lib/gasto/precios"
@@ -301,9 +302,11 @@ function Revision({
         type="button"
         disabled={ocupada}
         onClick={abrirDetalle}
-        className="rounded-full border border-borde px-3 py-1 text-sm"
+        aria-expanded={abierta}
+        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-borde px-4 text-sm disabled:opacity-60"
       >
-        {nombres.length > 0 ? nombres.join(", ") : "Elegir cuenta"}
+        Para: {nombres.length > 0 ? nombres.join(", ") : "elegir cuenta"}
+        <ChevronDown aria-hidden="true" strokeWidth={1.75} className="size-4 shrink-0" />
       </button>
       <div className="grid grid-cols-2 gap-2">
         {diferida.esperando ? (

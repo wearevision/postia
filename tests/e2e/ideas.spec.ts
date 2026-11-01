@@ -79,8 +79,8 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
 
   const primera = serie.getByRole("article", { name: "Los focus groups no mueren" })
   const segunda = serie.getByRole("article", { name: "Cuánto cuesta un focus group" })
-  // The card is compact: the chip names the account and the rest sits behind «Ver detalle».
-  await expect(primera.getByRole("button", { name: nombreDeCuenta })).toBeVisible()
+  // The card is compact: the «Para:» chip names the account and the rest sits behind «Ver detalle».
+  await expect(primera.getByRole("button", { name: `Para: ${nombreDeCuenta}` })).toBeVisible()
   await expect(primera.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toHaveCount(0)
   await primera.getByRole("button", { name: "Ver detalle" }).click()
   await expect(primera.getByText("Por qué: Habla de investigación, que es lo de WAV.")).toBeVisible()

@@ -325,7 +325,7 @@ describe("compact card", () => {
     tarjeta(PROPUESTA)
     expect(screen.getByRole("heading", { name: "Los focus groups no mueren" })).toBeInTheDocument()
     expect(screen.getByText("Carrusel PDF")).toBeVisible()
-    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Para: Página de WAV" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Descartar" })).toBeInTheDocument()
     expect(screen.queryByRole("list", { name: "Esqueleto" })).not.toBeInTheDocument()
@@ -347,10 +347,17 @@ describe("compact card", () => {
 
   test("the account chip names the chosen accounts and opens the account choice", () => {
     tarjeta(PROPUESTA)
-    fireEvent.click(screen.getByRole("button", { name: "Página de WAV" }))
+    fireEvent.click(screen.getByRole("button", { name: "Para: Página de WAV" }))
     expect(screen.getByRole("group", { name: "Cuentas" })).toBeInTheDocument()
     fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
-    expect(screen.getByRole("button", { name: "Federico, Página de WAV" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Para: Federico, Página de WAV" })).toBeInTheDocument()
+  })
+
+  test("the account chip looks like a selector: bordered, a chevron and a touch-sized target", () => {
+    tarjeta(PROPUESTA)
+    const chip = screen.getByRole("button", { name: "Para: Página de WAV" })
+    expect(chip).toHaveClass("border", "min-h-11")
+    expect(chip.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
   })
 
   test("an approved idea stays compact but keeps its slots visible", () => {
@@ -366,10 +373,10 @@ describe("compact card", () => {
     tarjeta(PROPUESTA)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Para: Página de WAV" })).toBeDisabled()
     fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
     expect(screen.getByRole("button", { name: "Descartar" })).toBeEnabled()
-    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Para: Página de WAV" })).toBeEnabled()
   })
 })
 
