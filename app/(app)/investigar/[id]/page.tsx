@@ -1,13 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { enDolares } from "@/lib/gasto/precios"
-import { limpiarCita } from "@/lib/investigacion/cita"
-import {
-  estaAbierta,
-  type HallazgoDeInforme,
-  informe,
-  NOMBRE_DEL_ESTADO_DE_INVESTIGACION,
-} from "@/lib/investigacion/lectura"
+import { estaAbierta, informe, NOMBRE_DEL_ESTADO_DE_INVESTIGACION } from "@/lib/investigacion/lectura"
 import { resumenDelInforme, textoDelResumen } from "@/lib/investigacion/resumen"
 import { CANTIDAD_POR_DEFECTO, estimarSerie } from "@/lib/series/costo"
 import { serieDelInforme } from "@/lib/series/lectura"
@@ -21,51 +15,8 @@ import {
   descartarInformeAccion,
   pedirAmpliacionAccion,
 } from "../acciones"
-import { AmpliarAngulo, AprobarInforme, ArmarSerie, DescartarHallazgo, DescartarInforme } from "./controles"
-
-const FECHA = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })
-
-/** A finding's date is a calendar day (YYYY-MM-DD), not an instant: read in UTC so it never shifts a day. */
-function fechaDePublicacion(dia: string): string {
-  return FECHA.format(new Date(`${dia}T00:00:00Z`))
-}
-
-function Hallazgo({
-  hallazgo,
-  investigacionId,
-  descartable,
-}: {
-  hallazgo: HallazgoDeInforme
-  investigacionId: string
-  descartable: boolean
-}) {
-  const descartado = hallazgo.estado === "descartado"
-  const cita = hallazgo.cita ? limpiarCita(hallazgo.cita) : ""
-  return (
-    <li
-      aria-label={descartado ? "Hallazgo descartado" : "Hallazgo"}
-      className={`space-y-2 tarjeta p-3 text-sm ${descartado ? "opacity-50" : ""}`}
-    >
-      <p>{hallazgo.resumen}</p>
-      {cita && <p className="text-apagado">«{cita}»</p>}
-      <a href={hallazgo.enlace} target="_blank" rel="noopener noreferrer" className="block underline">
-        {hallazgo.medio}
-        {hallazgo.publicadoEn && ` · ${fechaDePublicacion(hallazgo.publicadoEn)}`}
-      </a>
-      {descartado ? (
-        <p className="text-apagado">Descartado</p>
-      ) : (
-        descartable && (
-          <DescartarHallazgo
-            investigacionId={investigacionId}
-            hallazgoId={hallazgo.id}
-            descartar={descartarHallazgoAccion}
-          />
-        )
-      )}
-    </li>
-  )
-}
+import { AmpliarAngulo, AprobarInforme, ArmarSerie, DescartarInforme } from "./controles"
+import { Hallazgo } from "./hallazgo"
 
 export default async function Informe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -137,7 +88,13 @@ export default async function Informe({ params }: { params: Promise<{ id: string
           {a.hallazgos.length > 0 && (
             <ul className="space-y-2">
               {a.hallazgos.map((h) => (
-                <Hallazgo key={h.id} hallazgo={h} investigacionId={leido.id} descartable={porAprobar} />
+                <Hallazgo
+                  key={h.id}
+                  hallazgo={h}
+                  investigacionId={leido.id}
+                  descartable={porAprobar}
+                  descartar={descartarHallazgoAccion}
+                />
               ))}
             </ul>
           )}
