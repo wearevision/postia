@@ -259,11 +259,7 @@ export default async function Pieza({
       {conClaude && !redaccion && <p className="text-sm">No pude leer lo que hizo Claude. Recarga en un rato.</p>}
       {conClaude && redaccion && (
         <>
-          {version.origen === "claude" && (
-            <p className="text-sm text-apagado">
-              Escrito con IA: léelo entero.
-            </p>
-          )}
+          {version.origen === "claude" && <p className="text-sm text-apagado">Escrito con IA: léelo entero.</p>}
           {redaccion.ultimoFallo && <p className="text-sm">{redaccion.ultimoFallo}</p>}
           {(redaccion.pedidoAbierto || redaccion.revisandoAuto) && <Refrescar />}
         </>

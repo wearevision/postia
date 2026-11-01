@@ -80,7 +80,8 @@ export function LecturaDePieza({
 
   const valor = useMemo<Lectura>(() => {
     const faltan = Math.max(0, laminas - vistas.size)
-    const motivo = faltan > 0 ? faltanLaminas(faltan, laminas) : textoLeido ? null : "Falta leer el texto hasta el final."
+    const motivo =
+      faltan > 0 ? faltanLaminas(faltan, laminas) : textoLeido ? null : "Falta leer el texto hasta el final."
     const comun = {
       laminas,
       vistas: vistas.size,
