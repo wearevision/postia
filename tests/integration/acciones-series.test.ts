@@ -12,7 +12,7 @@ import {
   pedirOtraIdea,
   pedirSerie,
 } from "@/lib/series/acciones"
-import { cuentasParaIdeas, ideasPorRevisar, ideasYSeries, series } from "@/lib/series/lectura"
+import { conteosDeIdeas, cuentasParaIdeas, ideasPorRevisar, ideasYSeries, series } from "@/lib/series/lectura"
 import type { Db } from "@/lib/supabase/database"
 import { admin, cuentaDe, literal, marcaConDueno, personaConSesion, piezaDe, vectorDe } from "./entorno"
 
@@ -486,6 +486,23 @@ describe("readers", () => {
     expect(await ideasPorRevisar(dueno.db)).toBe(antes + 2)
     const cuentas = await cuentasParaIdeas(dueno.db)
     expect(cuentas.map((c) => c.id).sort()).toEqual([perfil, pagina].sort())
+  })
+
+  test("conteosDeIdeas counts the ideas of each state, replaced ones left out, and narrows to one series", async () => {
+    const informe = await informeAprobado()
+    const [, aprobada, descartada] = await serieDe(informe, [
+      { gancho: "Se queda", cuenta: perfil },
+      { gancho: "Se aprueba", cuenta: pagina },
+      { gancho: "Se descarta", cuenta: perfil },
+    ])
+    await aprobarIdea(dueno.db, { ideaId: aprobada, cuentas: [pagina] })
+    await descartarIdea(dueno.db, descartada)
+    expect(await conteosDeIdeas(dueno.db, informe.id)).toEqual({ propuesta: 1, aprobada: 1, descartada: 1 })
+    const global = await conteosDeIdeas(dueno.db)
+    expect(global.propuesta).toBeGreaterThanOrEqual(1)
+    expect(global.aprobada).toBeGreaterThanOrEqual(1)
+    expect(global.descartada).toBeGreaterThanOrEqual(1)
+    expect(await conteosDeIdeas(dueno.db, "no-es-un-uuid")).toEqual({ propuesta: 0, aprobada: 0, descartada: 0 })
   })
 
   test("informesPorAprobar counts only the reports waiting for approval", async () => {

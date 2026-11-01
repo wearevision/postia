@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { estadoDelFiltro, parametroDelFiltro, sinNadaPorRevisar } from "@/lib/series/filtro"
+import { estadoDelFiltro, rutaConFiltro, sinNadaPorRevisar } from "@/lib/series/filtro"
 import {
+  conteosDeIdeas,
   cuentasParaIdeas,
   type EstadoDeIdea,
   type IdeaDeSerie,
@@ -19,27 +20,13 @@ import {
   moverAsignacionAccion,
   pedirOtraIdeaAccion,
 } from "./acciones"
+import { Filtros } from "./filtros"
 import { AprobarSerie, SerieEnCurso, TarjetaDeIdea } from "./idea"
 
 type Parametros = Record<string, string | string[] | undefined>
 
-const FILTROS: { estado: EstadoDeIdea | null; nombre: string }[] = [
-  { estado: null, nombre: "Todas" },
-  { estado: "propuesta", nombre: "Por revisar" },
-  { estado: "aprobada", nombre: "Aprobadas" },
-  { estado: "descartada", nombre: "Descartadas" },
-]
-
 function primero(valor: string | string[] | undefined): string | undefined {
   return Array.isArray(valor) ? valor[0] : valor
-}
-
-function rutaConFiltro(serie: string | undefined, estado: EstadoDeIdea | null): string {
-  const params = new URLSearchParams()
-  if (serie) params.set("serie", serie)
-  params.set("estado", parametroDelFiltro(estado))
-  const consulta = params.toString()
-  return consulta ? `${RUTA_DE_IDEAS}?${consulta}` : RUTA_DE_IDEAS
 }
 
 type Cuentas = Awaited<ReturnType<typeof cuentasParaIdeas>>
@@ -130,9 +117,10 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
   const serie = primero(params.serie)
   const estado = estadoDelFiltro(primero(params.estado), serie)
   const db = await createClient()
-  const [{ cruces, sueltas, series: lista }, cuentas] = await Promise.all([
+  const [{ cruces, sueltas, series: lista }, cuentas, conteos] = await Promise.all([
     ideasYSeries(db, { investigacionId: serie, estado }),
     cuentasParaIdeas(db),
+    conteosDeIdeas(db, serie),
   ])
   const hayQueRevisar =
     cruces.length > 0 || sueltas.length > 0 || lista.some((s) => s.ideas.some((i) => i.estado === "propuesta"))
@@ -148,18 +136,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
           Ver todas las series
         </Link>
       )}
-      <nav aria-label="Filtro" className="flex flex-wrap gap-2">
-        {FILTROS.map((f) => (
-          <Link
-            key={f.nombre}
-            href={rutaConFiltro(serie, f.estado)}
-            aria-current={f.estado === estado ? "page" : undefined}
-            className={`boton rounded-full text-sm ${f.estado === estado ? "font-semibold shadow-hundido" : ""}`}
-          >
-            {f.nombre}
-          </Link>
-        ))}
-      </nav>
+      <Filtros serie={serie} estado={estado} conteos={conteos} />
       {lista.some((s) => s.trabajando) ? (
         <Refrescar mensaje="Se está armando la serie. Esta página se actualiza sola." />
       ) : (
