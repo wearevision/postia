@@ -71,3 +71,20 @@ export function instanteDesdeValorLocal(valor: string): string | null {
   const [anio, mes, dia, hora, minuto] = partes.slice(1).map(Number)
   return enSantiago(anio, mes, dia, hora, minuto).toISOString()
 }
+
+/**
+ * Another piece of the account on the day of a `datetime-local` value, read in Chile. The day can still be chosen;
+ * only the exact minute is refused (one slot per account and instant), so that case also asks for another time.
+ */
+export function avisoDeChoque(valor: string, ocupados: readonly string[]): string | null {
+  if (!VALOR_LOCAL.test(valor)) return null
+  const [dia, hora] = valor.split("T")
+  const horas = ocupados
+    .map(valorLocal)
+    .filter((otro) => otro.startsWith(`${dia}T`))
+    .map((otro) => otro.slice(11))
+    .sort()
+  if (horas.length === 0) return null
+  const aviso = `Ese día ya sale otra publicación de esta cuenta a las ${horas.join(" y a las ")}.`
+  return horas.includes(hora ?? "") ? `${aviso} Elige otra hora.` : aviso
+}

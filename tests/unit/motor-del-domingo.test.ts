@@ -5,10 +5,10 @@ import type { Pedir, RespuestaDeClaude } from "@/lib/ia/claude"
 import { calibrarCruces } from "@/lib/ideas/calibrar"
 import {
   IDEAS_DEL_DOMINGO,
-  martesAJueves,
   motorDelDomingo,
   type PuertosDelDomingo,
   semanaCubierta,
+  semanaQueViene,
 } from "@/lib/ideas/domingo"
 import type { HallazgoDeCruce, ParDeHallazgos } from "@/lib/ideas/instrucciones"
 import { UMBRALES } from "@/lib/mapa/umbrales"
@@ -101,13 +101,13 @@ function puertos(over: Partial<PuertosDelDomingo> = {}): PuertosDelDomingo {
 
 afterEach(() => vi.restoreAllMocks())
 
-describe("martesAJueves", () => {
-  test("on Sunday it is the coming Tuesday 00:00 to Friday 00:00 in Chile", () => {
-    expect(martesAJueves(AHORA)).toEqual({ desde: "2026-11-03T03:00:00.000Z", hasta: "2026-11-06T03:00:00.000Z" })
+describe("semanaQueViene", () => {
+  test("on Sunday it is the coming Monday 00:00 to the next Monday 00:00 in Chile, every day of it", () => {
+    expect(semanaQueViene(AHORA)).toEqual({ desde: "2026-11-02T03:00:00.000Z", hasta: "2026-11-09T03:00:00.000Z" })
   })
 
-  test("any day of a week points to the next week's Tuesday", () => {
-    expect(martesAJueves(Date.parse("2026-11-03T15:00:00Z")).desde).toBe("2026-11-10T03:00:00.000Z")
+  test("any day of a week points to the next week's Monday", () => {
+    expect(semanaQueViene(Date.parse("2026-11-03T15:00:00Z")).desde).toBe("2026-11-09T03:00:00.000Z")
   })
 })
 
@@ -141,7 +141,7 @@ describe("motorDelDomingo", () => {
   test("then asks for the loose ideas left for the week, with the week's findings, pillars and previous titles", async () => {
     const p = puertos()
     const r = await motorDelDomingo(p, AHORA)
-    expect(p.ocupacionDeLaSemana).toHaveBeenCalledWith("2026-11-03T03:00:00.000Z", "2026-11-06T03:00:00.000Z")
+    expect(p.ocupacionDeLaSemana).toHaveBeenCalledWith("2026-11-02T03:00:00.000Z", "2026-11-09T03:00:00.000Z")
     expect(p.hallazgosDeLaSemana).toHaveBeenCalledWith(AHORA - 7 * 86_400_000)
     expect(p.ganchosRecientes).toHaveBeenCalledWith(40)
     const [paso, pedido] = vi.mocked(p.pedir).mock.calls[1]

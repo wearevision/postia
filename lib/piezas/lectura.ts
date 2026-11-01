@@ -302,6 +302,8 @@ export interface DetalleDePieza {
     vistas: string[]
   }
   fechaPropuesta: string
+  /** The other slots this account holds, as ISO instants. */
+  ocupados: string[]
   /** What changed since the previous version («Cambió el texto (1 línea nueva).»), or null when there is none or nothing differs. */
   cambio: string | null
 }
@@ -416,6 +418,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
       planSigueVigente && p.planeada_para
         ? new Date(p.planeada_para).toISOString()
         : proponerFecha(tipo, horarios, ahora).toISOString(),
+    ocupados: horarios.map((h) => new Date(h).toISOString()),
     cambio,
   }
 }
