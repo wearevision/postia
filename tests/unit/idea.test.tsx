@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
+import { Confirmaciones, ConfirmacionesProvider } from "@/app/(app)/ideas/confirmaciones"
 import { AprobarSerie, SerieEnCurso, TarjetaDeIdea } from "@/app/(app)/ideas/idea"
+import { fechaCorta } from "@/lib/piezas/fechas"
 import type { IdeaDeSerie, IdeaSuelta } from "@/lib/series/lectura"
 
 const PERFIL = { id: "c-perfil", nombre: "Federico" }
@@ -80,7 +82,7 @@ const DEL_DOMINGO: IdeaSuelta = { ...CRUCE, id: "d1", gancho: "Una idea suelta",
 
 function acciones() {
   return {
-    aprobar: vi.fn().mockResolvedValue({ ok: true }),
+    aprobar: vi.fn().mockResolvedValue({ ok: true, asignaciones: [] }),
     descartar: vi.fn().mockResolvedValue({ ok: true }),
     pedirOtra: vi.fn().mockResolvedValue({ ok: true }),
     editar: vi.fn().mockResolvedValue({ ok: true }),
@@ -325,7 +327,7 @@ describe("compact card", () => {
     tarjeta(PROPUESTA)
     expect(screen.getByRole("heading", { name: "Los focus groups no mueren" })).toBeInTheDocument()
     expect(screen.getByText("Carrusel PDF")).toBeVisible()
-    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Para: Página de WAV" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Descartar" })).toBeInTheDocument()
     expect(screen.queryByRole("list", { name: "Esqueleto" })).not.toBeInTheDocument()
@@ -347,10 +349,17 @@ describe("compact card", () => {
 
   test("the account chip names the chosen accounts and opens the account choice", () => {
     tarjeta(PROPUESTA)
-    fireEvent.click(screen.getByRole("button", { name: "Página de WAV" }))
+    fireEvent.click(screen.getByRole("button", { name: "Para: Página de WAV" }))
     expect(screen.getByRole("group", { name: "Cuentas" })).toBeInTheDocument()
     fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
-    expect(screen.getByRole("button", { name: "Federico, Página de WAV" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Para: Federico, Página de WAV" })).toBeInTheDocument()
+  })
+
+  test("the account chip looks like a selector: bordered, a chevron and a touch-sized target", () => {
+    tarjeta(PROPUESTA)
+    const chip = screen.getByRole("button", { name: "Para: Página de WAV" })
+    expect(chip).toHaveClass("border", "min-h-11")
+    expect(chip.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
   })
 
   test("an approved idea stays compact but keeps its slots visible", () => {
@@ -366,10 +375,10 @@ describe("compact card", () => {
     tarjeta(PROPUESTA)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Para: Página de WAV" })).toBeDisabled()
     fireEvent.click(screen.getByRole("button", { name: "Deshacer" }))
     expect(screen.getByRole("button", { name: "Descartar" })).toBeEnabled()
-    expect(screen.getByRole("button", { name: "Página de WAV" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Para: Página de WAV" })).toBeEnabled()
   })
 })
 
@@ -404,7 +413,7 @@ describe("the accounts during the countdown", () => {
 
 describe("AprobarSerie", () => {
   test("asks to confirm with the number of pieces and the cost before approving", async () => {
-    const aprobar = vi.fn(async () => ({ ok: true as const }))
+    const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))
     render(<AprobarSerie investigacionId="inv1" formatos={["texto", "carrusel_pdf"]} aprobar={aprobar} />)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
     expect(aprobar).not.toHaveBeenCalled()
@@ -414,7 +423,7 @@ describe("AprobarSerie", () => {
   })
 
   test("cancel goes back without approving", () => {
-    const aprobar = vi.fn(async () => ({ ok: true as const }))
+    const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))
     render(<AprobarSerie investigacionId="inv1" formatos={["texto"]} aprobar={aprobar} />)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
@@ -432,7 +441,7 @@ describe("a series while one of its cards counts down", () => {
         <AprobarSerie
           investigacionId="inv1"
           formatos={["texto"]}
-          aprobar={vi.fn(async () => ({ ok: true as const }))}
+          aprobar={vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))}
         />
         <TarjetaDeIdea idea={PROPUESTA} cuentas={[PERFIL, PAGINA]} {...a} />
       </SerieEnCurso>,
@@ -453,7 +462,7 @@ describe("a series while one of its cards counts down", () => {
         <AprobarSerie
           investigacionId="inv1"
           formatos={["texto"]}
-          aprobar={vi.fn(async () => ({ ok: true as const }))}
+          aprobar={vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))}
         />
         <TarjetaDeIdea idea={PROPUESTA} cuentas={[PERFIL, PAGINA]} {...acciones()} />
       </SerieEnCurso>,
@@ -477,11 +486,25 @@ describe("approving one idea", () => {
     vi.useFakeTimers()
     const a = tarjeta(PROPUESTA)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
-    expect(screen.getByText("Se aprueba en 10 s. Si sales antes, no se aprueba.")).toBeInTheDocument()
+    expect(screen.getByText("Se aprueba en 10 s · si sales antes, no se aprueba")).toBeInTheDocument()
     await act(() => vi.advanceTimersByTimeAsync(9_900))
     expect(a.aprobar).not.toHaveBeenCalled()
     await act(() => vi.advanceTimersByTimeAsync(100))
     expect(a.aprobar).toHaveBeenCalledWith("i1", ["c-pagina"])
+  })
+
+  test("the countdown text ticks down every second until it approves", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(3_000))
+    expect(screen.getByText("Se aprueba en 7 s · si sales antes, no se aprueba")).toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(6_000))
+    expect(screen.getByText("Se aprueba en 1 s · si sales antes, no se aprueba")).toBeInTheDocument()
+    expect(a.aprobar).not.toHaveBeenCalled()
+    await act(() => vi.advanceTimersByTimeAsync(1_000))
+    expect(a.aprobar).toHaveBeenCalledOnce()
+    expect(screen.queryByText(/Se aprueba en/)).not.toBeInTheDocument()
   })
 
   test("Deshacer cancels it for good", async () => {
@@ -548,5 +571,87 @@ describe("approving one idea", () => {
     unmount()
     await vi.advanceTimersByTimeAsync(20_000)
     expect(a.aprobar).not.toHaveBeenCalled()
+  })
+})
+
+describe("the confirmation after approving", () => {
+  const PRIMERA = "2026-11-04T18:00:00.000Z"
+  const SEGUNDA = "2026-11-05T14:00:00.000Z"
+
+  function conConfirmaciones(a: ReturnType<typeof acciones>, idea = PROPUESTA) {
+    const arbol = (conTarjeta: boolean) => (
+      <ConfirmacionesProvider>
+        <Confirmaciones />
+        {conTarjeta && <TarjetaDeIdea idea={idea} cuentas={[PERFIL, PAGINA]} {...a} />}
+      </ConfirmacionesProvider>
+    )
+    const vista = render(arbol(true))
+    return { quitarTarjeta: () => vista.rerender(arbol(false)) }
+  }
+
+  test("names the accounts and the first slot, with a link to the idea under «Todas»", async () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    a.aprobar.mockResolvedValue({ ok: true, asignaciones: [{ cuentaId: PAGINA.id, planeadaPara: PRIMERA }] })
+    conConfirmaciones(a)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(screen.getByText(`Aprobada · Claude la escribe para Página de WAV, ${fechaCorta(PRIMERA)}`)).toBeVisible()
+    expect(screen.getByRole("link", { name: "Ver" })).toHaveAttribute("href", "/ideas?estado=todas#idea-i1")
+  })
+
+  test("with two accounts it lists both and gives the earliest date", async () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    a.aprobar.mockResolvedValue({
+      ok: true,
+      asignaciones: [
+        { cuentaId: PERFIL.id, planeadaPara: SEGUNDA },
+        { cuentaId: PAGINA.id, planeadaPara: PRIMERA },
+      ],
+    })
+    conConfirmaciones(a)
+    verDetalle()
+    fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(
+      screen.getByText(`Aprobada · Claude la escribe para Federico, Página de WAV, ${fechaCorta(PRIMERA)}`),
+    ).toBeVisible()
+  })
+
+  test("stays on screen after the card leaves the list because the page re-rendered without it", async () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    a.aprobar.mockResolvedValue({ ok: true, asignaciones: [{ cuentaId: PAGINA.id, planeadaPara: PRIMERA }] })
+    const { quitarTarjeta } = conConfirmaciones(a)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    quitarTarjeta()
+    expect(screen.queryByRole("article")).not.toBeInTheDocument()
+    expect(screen.getByText(/^Aprobada · Claude la escribe para Página de WAV/)).toBeVisible()
+  })
+
+  test("a refused approval shows no confirmation", async () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    a.aprobar.mockResolvedValue({ ok: false, error: "Esta idea ya no espera tu revisión." })
+    conConfirmaciones(a)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(screen.queryByText(/^Aprobada ·/)).not.toBeInTheDocument()
+  })
+
+  test("approving the series says how many were approved, instead of an empty list saying nothing", async () => {
+    const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 3 }))
+    render(
+      <ConfirmacionesProvider>
+        <Confirmaciones />
+        <AprobarSerie investigacionId="inv1" formatos={["texto", "texto", "texto"]} aprobar={aprobar} />
+      </ConfirmacionesProvider>,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }))
+    expect(await screen.findByText("Aprobaste 3 · se escriben en unos minutos")).toBeVisible()
   })
 })

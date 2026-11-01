@@ -270,6 +270,21 @@ export async function ideasPorRevisar(db: Db): Promise<number> {
   return count ?? 0
 }
 
+/** How many ideas wait in each state (replaced ones never count), of one series when `investigacionId` is given. */
+export async function conteosDeIdeas(db: Db, investigacionId?: string): Promise<Record<EstadoDeIdea, number>> {
+  const vacio = { propuesta: 0, aprobada: 0, descartada: 0 }
+  if (investigacionId !== undefined && !z.uuid().safeParse(investigacionId).success) return vacio
+  const cuentas = await Promise.all(
+    ESTADOS_DE_IDEA.map(async (estado) => {
+      const consulta = db.from("ideas").select("id", { count: "exact", head: true }).eq("estado", estado)
+      const { count, error } = await (investigacionId ? consulta.eq("investigacion_id", investigacionId) : consulta)
+      if (error) fallo("No pude contar las ideas", error)
+      return [estado, count ?? 0] as const
+    }),
+  )
+  return { ...vacio, ...Object.fromEntries(cuentas) }
+}
+
 /** The accounts a person can confirm an idea for. */
 export async function cuentasParaIdeas(db: Db): Promise<CuentaParaIdeas[]> {
   const { data, error } = await db.from("cuentas").select("id, nombre").order("nombre")
