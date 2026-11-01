@@ -82,11 +82,7 @@ describe("FormularioDeInvestigacion", () => {
 
 describe("NuevaInvestigacion", () => {
   test("shows only the button until it is tapped, then the form", () => {
-    render(
-      <NuevaInvestigacion abierta={false}>
-        <FormularioDeInvestigacion sugerencias={[]} pedir={vi.fn()} />
-      </NuevaInvestigacion>,
-    )
+    render(<NuevaInvestigacion abierta={false} sugerencias={[]} pedir={vi.fn()} />)
     expect(screen.queryByLabelText("¿Qué quieres investigar?")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Nueva investigación" }))
     expect(screen.getByLabelText("¿Qué quieres investigar?")).toBeVisible()
@@ -94,12 +90,26 @@ describe("NuevaInvestigacion", () => {
   })
 
   test("starts open when there is nothing to approve and nothing in the list", () => {
-    render(
-      <NuevaInvestigacion abierta>
-        <FormularioDeInvestigacion sugerencias={[]} pedir={vi.fn()} />
-      </NuevaInvestigacion>,
-    )
+    render(<NuevaInvestigacion abierta sugerencias={[]} pedir={vi.fn()} />)
     expect(screen.getByLabelText("¿Qué quieres investigar?")).toBeVisible()
     expect(screen.queryByRole("button", { name: "Nueva investigación" })).toBeNull()
+  })
+
+  test("closes the form once a research was asked for, so the new card is what shows", async () => {
+    const pedir = vi.fn().mockResolvedValue({ ok: true, investigacionId: "x" })
+    render(<NuevaInvestigacion abierta sugerencias={[]} pedir={pedir} />)
+    fireEvent.change(tema(), { target: { value: "WR3" } })
+    enviar()
+    expect(await screen.findByRole("button", { name: "Nueva investigación" })).toBeVisible()
+    expect(screen.queryByLabelText("¿Qué quieres investigar?")).toBeNull()
+  })
+
+  test("keeps the form open when asking fails", async () => {
+    const pedir = vi.fn().mockResolvedValue({ ok: false, error: "No se pudo." })
+    render(<NuevaInvestigacion abierta sugerencias={[]} pedir={pedir} />)
+    fireEvent.change(tema(), { target: { value: "WR3" } })
+    enviar()
+    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo.")
+    expect(tema()).toHaveValue("WR3")
   })
 })

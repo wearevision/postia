@@ -35,10 +35,12 @@ test("an owner asks for research, and approves its report after discarding a fin
   await expect(page.getByText("Cada investigación busca en la web y cuesta cerca de US$1.")).toBeVisible()
   await page.getByLabel("¿Qué quieres investigar?").fill(tema)
   await page.getByRole("button", { name: "Investigar", exact: true }).click()
-  const lista = page.locator("section", { has: page.getByRole("heading", { name: "Investigaciones" }) })
   const item = page.getByRole("link", { name: new RegExp(tema) })
-  await expect(item).toContainText("En cola")
-  await expect(lista.getByText("Se está investigando. Esta página se actualiza sola.")).toBeVisible()
+  // The form closes and the new research leads the page, under «En curso».
+  const enCurso = page.getByRole("region", { name: "En curso" })
+  await expect(enCurso.getByRole("link", { name: `Investigando: ${tema} · se actualiza sola` })).toBeVisible()
+  await expect(page.getByLabel("¿Qué quieres investigar?")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Nueva investigación" })).toBeVisible()
 
   // No Trigger.dev in e2e: stand in for atender-investigaciones with its service-role RPCs.
   const { data: investigacion } = await db.from("investigaciones").select("id").eq("tema", tema).single()

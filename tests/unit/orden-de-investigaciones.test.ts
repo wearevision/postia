@@ -31,7 +31,19 @@ describe("ordenarInvestigaciones", () => {
   test("keeps a watch that is still running or failed, even with no findings", () => {
     const corriendo = i({ id: "c", origen: "vigilancia", hallazgos: 0, estado: "investigando" })
     const fallida = i({ id: "f", origen: "vigilancia", hallazgos: 0, estado: "fallo", motivo: "Sin red" })
-    expect(ordenarInvestigaciones([corriendo, fallida]).resto.map((x) => x.id)).toEqual(["c", "f"])
+    const r = ordenarInvestigaciones([corriendo, fallida])
+    expect(r.enCurso.map((x) => x.id)).toEqual(["c"])
+    expect(r.resto.map((x) => x.id)).toEqual(["f"])
+  })
+
+  test("lists what is queued or running apart from the rest, so a new research shows first", () => {
+    const r = ordenarInvestigaciones([
+      i({ id: "nueva", estado: "en_cola", hallazgos: 0 }),
+      i({ id: "a" }),
+      i({ id: "b", estado: "investigando", hallazgos: 0 }),
+    ])
+    expect(r.enCurso.map((x) => x.id)).toEqual(["nueva", "b"])
+    expect(r.resto.map((x) => x.id)).toEqual(["a"])
   })
 })
 
