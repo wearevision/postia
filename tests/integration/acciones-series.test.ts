@@ -384,7 +384,7 @@ describe("the other actions", () => {
     expect(data).toEqual([{ tipo: "otra_idea", estado: "pendiente" }])
   })
 
-  test("moverAsignacion moves an unwritten slot and refuses a taken one or a weekend", async () => {
+  test("moverAsignacion moves an unwritten slot, also to a weekend, and refuses a taken one or a past one", async () => {
     const informe = await informeAprobado()
     const [idea] = await serieDe(informe, [{ gancho: "Se mueve", cuenta: perfil }])
     await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil] })
@@ -400,12 +400,12 @@ describe("the other actions", () => {
       ok: false,
       error: "Esa cuenta ya tiene algo en ese horario. Elige otro.",
     })
-    const sabado = new Date(libre.getTime() + ((6 - libre.getUTCDay() + 7) % 7) * 86_400_000)
-    expect(await moverAsignacion(dueno.db, { asignacionId: a.id, planeadaPara: sabado.toISOString() })).toEqual({
+    const pasada = new Date(ahora - 3_600_000).toISOString()
+    expect(await moverAsignacion(dueno.db, { asignacionId: a.id, planeadaPara: pasada })).toEqual({
       ok: false,
-      error: "Elige un día hábil que no haya pasado.",
+      error: "Elige una fecha que no haya pasado.",
     })
-    const otra = new Date(libre.getTime() + 7 * 86_400_000).toISOString()
+    const otra = new Date(libre.getTime() + ((6 - libre.getUTCDay() + 7) % 7 || 7) * 86_400_000).toISOString()
     expect(await moverAsignacion(dueno.db, { asignacionId: a.id, planeadaPara: otra })).toEqual({ ok: true })
     expect(Date.parse((await asignacionesDe(idea))[0]?.planeada_para ?? "")).toBe(Date.parse(otra))
   })

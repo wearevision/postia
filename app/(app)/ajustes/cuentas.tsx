@@ -1,9 +1,10 @@
 import Link from "next/link"
-import { cambiarRutaAccion, desconectarCuentaAccion } from "@/app/(app)/marcas/acciones"
+import { cambiarRitmoAccion, cambiarRutaAccion, desconectarCuentaAccion } from "@/app/(app)/marcas/acciones"
 import { ConectarLinkedin } from "@/app/(app)/marcas/conectar-linkedin"
 import { Desconectar } from "@/app/(app)/marcas/desconectar"
 import { EstadoDeConexionChip } from "@/app/(app)/marcas/estado-de-conexion"
 import { estadoDeCuenta } from "@/app/(app)/marcas/estado-de-cuenta"
+import { RitmoDeCuenta } from "@/app/(app)/marcas/ritmo-de-cuenta"
 import { RutaDeCuenta } from "@/app/(app)/marcas/ruta-de-cuenta"
 import { piezasProgramadas } from "@/lib/marcas/programadas"
 import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
@@ -42,9 +43,15 @@ export async function CuentasDeLinkedin() {
               <li key={cuenta.id} className="space-y-2">
                 <p className="font-medium">{cuenta.nombre}</p>
                 <p className="text-sm text-apagado">
-                  {cuenta.tipo === "persona" ? "Perfil" : "Página"} de LinkedIn · {RUTAS[cuenta.ruta]} ·{" "}
-                  {cuenta.ritmo_semanal} por semana
+                  {cuenta.tipo === "persona" ? "Perfil" : "Página"} de LinkedIn · {RUTAS[cuenta.ruta]}
                 </p>
+                <RitmoDeCuenta
+                  key={cuenta.ritmo_semanal}
+                  cuentaId={cuenta.id}
+                  nombre={cuenta.nombre}
+                  ritmo={cuenta.ritmo_semanal}
+                  cambiar={cambiarRitmoAccion}
+                />
                 <RutaDeCuenta
                   cuentaId={cuenta.id}
                   nombre={cuenta.nombre}

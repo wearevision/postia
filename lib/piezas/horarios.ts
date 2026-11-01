@@ -1,6 +1,5 @@
-// D19: Tuesday, Wednesday and Thursday; the profile at 11:00 and the page at 15:00, Chile time; never weekends.
+// D19, changed on 2026-11-01: every day of the week; the profile at 11:00 and the page at 15:00, Chile time.
 const ZONA = "America/Santiago"
-const DIAS_VALIDOS = new Set([2, 3, 4])
 const HORA_POR_TIPO = { persona: 11, empresa: 15 } as const
 const MARGEN_MS = 30 * 60_000
 const DIA_MS = 86_400_000
@@ -47,8 +46,7 @@ export function fechaEnSantiago(instante: number): { anio: number; mes: number; 
 export function proponerFecha(tipo: "persona" | "empresa", ocupados: readonly number[], ahora: number): Date {
   const tomados = new Set(ocupados)
   for (let i = 0; i < 60; i++) {
-    const { anio, mes, dia, diaSemana } = fechaEnSantiago(ahora + i * DIA_MS)
-    if (!DIAS_VALIDOS.has(diaSemana)) continue
+    const { anio, mes, dia } = fechaEnSantiago(ahora + i * DIA_MS)
     const candidato = enSantiago(anio, mes, dia, HORA_POR_TIPO[tipo], 0)
     if (candidato.getTime() < ahora + MARGEN_MS || tomados.has(candidato.getTime())) continue
     return candidato

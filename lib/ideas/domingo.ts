@@ -28,7 +28,7 @@ const SEMANA_MS = 7 * DIA_MS
 const TOPE = "Se alcanzó el tope de gasto; el motor del domingo no propuso más ideas."
 const NADA: ResultadoDeIdeas = { guardadas: 0, parecidas: 0, invalidas: 0 }
 
-/** An account that publishes, and what it already holds for the coming Tuesday to Thursday. */
+/** An account that publishes, and what it already holds for the coming week. */
 export interface OcupacionDeCuenta {
   cuentaId: string
   ritmo: number
@@ -59,11 +59,11 @@ function inicioDelDia(dia: string): string {
   return enSantiago(anio ?? 0, mes ?? 0, d ?? 0, 0, 0).toISOString()
 }
 
-/** D19 publishes Tuesday to Thursday: the next week's Tuesday 00:00 to Friday 00:00, in Chile. */
-export function martesAJueves(ahora: number): { desde: string; hasta: string } {
+/** D19 publishes every day: the next week's Monday 00:00 to the Monday after, in Chile. */
+export function semanaQueViene(ahora: number): { desde: string; hasta: string } {
   const { diaSemana } = fechaEnSantiago(ahora)
   const lunes = sumarDias(diaEnSantiago(ahora), (8 - diaSemana) % 7 || 7)
-  return { desde: inicioDelDia(sumarDias(lunes, 1)), hasta: inicioDelDia(sumarDias(lunes, 4)) }
+  return { desde: inicioDelDia(lunes), hasta: inicioDelDia(sumarDias(lunes, 7)) }
 }
 
 /** Plano: the engine never piles ideas on a full week. Every account must already hold its weekly rhythm. */
@@ -154,8 +154,8 @@ export async function motorDelDomingo(p: PuertosDelDomingo, ahora: number): Prom
     // the crosses of the first run still count against the Sunday's total.
     const cantidad = IDEAS_DEL_DOMINGO - (await p.crucesGuardadosDesde(inicioDelDia(dia)))
     if (cantidad <= 0) return NADA
-    const { desde: martes, hasta: viernes } = martesAJueves(ahora)
-    if (semanaCubierta(await p.ocupacionDeLaSemana(martes, viernes))) return NADA
+    const semana = semanaQueViene(ahora)
+    if (semanaCubierta(await p.ocupacionDeLaSemana(semana.desde, semana.hasta))) return NADA
     return ideasSueltas(p, { clave: `domingo:${dia}`, desde, ahora, cantidad })
   })
   return terminar({ cruces, sueltas })

@@ -1524,6 +1524,10 @@ export type Database = {
       aprobar_informe: { Args: { p_investigacion: string }; Returns: undefined }
       barrer_elecciones: { Args: { p_ahora?: string }; Returns: number }
       barrer_gastos: { Args: { p_ahora?: string }; Returns: number }
+      cambiar_ritmo: {
+        Args: { p_cuenta: string; p_ritmo: number }
+        Returns: undefined
+      }
       cambiar_ruta: {
         Args: { p_cuenta: string; p_ruta: string }
         Returns: undefined

@@ -86,7 +86,7 @@ Para bugs o tweaks rápidos: invocar `triage-lead` agent (global).
 - Una semana de reserva firmada por cuenta: si la pieza del día no tiene firma, sale una de la reserva y la pendiente se corre. Firmar una pieza de reserva autoriza que la app le ponga fecha (D21).
 - Sin menciones con @ a marcas, clientes ni personas; solo WAV y Federico se mencionan entre sí. Los enlaces van dentro del texto (D22).
 - Los posts de WR3 salen de la página de WAV, con plantillas de WR3.
-- Horarios (D19), en hora de Chile: martes, miércoles y jueves; perfil de Federico a las 11:00 y página de WAV a las 15:00; Instagram (fase 2) a las 13:00. Nunca fines de semana. Se ajustan cuando haya métricas.
+- Horarios (D19), en hora de Chile: todos los días, de lunes a domingo (cambio del 1 de noviembre de 2026); perfil de Federico a las 11:00 y página de WAV a las 15:00; Instagram (fase 2) a las 13:00. Una fecha con otra pieza de la misma cuenta se puede elegir: la app avisa a qué hora sale la otra. Se ajustan cuando haya métricas.
 - Todas las decisiones del plano están tomadas (26 de 26). Meta propuesta: 3 publicaciones por semana por cuenta durante 8 semanas, con menos de 30 minutos de Federico a la semana.
 
 ## Documentación de LinkedIn

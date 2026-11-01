@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { agregarCuenta, cambiarRuta, crearMarca } from "@/lib/marcas/acciones"
+import { agregarCuenta, cambiarRitmo, cambiarRuta, crearMarca } from "@/lib/marcas/acciones"
 import { piezasProgramadas } from "@/lib/marcas/programadas"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
@@ -63,6 +63,32 @@ describe("brand and account actions", () => {
       ok: false,
       error: "Elige «sale sola» o «a mano».",
     })
+  })
+
+  test("the owner changes an account's weekly rhythm, between 0 and 21", async () => {
+    const { db, userId } = await personaConSesion("ritmo-dueno")
+    const cuentaId = await cuentaDe(await marcaConDueno(userId), "persona", "a_mano")
+    const ritmo = async () =>
+      (await admin().from("cuentas").select("ritmo_semanal").eq("id", cuentaId).single()).data?.ritmo_semanal
+    expect(await cambiarRitmo(db, { cuentaId, ritmoSemanal: "7" })).toEqual({ ok: true })
+    expect(await ritmo()).toBe(7)
+    expect(await cambiarRitmo(db, { cuentaId, ritmoSemanal: "22" })).toEqual({
+      ok: false,
+      error: "Elige entre 0 y 21 publicaciones por semana.",
+    })
+    expect(await ritmo()).toBe(7)
+  })
+
+  test("only the owner changes the weekly rhythm", async () => {
+    const { userId } = await personaConSesion("ritmo-duena")
+    const cuentaId = await cuentaDe(await marcaConDueno(userId), "empresa", "a_mano")
+    const { db: ajena } = await personaConSesion("ritmo-ajena")
+    expect(await cambiarRitmo(ajena, { cuentaId, ritmoSemanal: 7 })).toEqual({
+      ok: false,
+      error: "Solo el dueño de la marca puede cambiar el ritmo de una cuenta.",
+    })
+    const { data } = await admin().from("cuentas").select("ritmo_semanal").eq("id", cuentaId).single()
+    expect(data?.ritmo_semanal).toBe(3)
   })
 
   test("counts each account's scheduled pieces, and only those", async () => {

@@ -17,6 +17,9 @@ const CambioDeRuta = z.object({ cuentaId: z.uuid(), ruta: z.enum(["api", "a_mano
 
 const RUTA_INVALIDA = "Elige «sale sola» o «a mano»."
 
+export const RITMO_INVALIDO = "Elige entre 0 y 21 publicaciones por semana."
+const CambioDeRitmo = z.object({ cuentaId: z.uuid(), ritmoSemanal: z.coerce.number().int().min(0).max(21) })
+
 function falla(error: { code?: string; message: string }, porCodigo: Record<string, string>): Resultado {
   const mensaje = error.code ? porCodigo[error.code] : undefined
   if (mensaje) return { ok: false, error: mensaje }
@@ -61,5 +64,17 @@ export async function cambiarRuta(db: Db, entrada: unknown): Promise<Resultado> 
   return falla(error, {
     "42501": "Solo el dueño de la marca puede cambiar cómo sale una cuenta.",
     "22023": RUTA_INVALIDA,
+  })
+}
+
+/** Posts a week: the reserve goal and what the Sunday engine fills. */
+export async function cambiarRitmo(db: Db, entrada: unknown): Promise<Resultado> {
+  const leida = CambioDeRitmo.safeParse(entrada)
+  if (!leida.success) return { ok: false, error: RITMO_INVALIDO }
+  const { error } = await db.rpc("cambiar_ritmo", { p_cuenta: leida.data.cuentaId, p_ritmo: leida.data.ritmoSemanal })
+  if (!error) return { ok: true }
+  return falla(error, {
+    "42501": "Solo el dueño de la marca puede cambiar el ritmo de una cuenta.",
+    "23514": RITMO_INVALIDO,
   })
 }
