@@ -7,6 +7,7 @@ import { MarcaDeEstado } from "../marca-de-estado"
 
 const FORMATO_DEL_LUNES = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long" })
 const ENLACE = "boton w-full justify-start px-3 py-3 text-sm"
+const FILA = `${ENLACE} flex-col items-stretch gap-1 py-3`
 
 function nombreDelLunes(lunes: string): string {
   const [anio, mes, dia] = lunes.split("-").map(Number)
@@ -25,21 +26,23 @@ interface Props {
 
 function Pieza({ p }: { p: PiezaDelCalendario }) {
   return (
-    <Link href={rutaDePieza(p.id)} className={`${ENLACE} space-y-1 ${p.firmada ? "" : "border-dashed text-apagado"}`}>
-      <span className="block whitespace-nowrap">{fechaDeFila(p.instante)}</span>
-      <span className="block">{p.extracto}</span>
-      <span className="block text-apagado">
-        {p.firmada ? <MarcaDeEstado estado={p.estado} /> : "Planeada, sin firma"}
+    <Link href={rutaDePieza(p.id)} className={`${FILA} ${p.firmada ? "" : "border-dashed text-apagado"}`}>
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="whitespace-nowrap">{fechaDeFila(p.instante)}</span>
+        <span className="text-apagado">{p.firmada ? <MarcaDeEstado estado={p.estado} /> : "Planeada, sin firma"}</span>
       </span>
+      <span className="block text-left">{p.extracto}</span>
     </Link>
   )
 }
 
 function Asignacion({ a }: { a: AsignacionDelCalendario }) {
   return (
-    <Link href={rutaDeIdea(a.ideaId, a.investigacionId)} className={`${ENLACE} space-y-1 border-dashed text-apagado`}>
-      <span className="block whitespace-nowrap">{fechaDeFila(a.instante)}</span>
-      <span className="block">{`${a.estado === "escribiendo" ? "Escribiendo" : "Por escribir"} · ${a.gancho}`}</span>
+    <Link href={rutaDeIdea(a.ideaId, a.investigacionId)} className={`${FILA} border-dashed text-apagado`}>
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="whitespace-nowrap">{fechaDeFila(a.instante)}</span>
+      </span>
+      <span className="block text-left">{`${a.estado === "escribiendo" ? "Escribiendo" : "Por escribir"} · ${a.gancho}`}</span>
     </Link>
   )
 }

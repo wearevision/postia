@@ -7,6 +7,8 @@ import type { Resultado } from "@/lib/marcas/acciones"
 
 interface Props {
   sugerencias: Sugerencia[]
+  /** Runs after a research was asked for successfully. */
+  alPedir?: () => void
   pedir: (entrada: {
     tema: string
     cantidad: number
@@ -30,7 +32,7 @@ const ENFOQUES: { valor: Enfoque; nombre: string }[] = [
 const CAMPO = "campo w-full"
 const OPCION = "boton text-sm aria-pressed:bg-primario aria-pressed:text-primario-texto aria-pressed:shadow-hundido"
 
-export function FormularioDeInvestigacion({ sugerencias, pedir }: Props) {
+export function FormularioDeInvestigacion({ sugerencias, pedir, alPedir }: Props) {
   const [tema, setTema] = useState("")
   const [cantidad, setCantidad] = useState<number>(5)
   const [formato, setFormato] = useState<FormatoDeInvestigacion>("carrusel_pdf")
@@ -48,6 +50,7 @@ export function FormularioDeInvestigacion({ sugerencias, pedir }: Props) {
       if (!resultado.ok) return setError(resultado.error)
       setTema("")
       setListo(true)
+      alPedir?.()
     })
   }
 

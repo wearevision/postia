@@ -104,4 +104,20 @@ describe("VistaDeSemana", () => {
     // Ordered by time with the account's pieces: after Tuesday's and Wednesday's.
     expect(within(perfil).getAllByRole("link").at(-1)).toBe(enlace)
   })
+
+  test("a row stacks as a column: date and status on the first line, the excerpt below, left-aligned", () => {
+    render(<VistaDeSemana lunes="2026-10-26" cuentas={CUENTAS} piezas={PIEZAS} asignaciones={ASIGNACIONES} />)
+    const pieza = screen.getByRole("link", { name: /Sin firma/ })
+    expect(pieza).toHaveClass("flex-col", "items-stretch")
+    const fecha = within(pieza).getByText("mié 28 · 11:00")
+    const extracto = within(pieza).getByText("Sin firma")
+    expect(fecha.parentElement).toContainElement(within(pieza).getByText("Planeada, sin firma"))
+    expect(fecha.parentElement).not.toContainElement(extracto)
+    expect(extracto).toHaveClass("text-left")
+    const asignacion = screen.getByRole("link", { name: /Los focus groups no mueren/ })
+    expect(asignacion).toHaveClass("flex-col", "items-stretch")
+    expect(within(asignacion).getByText("jue 29 · 11:00").parentElement).not.toContainElement(
+      within(asignacion).getByText("Por escribir · Los focus groups no mueren"),
+    )
+  })
 })

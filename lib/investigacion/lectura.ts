@@ -79,6 +79,8 @@ export interface InformeDeInvestigacion {
   motivo: string | null
   creadaEn: string
   angulos: AnguloDeInforme[]
+  /** How many proposals the series will ask for; null on a research asked for before the count existed. */
+  cantidad: number | null
   /** Findings refused as already in the map. */
   repetidos: number
   /** Sources dropped as invented or from LinkedIn. */
@@ -92,7 +94,7 @@ export async function informe(db: Db, id: string): Promise<InformeDeInvestigacio
   if (!z.uuid().safeParse(id).success) return null
   const { data: i, error } = await db
     .from("investigaciones")
-    .select("id, tema, origen, estado, motivo, creada_en, angulos, repetidos, descartados")
+    .select("id, tema, origen, estado, motivo, creada_en, angulos, cantidad, repetidos, descartados")
     .eq("id", id)
     .maybeSingle()
   if (error) fallo("No pude leer el informe", error)
@@ -138,6 +140,7 @@ export async function informe(db: Db, id: string): Promise<InformeDeInvestigacio
     motivo: i.motivo,
     creadaEn: i.creada_en,
     angulos,
+    cantidad: i.cantidad,
     repetidos: i.repetidos,
     descartados: i.descartados,
   }
