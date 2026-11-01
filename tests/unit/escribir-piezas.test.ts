@@ -42,6 +42,7 @@ const TEXTO: AsignacionAEscribir = {
   id: "a-texto",
   cuentaId: "cuenta-wav",
   formato: "texto",
+  tema: null,
   planeadaPara: JUEVES_15,
   idea: {
     gancho: "Los focus groups no son lo que crees",
@@ -62,6 +63,7 @@ const CARRUSEL: AsignacionAEscribir = {
   id: "a-carrusel",
   cuentaId: "cuenta-fede",
   formato: "carrusel_pdf",
+  tema: null,
   planeadaPara: JUEVES_11,
   idea: {
     gancho: "Tres mitos",
@@ -224,6 +226,24 @@ describe("escribirPiezas", () => {
       planeadaPara: new Date(JUEVES_11),
     })
     expect(p.crearPiezaDeAsignacion).not.toHaveBeenCalled()
+  })
+
+  test("a carousel whose theme Federico chose is written with that theme only, even one of another brand", async () => {
+    const pedir = vi.fn<Pedir>(async () =>
+      json({
+        texto: "Abre el carrusel. Fuente: Medio.",
+        titulo: "Tres mitos",
+        tema: "wav-noche",
+        antetitulo: "Federico Elgueta",
+        laminas: LAMINAS,
+      }),
+    )
+    const p = puertos([{ ...CARRUSEL, tema: "wav-noche" }], { pedir })
+    expect(await escribirPiezas(p, AHORA)).toEqual({ escritas: 1, fallidas: 0 })
+    const [, pedido] = vi.mocked(pedir).mock.calls[0] ?? []
+    expect(pedido?.sistema).toContain("wav-noche")
+    expect(pedido?.sistema).not.toContain("personal-claro")
+    expect(p.pedirDisenoDeAsignacion).toHaveBeenCalledWith("a-carrusel", expect.objectContaining({ tema: "wav-noche" }))
   })
 
   test("a date less than 2 hours away moves the piece to the account's next free slot", async () => {

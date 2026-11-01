@@ -5,8 +5,8 @@ import { AprobarSerie, SerieEnCurso, TarjetaDeIdea } from "@/app/(app)/ideas/ide
 import { fechaCorta } from "@/lib/piezas/fechas"
 import type { IdeaDeSerie, IdeaSuelta } from "@/lib/series/lectura"
 
-const PERFIL = { id: "c-perfil", nombre: "Federico" }
-const PAGINA = { id: "c-pagina", nombre: "Página de WAV" }
+const PERFIL = { id: "c-perfil", nombre: "Federico", voz: "yo" as const }
+const PAGINA = { id: "c-pagina", nombre: "Página de WAV", voz: "nosotros" as const }
 
 const PROPUESTA: IdeaDeSerie = {
   id: "i1",
@@ -135,7 +135,33 @@ describe("TarjetaDeIdea", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Federico" }))
     fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
     await act(() => vi.advanceTimersByTimeAsync(10_000))
-    expect(a.aprobar).toHaveBeenCalledWith("i1", [PERFIL.id, PAGINA.id])
+    expect(a.aprobar).toHaveBeenCalledWith("i1", [PERFIL.id, PAGINA.id], "wav-noche")
+  })
+
+  test("a carousel proposal shows its template, the account's own preselected, and approves with the one chosen", async () => {
+    vi.useFakeTimers()
+    const a = tarjeta(PROPUESTA)
+    const chip = screen.getByRole("button", { name: "Plantilla: WAV noche" })
+    expect(chip).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(chip)
+    const plantillas = screen.getByRole("group", { name: "Plantilla" })
+    expect(within(plantillas).getAllByRole("radio")).toHaveLength(9)
+    expect(within(plantillas).getByRole("radio", { name: "WAV noche" })).toBeChecked()
+    fireEvent.click(within(plantillas).getByRole("radio", { name: "Personal arena" }))
+    expect(screen.getByRole("button", { name: "Plantilla: Personal arena" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    expect(a.aprobar).toHaveBeenCalledWith("i1", [PAGINA.id], "personal-arena")
+  })
+
+  test("a carousel suggested for Federico starts on his own template", () => {
+    tarjeta({ ...PROPUESTA, cuentaSugerida: PERFIL })
+    expect(screen.getByRole("button", { name: "Plantilla: Personal claro" })).toBeInTheDocument()
+  })
+
+  test("a text proposal has no template to choose", () => {
+    tarjeta(CRUCE)
+    expect(screen.queryByRole("button", { name: /Plantilla/ })).not.toBeInTheDocument()
   })
 
   test("with no account checked it asks for one instead of calling", () => {
@@ -414,17 +440,51 @@ describe("the accounts during the countdown", () => {
 describe("AprobarSerie", () => {
   test("asks to confirm with the number of pieces and the cost before approving", async () => {
     const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))
-    render(<AprobarSerie investigacionId="inv1" formatos={["texto", "carrusel_pdf"]} aprobar={aprobar} />)
+    render(
+      <AprobarSerie
+        investigacionId="inv1"
+        temaInicial="wav-noche"
+        formatos={["texto", "carrusel_pdf"]}
+        aprobar={aprobar}
+      />,
+    )
     fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
     expect(aprobar).not.toHaveBeenCalled()
     expect(screen.getByText("Claude escribe 2 piezas en unos minutos. Cuesta cerca de US$0,40.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }))
+    await waitFor(() => expect(aprobar).toHaveBeenCalledWith("inv1", "wav-noche"))
+  })
+
+  test("a series with carousels lets one template be chosen for all of them before confirming", async () => {
+    const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 2 }))
+    render(
+      <AprobarSerie
+        investigacionId="inv1"
+        temaInicial="wav-noche"
+        formatos={["carrusel_pdf", "carrusel_pdf"]}
+        aprobar={aprobar}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
+    const plantillas = screen.getByRole("group", { name: "Plantilla de los carruseles" })
+    expect(within(plantillas).getAllByRole("radio")).toHaveLength(9)
+    fireEvent.click(within(plantillas).getByRole("radio", { name: "WR3 papel" }))
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }))
+    await waitFor(() => expect(aprobar).toHaveBeenCalledWith("inv1", "papel"))
+  })
+
+  test("a series of text posts has no template to choose", async () => {
+    const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))
+    render(<AprobarSerie investigacionId="inv1" temaInicial="wav-noche" formatos={["texto"]} aprobar={aprobar} />)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
+    expect(screen.queryByRole("group", { name: "Plantilla de los carruseles" })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Confirmar" }))
     await waitFor(() => expect(aprobar).toHaveBeenCalledWith("inv1"))
   })
 
   test("cancel goes back without approving", () => {
     const aprobar = vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))
-    render(<AprobarSerie investigacionId="inv1" formatos={["texto"]} aprobar={aprobar} />)
+    render(<AprobarSerie investigacionId="inv1" temaInicial="wav-noche" formatos={["texto"]} aprobar={aprobar} />)
     fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
     expect(screen.getByRole("button", { name: "Aprobar la serie" })).toBeInTheDocument()
@@ -439,6 +499,7 @@ describe("a series while one of its cards counts down", () => {
     render(
       <SerieEnCurso>
         <AprobarSerie
+          temaInicial="wav-noche"
           investigacionId="inv1"
           formatos={["texto"]}
           aprobar={vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))}
@@ -460,6 +521,7 @@ describe("a series while one of its cards counts down", () => {
     render(
       <SerieEnCurso>
         <AprobarSerie
+          temaInicial="wav-noche"
           investigacionId="inv1"
           formatos={["texto"]}
           aprobar={vi.fn(async () => ({ ok: true as const, aprobadas: 1 }))}
@@ -490,7 +552,7 @@ describe("approving one idea", () => {
     await act(() => vi.advanceTimersByTimeAsync(9_900))
     expect(a.aprobar).not.toHaveBeenCalled()
     await act(() => vi.advanceTimersByTimeAsync(100))
-    expect(a.aprobar).toHaveBeenCalledWith("i1", ["c-pagina"])
+    expect(a.aprobar).toHaveBeenCalledWith("i1", ["c-pagina"], "wav-noche")
   })
 
   test("the countdown text ticks down every second until it approves", async () => {
@@ -660,7 +722,12 @@ describe("the confirmation after approving", () => {
     render(
       <ConfirmacionesProvider>
         <Confirmaciones />
-        <AprobarSerie investigacionId="inv1" formatos={["texto", "texto", "texto"]} aprobar={aprobar} />
+        <AprobarSerie
+          investigacionId="inv1"
+          temaInicial="wav-noche"
+          formatos={["texto", "texto", "texto"]}
+          aprobar={aprobar}
+        />
       </ConfirmacionesProvider>,
     )
     fireEvent.click(screen.getByRole("button", { name: "Aprobar la serie" }))

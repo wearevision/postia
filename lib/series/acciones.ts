@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { repartirFechas } from "@/lib/piezas/horarios"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
+import { esTema } from "@/lib/plantillas/temas"
 import type { Db } from "@/lib/supabase/database"
 import { leerEsqueleto } from "./esqueleto"
 import { LARGO_DE_GANCHO } from "./propuestas"
@@ -39,6 +40,8 @@ const Aprobacion = z.object({
     .array(z.uuid("Revisa las cuentas elegidas."))
     .min(1, "Elige al menos una cuenta.")
     .max(10, "Son 10 cuentas como máximo."),
+  /** A carousel's template, chosen before it is designed. */
+  tema: z.string().refine(esTema, "Elige una de las plantillas.").optional(),
 })
 
 async function fechasPropuestas(
@@ -87,7 +90,8 @@ export async function aprobarIdea(
   const cuentas = [...new Set(leida.data.cuentas)]
   try {
     for (let intento = 0; ; intento++) {
-      const asignaciones = await fechasPropuestas(db, cuentas, ahora)
+      const { tema } = leida.data
+      const asignaciones = (await fechasPropuestas(db, cuentas, ahora)).map((a) => ({ ...a, ...(tema && { tema }) }))
       const { error } = await db.rpc("aprobar_idea", { p_idea: leida.data.ideaId, p_asignaciones: asignaciones })
       if (!error) {
         return {
@@ -109,16 +113,20 @@ export async function aprobarIdea(
   }
 }
 
-/** Every proposal of the series, in its order, with its suggested account: each takes the next free slot. */
+/**
+ * Every proposal of the series, in its order, with its suggested account: each takes the next free slot. Its carousels
+ * all take `tema`, the template chosen for the series.
+ */
 export async function aprobarSerie(
   db: Db,
   investigacionId: string,
+  tema?: string,
   ahora = Date.now(),
 ): Promise<Resultado<{ aprobadas: number }>> {
   if (!Id.safeParse(investigacionId).success) return { ok: false, error: "Revisa la serie." }
   const { data, error } = await db
     .from("ideas")
-    .select("id, cuenta_sugerida")
+    .select("id, cuenta_sugerida, formato")
     .eq("investigacion_id", investigacionId)
     .eq("estado", "propuesta")
     .order("orden")
@@ -126,7 +134,8 @@ export async function aprobarSerie(
   if (data.length === 0) return { ok: false, error: "Esta serie no tiene propuestas por aprobar." }
   let aprobadas = 0
   for (const idea of data) {
-    const r = await aprobarIdea(db, { ideaId: idea.id, cuentas: [idea.cuenta_sugerida] }, ahora)
+    const deLaIdea = idea.formato === "carrusel_pdf" ? tema : undefined
+    const r = await aprobarIdea(db, { ideaId: idea.id, cuentas: [idea.cuenta_sugerida], tema: deLaIdea }, ahora)
     if (r.ok) {
       aprobadas++
       continue

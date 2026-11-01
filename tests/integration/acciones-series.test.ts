@@ -129,7 +129,7 @@ async function sueltas(origen: "cruce" | "domingo", ideas: { gancho: string; fue
 async function asignacionesDe(ideaId: string) {
   const { data, error } = await admin()
     .from("asignaciones")
-    .select("id, cuenta_id, planeada_para, estado")
+    .select("id, cuenta_id, planeada_para, estado, tema")
     .eq("idea_id", ideaId)
     .order("planeada_para")
   if (error) throw error
@@ -186,6 +186,23 @@ describe("aprobarIdea", () => {
     const [a] = await asignacionesDe(idea)
     expect(a).toMatchObject({ cuenta_id: perfil, estado: "por_escribir" })
     expect(Date.parse(a?.planeada_para ?? "")).toBe(esperada.getTime())
+  })
+
+  test("keeps the chosen theme on every account's assignment of a carousel", async () => {
+    const informe = await informeAprobado()
+    const [idea] = await serieDe(informe, [{ gancho: "Con plantilla", cuenta: perfil, formato: "carrusel_pdf" }])
+    const r = await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil, pagina], tema: "wav-degradado" })
+    expect(r.ok).toBe(true)
+    expect((await asignacionesDe(idea)).map((a) => a.tema)).toEqual(["wav-degradado", "wav-degradado"])
+  })
+
+  test("refuses a theme that is not one of the nine", async () => {
+    const informe = await informeAprobado()
+    const [idea] = await serieDe(informe, [{ gancho: "Tema raro", cuenta: perfil, formato: "carrusel_pdf" }])
+    expect(await aprobarIdea(dueno.db, { ideaId: idea, cuentas: [perfil], tema: "neon" })).toEqual({
+      ok: false,
+      error: "Elige una de las plantillas.",
+    })
   })
 
   test("one idea for two accounts is one assignment per account, each on its own slot hour", async () => {
@@ -294,6 +311,17 @@ describe("aprobarSerie", () => {
     const [tercera] = await asignacionesDe(c)
     expect(primera?.cuenta_id).toBe(perfil)
     expect(Date.parse(tercera?.planeada_para ?? "")).toBeGreaterThan(Date.parse(primera?.planeada_para ?? ""))
+  })
+
+  test("gives the chosen theme to the series' carousels and leaves its text posts without one", async () => {
+    const informe = await informeAprobado()
+    const [carrusel, texto] = await serieDe(informe, [
+      { gancho: "Carrusel de la serie", cuenta: perfil, formato: "carrusel_pdf" },
+      { gancho: "Texto de la serie", cuenta: pagina },
+    ])
+    expect(await aprobarSerie(dueno.db, informe.id, "papel")).toEqual({ ok: true, aprobadas: 2 })
+    expect((await asignacionesDe(carrusel)).map((a) => a.tema)).toEqual(["papel"])
+    expect((await asignacionesDe(texto)).map((a) => a.tema)).toEqual([null])
   })
 
   test("skips an idea approved on its own while the series was being approved and keeps going", async () => {

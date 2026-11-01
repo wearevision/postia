@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState, useTransition } from "r
 import { enDolares } from "@/lib/gasto/precios"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import { type IdDeTema, TEMAS, temaInicial, temasParaElegir } from "@/lib/plantillas/temas"
 import type { AsignacionAprobada } from "@/lib/series/acciones"
 import { costoAproximado } from "@/lib/series/costo"
 import { lineaDelPaso, textoDelEsqueleto } from "@/lib/series/esqueleto"
@@ -118,11 +119,42 @@ function Alerta({ error }: { error: string | null }) {
 }
 
 interface Acciones {
-  aprobar: (ideaId: string, cuentas: string[]) => Promise<Resultado<{ asignaciones: AsignacionAprobada[] }>>
+  aprobar: (
+    ideaId: string,
+    cuentas: string[],
+    tema?: IdDeTema,
+  ) => Promise<Resultado<{ asignaciones: AsignacionAprobada[] }>>
   descartar: (ideaId: string) => Promise<Resultado>
   pedirOtra: (ideaId: string) => Promise<Resultado>
   editar: (ideaId: string, gancho: string, esqueleto: string) => Promise<Resultado>
   mover: (asignacionId: string, planeadaPara: string) => Promise<Resultado>
+}
+
+/** A carousel's template, chosen before anything is designed; the account's own family goes first. */
+function ElegirPlantilla({
+  nombre,
+  voz,
+  tema,
+  elegir,
+  disabled = false,
+}: {
+  nombre: string
+  voz: CuentaParaIdeas["voz"]
+  tema: IdDeTema
+  elegir: (tema: IdDeTema) => void
+  disabled?: boolean
+}) {
+  return (
+    <fieldset disabled={disabled} className="space-y-1">
+      <legend className="text-sm">{nombre}</legend>
+      {temasParaElegir(voz).map((t) => (
+        <label key={t} className="flex min-h-11 items-center gap-3">
+          <input type="radio" checked={tema === t} onChange={() => elegir(t)} className="size-5" />
+          <span>{TEMAS[t].nombre}</span>
+        </label>
+      ))}
+    </fieldset>
+  )
 }
 
 function Asignacion({ a, mover }: { a: AsignacionDeIdea; mover: Acciones["mover"] }) {
@@ -280,6 +312,9 @@ function Revision({
   detalle: React.ReactNode
 } & Acciones) {
   const [editando, setEditando] = useState(false)
+  const esCarrusel = idea.formato === "carrusel_pdf"
+  const [tema, setTema] = useState<IdDeTema>(() => temaInicial(idea.cuentaSugerida.voz))
+  const [eligiendoPlantilla, setEligiendoPlantilla] = useState(false)
   const { error, setError, pendiente, ejecutar } = useAccion()
   const diferida = useAccionDiferida()
   const avisar = useAvisar()
@@ -301,7 +336,7 @@ function Revision({
     if (ids.length === 0) return setError("Elige al menos una cuenta.")
     diferida.programar(() =>
       ejecutar(
-        () => a.aprobar(idea.id, ids),
+        () => (esCarrusel ? a.aprobar(idea.id, ids, tema) : a.aprobar(idea.id, ids)),
         ({ asignaciones }) => {
           if (asignaciones.length === 0) return
           const porFecha = [...asignaciones].sort((x, y) => x.planeadaPara.localeCompare(y.planeadaPara))
@@ -314,16 +349,39 @@ function Revision({
 
   return (
     <div className="space-y-3">
-      <button
-        type="button"
-        disabled={ocupada}
-        onClick={abrirDetalle}
-        aria-expanded={abierta}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-borde px-4 text-sm disabled:opacity-60"
-      >
-        Para: {nombres.length > 0 ? nombres.join(", ") : "elegir cuenta"}
-        <ChevronDown aria-hidden="true" strokeWidth={1.75} className="size-4 shrink-0" />
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={ocupada}
+          onClick={abrirDetalle}
+          aria-expanded={abierta}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-borde px-4 text-sm disabled:opacity-60"
+        >
+          Para: {nombres.length > 0 ? nombres.join(", ") : "elegir cuenta"}
+          <ChevronDown aria-hidden="true" strokeWidth={1.75} className="size-4 shrink-0" />
+        </button>
+        {esCarrusel && (
+          <button
+            type="button"
+            disabled={ocupada}
+            onClick={() => setEligiendoPlantilla(!eligiendoPlantilla)}
+            aria-expanded={eligiendoPlantilla}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-borde px-4 text-sm disabled:opacity-60"
+          >
+            Plantilla: {TEMAS[tema].nombre}
+            <ChevronDown aria-hidden="true" strokeWidth={1.75} className="size-4 shrink-0" />
+          </button>
+        )}
+      </div>
+      {esCarrusel && eligiendoPlantilla && (
+        <ElegirPlantilla
+          nombre="Plantilla"
+          voz={idea.cuentaSugerida.voz}
+          tema={tema}
+          elegir={setTema}
+          disabled={ocupada}
+        />
+      )}
       <div className="grid grid-cols-2 gap-2">
         {diferida.esperando ? (
           <button type="button" onClick={diferida.cancelar} className={BOTON}>
@@ -453,12 +511,17 @@ export function TarjetaDeIdea({
 export function AprobarSerie({
   investigacionId,
   formatos,
+  temaInicial: inicial,
   aprobar,
 }: {
   investigacionId: string
   formatos: readonly FormatoDeIdea[]
-  aprobar: (investigacionId: string) => Promise<Resultado<{ aprobadas: number }>>
+  /** Where the series' carousels start, before Federico picks another template. */
+  temaInicial: IdDeTema
+  aprobar: (investigacionId: string, tema?: IdDeTema) => Promise<Resultado<{ aprobadas: number }>>
 }) {
+  const [tema, setTema] = useState(inicial)
+  const conCarruseles = formatos.includes("carrusel_pdf")
   const { error, pendiente, ejecutar } = useAccion()
   const avisar = useAvisar()
   const { enCurso } = useContext(ConteoDeSerieContexto)
@@ -482,13 +545,22 @@ export function AprobarSerie({
       <p>
         Claude escribe {piezas} en unos minutos. Cuesta cerca de {enDolares(costoAproximado(formatos))}.
       </p>
+      {conCarruseles && (
+        <ElegirPlantilla
+          nombre="Plantilla de los carruseles"
+          voz={TEMAS[inicial].familia === "personal" ? "yo" : "nosotros"}
+          tema={tema}
+          elegir={setTema}
+          disabled={pendiente}
+        />
+      )}
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           disabled={pendiente || esperaAprobacion}
           onClick={() =>
             ejecutar(
-              () => aprobar(investigacionId),
+              () => (conCarruseles ? aprobar(investigacionId, tema) : aprobar(investigacionId)),
               ({ aprobadas }) => avisar({ tipo: "serie", aprobadas }),
             )
           }

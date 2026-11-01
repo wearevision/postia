@@ -36,7 +36,7 @@ export interface IdeaDeSerie {
   formato: FormatoDeIdea
   esqueleto: PasoDeEsqueleto[]
   fuentes: FuenteDeIdea[]
-  cuentaSugerida: { id: string; nombre: string }
+  cuentaSugerida: CuentaParaIdeas
   razon: string
   asignaciones: AsignacionDeIdea[]
   /** A replacement job for this idea is queued or running. */
@@ -79,7 +79,12 @@ export interface IdeasYSeries {
 export interface CuentaParaIdeas {
   id: string
   nombre: string
+  /** Its brand's voice: picks the template a carousel for it starts on. */
+  voz: "yo" | "nosotros"
 }
+
+/** RLS hides another owner's brand; its voice only picks a starting template, so the brand voice is the safe guess. */
+const vozDe = (marca: { voz: string } | null): CuentaParaIdeas["voz"] => (marca?.voz === "yo" ? "yo" : "nosotros")
 
 const Esqueleto = z.array(
   z.union([z.object({ tipo: z.enum(TIPOS_DE_LAMINA), idea: z.string() }), z.object({ idea: z.string() })]),
@@ -106,7 +111,7 @@ type FilaDeIdea = {
   esqueleto: unknown
   razon: string
   cuenta_sugerida: string
-  cuentas: { nombre: string } | null
+  cuentas: { nombre: string; marcas: { voz: string } | null } | null
   asignaciones: {
     id: string
     cuenta_id: string
@@ -128,7 +133,7 @@ function ideaLeida(i: FilaDeIdea, pidiendoOtra: boolean): Omit<IdeaDeSerie, "fue
     resumen: i.resumen,
     formato: i.formato === "carrusel_pdf" ? "carrusel_pdf" : "texto",
     esqueleto: Esqueleto.catch([]).parse(i.esqueleto),
-    cuentaSugerida: { id: i.cuenta_sugerida, nombre: i.cuentas?.nombre ?? "" },
+    cuentaSugerida: { id: i.cuenta_sugerida, nombre: i.cuentas?.nombre ?? "", voz: vozDe(i.cuentas?.marcas ?? null) },
     razon: i.razon,
     asignaciones: [...i.asignaciones]
       .sort((a, b) => Date.parse(a.planeada_para) - Date.parse(b.planeada_para))
@@ -161,7 +166,7 @@ export async function series(db: Db, filtro: { investigacionId?: string } = {}):
   let consulta = db
     .from("investigaciones")
     .select(
-      "id, tema, cantidad, creada_en, hallazgos(id, medio, enlace, publicado_en), trabajos_de_investigacion!trabajos_de_investigacion_investigacion_id_fkey(tipo, estado, motivo, idea_id, creado_en), ideas!ideas_investigacion_id_fkey(id, orden, estado, gancho, resumen, formato, esqueleto, fuentes, razon, cuenta_sugerida, cuentas!ideas_cuenta_sugerida_fkey(id, nombre), asignaciones(id, cuenta_id, planeada_para, estado, motivo, pieza_id, cuentas(nombre)))",
+      "id, tema, cantidad, creada_en, hallazgos(id, medio, enlace, publicado_en), trabajos_de_investigacion!trabajos_de_investigacion_investigacion_id_fkey(tipo, estado, motivo, idea_id, creado_en), ideas!ideas_investigacion_id_fkey(id, orden, estado, gancho, resumen, formato, esqueleto, fuentes, razon, cuenta_sugerida, cuentas!ideas_cuenta_sugerida_fkey(id, nombre, marcas(voz)), asignaciones(id, cuenta_id, planeada_para, estado, motivo, pieza_id, cuentas(nombre)))",
     )
     .eq("estado", "aprobada")
     .order("creada_en", { ascending: false })
@@ -204,7 +209,7 @@ export async function series(db: Db, filtro: { investigacionId?: string } = {}):
 }
 
 const COLUMNAS_DE_SUELTA =
-  "id, orden, estado, gancho, resumen, formato, esqueleto, fuentes, razon, cuenta_sugerida, creada_en, cuentas!ideas_cuenta_sugerida_fkey(nombre), asignaciones(id, cuenta_id, planeada_para, estado, motivo, pieza_id, cuentas(nombre)), trabajos_de_investigacion!trabajos_de_investigacion_idea_id_fkey(estado)"
+  "id, orden, estado, gancho, resumen, formato, esqueleto, fuentes, razon, cuenta_sugerida, creada_en, cuentas!ideas_cuenta_sugerida_fkey(nombre, marcas(voz)), asignaciones(id, cuenta_id, planeada_para, estado, motivo, pieza_id, cuentas(nombre)), trabajos_de_investigacion!trabajos_de_investigacion_idea_id_fkey(estado)"
 
 /** With a state, the filter runs here: the newest 30 of that state, not the newest 30 then filtered. */
 async function sueltasDe(db: Db, origen: OrigenSuelto, estado: EstadoDeIdea | null) {
@@ -287,9 +292,9 @@ export async function conteosDeIdeas(db: Db, investigacionId?: string): Promise<
 
 /** The accounts a person can confirm an idea for. */
 export async function cuentasParaIdeas(db: Db): Promise<CuentaParaIdeas[]> {
-  const { data, error } = await db.from("cuentas").select("id, nombre").order("nombre")
+  const { data, error } = await db.from("cuentas").select("id, nombre, marcas(voz)").order("nombre")
   if (error) fallo("No pude leer las cuentas", error)
-  return data
+  return data.map((c) => ({ id: c.id, nombre: c.nombre, voz: vozDe(c.marcas) }))
 }
 
 /** A report approved before 4f, or whose series did not come out, can ask for one (pedir_serie decides). */

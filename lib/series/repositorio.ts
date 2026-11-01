@@ -6,6 +6,7 @@ import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { TIPOS_DE_LAMINA } from "@/lib/plantillas/laminas"
+import { esTema } from "@/lib/plantillas/temas"
 import { nombresVetados } from "@/lib/redaccion/instrucciones"
 import { contextoDeRedaccion, repositorioDeRedaccion } from "@/lib/redaccion/repositorio"
 import type { Db } from "@/lib/supabase/database"
@@ -23,6 +24,13 @@ function fallo(accion: string, error: { message: string }): never {
 
 const Angulos = z.array(z.object({ nombre: z.string(), por_que: z.string().catch("") }))
 const Formato = z.enum(["texto", "carrusel_pdf"])
+
+/** SQL keeps asignaciones.tema to tema_conocido, which an integration test keeps equal to TEMAS. */
+function temaElegido(tema: string | null) {
+  if (tema === null) return null
+  if (!esTema(tema)) throw new Error(`Plantilla desconocida en una asignación: ${tema}`)
+  return tema
+}
 
 export function repositorioDeSeries(db: Db): Omit<PuertosDeSerie, "pedir" | "embeberIdeas"> {
   return {
@@ -206,6 +214,7 @@ export function repositorioDeEscritura(db: Db): Omit<PuertosDeEscritura, "pedir"
           id: a.id,
           cuentaId: a.cuenta_id,
           formato: Formato.parse(a.formato),
+          tema: temaElegido(a.tema),
           planeadaPara: Date.parse(a.planeada_para),
           idea: {
             gancho: idea.gancho,

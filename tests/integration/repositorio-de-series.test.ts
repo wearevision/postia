@@ -354,7 +354,7 @@ function habil(dias: number): number {
 }
 
 /** An approved idea of this test's account, with its one assignment on `fecha`. */
-async function asignada(formato: "texto" | "carrusel_pdf", fecha: number) {
+async function asignada(formato: "texto" | "carrusel_pdf", fecha: number, tema?: string) {
   await cerrarAsignacionesAbiertas()
   const { id, hallazgos } = await informeAprobado()
   await cerrarTrabajosAbiertos()
@@ -373,7 +373,7 @@ async function asignada(formato: "texto" | "carrusel_pdf", fecha: number) {
   ])
   const { data, error } = await dueno.db.rpc("aprobar_idea", {
     p_idea: ideaId ?? "",
-    p_asignaciones: [{ cuenta, planeada_para: new Date(fecha).toISOString() }],
+    p_asignaciones: [{ cuenta, planeada_para: new Date(fecha).toISOString(), ...(tema && { tema }) }],
   })
   if (error) throw error
   return { idea: ideaId ?? "", asignacion: (data as string[])[0] ?? "", hallazgos }
@@ -413,6 +413,7 @@ describe("repositorioDeEscritura", () => {
       id,
       cuentaId: cuenta,
       formato: "carrusel_pdf",
+      tema: null,
       planeadaPara: fecha,
       idea: {
         gancho: "Idea de carrusel_pdf",
@@ -427,6 +428,13 @@ describe("repositorioDeEscritura", () => {
     })
     expect(tomada?.hallazgos).toHaveLength(2)
     expect(await asignacion(id)).toMatchObject({ estado: "escribiendo", intentos: 1 })
+  })
+
+  test("leases a carousel with the theme Federico chose when he approved it", async () => {
+    const fecha = habil(10)
+    await asignada("carrusel_pdf", fecha, "magenta")
+    const [tomada] = await escritura().tomarAsignaciones(fecha, 3)
+    expect(tomada?.tema).toBe("magenta")
   })
 
   test("builds the account's writing context from its brand's line", async () => {

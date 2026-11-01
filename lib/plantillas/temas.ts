@@ -111,6 +111,11 @@ export function temasDeLaVoz(voz: "yo" | "nosotros"): IdDeTema[] {
   return IDS_DE_TEMA.filter((t) => (voz === "yo" ? familiaDe(t) === "personal" : familiaDe(t) !== "personal"))
 }
 
+/** The template a carousel for an account of this voice starts on, before Federico picks another. */
+export function temaInicial(voz: "yo" | "nosotros"): IdDeTema {
+  return voz === "yo" ? "personal-claro" : "wav-noche"
+}
+
 /** Every theme can be chosen by hand for any account (SQL tema_conocido); the account's own family goes first. */
 export function temasParaElegir(voz: "yo" | "nosotros"): IdDeTema[] {
   const propios = temasDeLaVoz(voz)

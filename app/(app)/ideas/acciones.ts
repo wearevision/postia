@@ -30,13 +30,17 @@ async function conRevalidacion<T extends Resultado>(resultado: Promise<T>): Prom
 export async function aprobarIdeaAccion(
   ideaId: string,
   cuentas: string[],
+  tema?: string,
 ): Promise<Resultado<{ asignaciones: AsignacionAprobada[] }>> {
-  return conRevalidacion(aprobarIdea(await createActionClient(), { ideaId, cuentas }))
+  return conRevalidacion(aprobarIdea(await createActionClient(), { ideaId, cuentas, tema }))
 }
 
-export async function aprobarSerieAccion(investigacionId: string): Promise<Resultado<{ aprobadas: number }>> {
+export async function aprobarSerieAccion(
+  investigacionId: string,
+  tema?: string,
+): Promise<Resultado<{ aprobadas: number }>> {
   // A partial approval changes the page too (some proposals are now approved), so revalidate on every result.
-  const r = await aprobarSerie(await createActionClient(), investigacionId)
+  const r = await aprobarSerie(await createActionClient(), investigacionId, tema)
   revalidar()
   return r
 }

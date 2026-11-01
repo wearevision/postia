@@ -48,6 +48,7 @@ export type Database = {
           pedido_de_diseno_id: string | null
           pieza_id: string | null
           planeada_para: string
+          tema: string | null
         }
         Insert: {
           arrendado_hasta?: string | null
@@ -62,6 +63,7 @@ export type Database = {
           pedido_de_diseno_id?: string | null
           pieza_id?: string | null
           planeada_para: string
+          tema?: string | null
         }
         Update: {
           arrendado_hasta?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           pedido_de_diseno_id?: string | null
           pieza_id?: string | null
           planeada_para?: string
+          tema?: string | null
         }
         Relationships: [
           {
@@ -2018,6 +2021,7 @@ export type Database = {
           pedido_de_diseno_id: string | null
           pieza_id: string | null
           planeada_para: string
+          tema: string | null
         }[]
         SetofOptions: {
           from: "*"
