@@ -261,7 +261,7 @@ export default async function Pieza({
         <>
           {version.origen === "claude" && (
             <p className="text-sm text-apagado">
-              Texto escrito con IA: puede tener errores. Léelo entero antes de firmar.
+              Escrito con IA: léelo entero.
             </p>
           )}
           {redaccion.ultimoFallo && <p className="text-sm">{redaccion.ultimoFallo}</p>}

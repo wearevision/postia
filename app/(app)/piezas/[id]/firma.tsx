@@ -156,7 +156,6 @@ export function FirmaDePieza({
       <section className="space-y-2">
         <p>
           Sale el <strong>{fechaLarga(fechaPropuesta)}</strong>
-          <span className="block text-sm text-apagado">Hora de Chile.</span>
         </p>
         {cambiando ? (
           <div className="space-y-2">

@@ -27,7 +27,6 @@ export function Veredicto({ hallazgos }: { hallazgos: Hallazgo[] | null }) {
           <li key={mensaje}>{mensaje}</li>
         ))}
       </ul>
-      <p className="text-sm text-apagado">Puedes firmar igual: tú decides.</p>
     </section>
   )
 }

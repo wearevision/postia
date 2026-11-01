@@ -18,7 +18,8 @@ describe("RevisionDeClaude", () => {
     expect(screen.getByRole("heading", { name: "Revisión de Claude" })).toBeVisible()
     expect(screen.getByText("Voz: Suena a persona")).toBeVisible()
     expect(screen.getByText("«la minera»: Alude a un cliente confidencial")).toBeVisible()
-    expect(screen.getByText("Puedes firmar igual: tú decides.")).toBeVisible()
+    // It shows, it never blocks; the redundant reassurance was cut.
+    expect(screen.queryByText("Puedes firmar igual: tú decides.")).toBeNull()
   })
 
   test("offers a review when the version has none", async () => {

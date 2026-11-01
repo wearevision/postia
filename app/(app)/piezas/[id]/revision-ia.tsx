@@ -62,7 +62,6 @@ export function RevisionDeClaude({
           ))}
         </ul>
       )}
-      <p className="text-sm text-apagado">Puedes firmar igual: tú decides.</p>
     </section>
   )
 }

@@ -36,6 +36,11 @@ describe("FirmaDePieza", () => {
     expect(screen.getByRole("button", { name: "Firmar para el mar 3 nov, 11:00" })).toBeInTheDocument()
   })
 
+  test("does not repeat that the hour is Chile's: every hour in the app is", () => {
+    montar()
+    expect(screen.queryByText("Hora de Chile.")).toBeNull()
+  })
+
   test("no longer renders the post text, which the page shows above", () => {
     montar()
     expect(screen.queryByText("Primera línea", { exact: false })).not.toBeInTheDocument()
