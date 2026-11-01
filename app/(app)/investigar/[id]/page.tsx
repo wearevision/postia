@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { enDolares } from "@/lib/gasto/precios"
 import { limpiarCita } from "@/lib/investigacion/cita"
 import {
   estaAbierta,
@@ -7,6 +8,8 @@ import {
   informe,
   NOMBRE_DEL_ESTADO_DE_INVESTIGACION,
 } from "@/lib/investigacion/lectura"
+import { resumenDelInforme, textoDelResumen } from "@/lib/investigacion/resumen"
+import { CANTIDAD_POR_DEFECTO, estimarSerie } from "@/lib/series/costo"
 import { serieDelInforme } from "@/lib/series/lectura"
 import { RUTA_DE_INVESTIGAR, rutaDeSerie } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
@@ -72,6 +75,16 @@ export default async function Informe({ params }: { params: Promise<{ id: string
   const serie = leido.estado === "aprobada" ? await serieDelInforme(db, leido.id) : null
   const porAprobar = leido.estado === "informe_por_aprobar"
   const total = leido.angulos.reduce((n, a) => n + a.hallazgos.length, 0)
+  const propuestas = leido.cantidad ?? CANTIDAD_POR_DEFECTO
+  const costo = enDolares(
+    estimarSerie({
+      caracteresDelInforme: leido.angulos.reduce(
+        (n, a) => n + a.hallazgos.reduce((m, h) => m + h.resumen.length + h.medio.length + h.enlace.length, 0),
+        0,
+      ),
+      cantidad: propuestas,
+    }),
+  )
 
   return (
     <article className="mx-auto max-w-md space-y-6">
@@ -86,6 +99,17 @@ export default async function Informe({ params }: { params: Promise<{ id: string
         </p>
         {leido.motivo && <p className="text-sm text-peligro">{leido.motivo}</p>}
       </header>
+      {porAprobar && (
+        <section aria-label="Decisión" className="space-y-3 tarjeta p-3">
+          <p className="text-sm font-medium">{textoDelResumen(resumenDelInforme(leido.angulos))}</p>
+          <AprobarInforme
+            investigacionId={leido.id}
+            aprobar={aprobarInformeAccion}
+            propuestas={propuestas}
+            costo={costo}
+          />
+        </section>
+      )}
       {(leido.repetidos > 0 || leido.descartados > 0) && (
         <ul className="space-y-1 text-sm text-apagado">
           {leido.repetidos > 0 && (
@@ -132,8 +156,7 @@ export default async function Informe({ params }: { params: Promise<{ id: string
         </section>
       )}
       {porAprobar && (
-        <section className="space-y-3 border-t border-borde pt-4">
-          <AprobarInforme investigacionId={leido.id} aprobar={aprobarInformeAccion} />
+        <section className="mt-10 border-t border-borde pt-6">
           <DescartarInforme investigacionId={leido.id} descartar={descartarInformeAccion} />
         </section>
       )}

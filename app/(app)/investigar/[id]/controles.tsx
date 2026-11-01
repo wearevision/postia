@@ -82,9 +82,14 @@ export function AmpliarAngulo({
 export function AprobarInforme({
   investigacionId,
   aprobar,
+  propuestas,
+  costo,
 }: {
   investigacionId: string
   aprobar: (investigacionId: string) => Promise<Resultado>
+  propuestas: number
+  /** A ceiling already written as dollars. */
+  costo: string
 }) {
   const { error, pendiente, ejecutar } = useAccion()
   return (
@@ -97,7 +102,7 @@ export function AprobarInforme({
       >
         Aprobar informe
       </button>
-      <p className="text-sm text-apagado">Al aprobarlo, PostIA arma la serie de propuestas.</p>
+      <p className="text-sm text-apagado">{`PostIA arma ${propuestas} ${propuestas === 1 ? "propuesta" : "propuestas"} (cerca de ${costo}).`}</p>
       <Alerta error={error} />
     </div>
   )

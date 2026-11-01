@@ -104,7 +104,7 @@ test("an owner asks for research, and approves its report after discarding a fin
   await expect(descartado).toContainText("Descartado")
   await expect(angulo.getByRole("listitem").last()).toContainText("Los grupos online crecen cada año.")
 
-  await expect(page.getByText("Al aprobarlo, PostIA arma la serie de propuestas.")).toBeVisible()
+  await expect(page.getByText(/^PostIA arma \d+ propuestas? \(cerca de US\$\d+,\d{2}\)\.$/)).toBeVisible()
   await page.getByRole("button", { name: "Aprobar informe" }).click()
   await expect(page.getByText("Aprobada", { exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Aprobar informe" })).toHaveCount(0)
