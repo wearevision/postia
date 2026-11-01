@@ -72,7 +72,7 @@ test("an owner writes the editorial line, marks a client not to be named, and ga
   await expect(page.getByRole("button", { name: /^Firmar para el / })).toBeEnabled()
   await page
     .locator("summary")
-    .filter({ hasText: /^Cambiar$/ })
+    .filter({ hasText: /^(Corregir o pedir otra versión|Cambiar el pilar)$/ })
     .click()
   await expect(page.getByLabel("Pilar").locator("option:checked")).toHaveText("Oficio")
 

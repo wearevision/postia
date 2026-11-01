@@ -10,7 +10,7 @@ import type { EstadoDePieza } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
 import { type SiguientePorFirmar, siguientePorFirmar } from "@/lib/piezas/siguiente"
-import { lineaEnReserva } from "@/lib/piezas/textos"
+import { lineaEnReserva, tituloDeCambios } from "@/lib/piezas/textos"
 import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
 import { type ClaudeEnLaRevision, resumenDeRevision } from "@/lib/redaccion/resumen"
@@ -287,7 +287,9 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
 
       {porFirmar && (conPilar || redaccionLista || editable) && (
         <details className="tarjeta p-3">
-          <summary className="min-h-11 cursor-pointer py-2 font-medium">Cambiar</summary>
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">
+            {tituloDeCambios({ redaccion: redaccionLista, carrusel: editable, pilar: conPilar })}
+          </summary>
           <div className="space-y-3 pt-2">
             {conPilar && pilarDePieza()}
             {redaccionLista && redaccion && (
