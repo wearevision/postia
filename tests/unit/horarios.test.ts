@@ -13,18 +13,20 @@ describe("proponerFecha", () => {
   // Wednesday 2026-10-28, 10:00 in Chile.
   const AHORA = Date.parse("2026-10-28T13:00:00Z")
 
-  test("the profile goes at 11:00 on the next free Tuesday, Wednesday or Thursday", () => {
+  test("the profile goes at 11:00 on the next free day", () => {
     expect(proponerFecha("persona", [], AHORA).toISOString()).toBe("2026-10-28T14:00:00.000Z")
   })
 
-  test("the page goes at 15:00, and a taken slot moves to the next valid day", () => {
+  test("the page goes at 15:00, and a taken slot moves to the next day", () => {
     const ocupado = [Date.parse("2026-10-28T18:00:00Z")]
     expect(proponerFecha("empresa", ocupado, AHORA).toISOString()).toBe("2026-10-29T18:00:00.000Z")
   })
 
-  test("never a weekend, and never less than 30 minutes ahead", () => {
+  test("every day of the week counts, weekends too, and never less than 30 minutes ahead", () => {
     const juevesTarde = Date.parse("2026-10-29T14:45:00Z") // Thursday 11:45 in Chile, past the profile slot
-    expect(proponerFecha("persona", [], juevesTarde).toISOString()).toBe("2026-11-03T14:00:00.000Z")
+    expect(proponerFecha("persona", [], juevesTarde).toISOString()).toBe("2026-10-30T14:00:00.000Z")
+    const viernesTomado = [Date.parse("2026-10-30T14:00:00Z")]
+    expect(proponerFecha("persona", viernesTomado, juevesTarde).toISOString()).toBe("2026-10-31T14:00:00.000Z")
   })
 })
 
@@ -34,8 +36,8 @@ describe("repartirFechas", () => {
     const ocupado = [Date.parse("2026-10-29T18:00:00Z")]
     expect(repartirFechas("empresa", ocupado, 3, AHORA).map((f) => f.toISOString())).toEqual([
       "2026-10-28T18:00:00.000Z",
-      "2026-11-03T18:00:00.000Z",
-      "2026-11-04T18:00:00.000Z",
+      "2026-10-30T18:00:00.000Z",
+      "2026-10-31T18:00:00.000Z",
     ])
   })
 })

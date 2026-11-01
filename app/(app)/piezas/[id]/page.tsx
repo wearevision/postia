@@ -276,6 +276,7 @@ export default async function Pieza({
           piezaId={pieza.id}
           huella={version.huella}
           fechaPropuesta={pieza.fechaPropuesta}
+          ocupados={pieza.ocupados}
           abiertaEn={abiertaEn}
           ruta={cuenta.ruta}
           cuenta={cuenta.nombre}

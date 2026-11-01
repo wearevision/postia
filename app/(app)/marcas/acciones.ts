@@ -1,7 +1,14 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { agregarCuenta, cambiarRuta, crearMarca, desconectarCuenta, type Resultado } from "@/lib/marcas/acciones"
+import {
+  agregarCuenta,
+  cambiarRitmo,
+  cambiarRuta,
+  crearMarca,
+  desconectarCuenta,
+  type Resultado,
+} from "@/lib/marcas/acciones"
 import { RUTA_DE_AJUSTES, RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
 import { createActionClient } from "@/lib/supabase/action"
 
@@ -37,4 +44,8 @@ export async function desconectarCuentaAccion(_previo: Resultado | null, datos: 
 
 export async function cambiarRutaAccion(cuentaId: string, ruta: "api" | "a_mano"): Promise<Resultado> {
   return despues(await cambiarRuta(await createActionClient(), { cuentaId, ruta }))
+}
+
+export async function cambiarRitmoAccion(cuentaId: string, ritmoSemanal: number): Promise<Resultado> {
+  return despues(await cambiarRitmo(await createActionClient(), { cuentaId, ritmoSemanal }))
 }

@@ -17,7 +17,7 @@ const MENSAJES: Record<string, string> = {
   idea_no_descartable: "Esta idea ya no se puede descartar.",
   idea_no_editable: "Esta idea ya no se puede editar.",
   esqueleto_no_valido: "Revisa el esqueleto.",
-  fecha_no_valida: "Elige un día hábil que no haya pasado.",
+  fecha_no_valida: "Elige una fecha que no haya pasado.",
   cuenta_repetida: "Esa cuenta ya tiene esta idea.",
   horario_ocupado: "Esa cuenta ya tiene algo en ese horario. Elige otro.",
   trabajo_en_curso: "Ya se está buscando otra idea.",

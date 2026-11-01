@@ -4,7 +4,14 @@ import { Loader2, Lock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { FECHA_EN_EL_PASADO, fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
+import {
+  avisoDeChoque,
+  FECHA_EN_EL_PASADO,
+  fechaCorta,
+  fechaLarga,
+  instanteDesdeValorLocal,
+  valorLocal,
+} from "@/lib/piezas/fechas"
 import { explicacionDeReserva } from "@/lib/piezas/textos"
 import { botonDeLaHoja, useLectura } from "./lectura"
 
@@ -13,6 +20,8 @@ interface Props {
   huella: string
   /** The date it signs for: the planned date while it is still valid, else the next free slot. */
   fechaPropuesta: string
+  /** The other slots this account holds (ISO instants): choosing one of their days says when that one goes out. */
+  ocupados?: readonly string[]
   /** When the server rendered the page: a signature is refused if an exception was marked after it. */
   abiertaEn: string
   ruta: "api" | "metricool" | "a_mano"
@@ -44,6 +53,7 @@ export function FirmaDePieza({
   piezaId,
   huella,
   fechaPropuesta,
+  ocupados = [],
   abiertaEn,
   ruta,
   cuenta,
@@ -73,6 +83,7 @@ export function FirmaDePieza({
   const fechaSinGuardar = guardando || (cambiando && fecha !== valorLocal(fechaPropuesta))
   const motivos = [lectura.motivo && "motivo-de-lectura", fechaSinGuardar && "motivo-de-fecha"].filter(Boolean)
   const [enfocarFecha, setEnfocarFecha] = useState(abrirFecha)
+  const choque = avisoDeChoque(cambiando ? fecha : valorLocal(fechaPropuesta), ocupados)
 
   useEffect(() => {
     if (sinRed) avisoDeRed.current?.focus()
@@ -161,6 +172,7 @@ export function FirmaDePieza({
               <input
                 ref={campoDeFecha}
                 type="datetime-local"
+                aria-describedby={choque ? "aviso-de-choque" : undefined}
                 value={fecha}
                 onChange={(evento) => setFecha(evento.target.value)}
                 onKeyDown={(evento) => {
@@ -185,6 +197,11 @@ export function FirmaDePieza({
           <button type="button" onClick={() => setCambiando(true)} className="min-h-11 text-sm underline">
             Cambiar fecha
           </button>
+        )}
+        {choque && (
+          <output id="aviso-de-choque" className="block text-sm">
+            {choque}
+          </output>
         )}
       </section>
       {reescribiendo && (
