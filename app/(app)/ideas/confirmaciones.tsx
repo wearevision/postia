@@ -1,5 +1,6 @@
 "use client"
 
+import { X } from "lucide-react"
 import Link from "next/link"
 import { createContext, useContext, useRef, useState } from "react"
 import { fechaCorta } from "@/lib/piezas/fechas"
@@ -14,9 +15,10 @@ type ConClave = Confirmacion & { clave: number }
 interface Avisos {
   confirmaciones: readonly ConClave[]
   avisar: (confirmacion: Confirmacion) => void
+  cerrar: (clave: number) => void
 }
 
-const SIN_AVISOS: Avisos = { confirmaciones: [], avisar: () => {} }
+const SIN_AVISOS: Avisos = { confirmaciones: [], avisar: () => {}, cerrar: () => {} }
 
 const AvisosContexto = createContext<Avisos>(SIN_AVISOS)
 
@@ -31,35 +33,52 @@ export function ConfirmacionesProvider({ children }: { children: React.ReactNode
     const clave = siguiente.current++
     setConfirmaciones((previas) => [{ ...confirmacion, clave }, ...previas])
   })
-  return <AvisosContexto.Provider value={{ confirmaciones, avisar }}>{children}</AvisosContexto.Provider>
+  const [cerrar] = useState(() => (clave: number) => {
+    setConfirmaciones((previas) => previas.filter((c) => c.clave !== clave))
+  })
+  return <AvisosContexto.Provider value={{ confirmaciones, avisar, cerrar }}>{children}</AvisosContexto.Provider>
 }
 
 export function useAvisar() {
   return useContext(AvisosContexto).avisar
 }
 
+/** Floats above the bottom bar: the approved card may have been far down the list, out of the top of the page. */
 export function Confirmaciones() {
-  const { confirmaciones } = useContext(AvisosContexto)
+  const { confirmaciones, cerrar } = useContext(AvisosContexto)
   if (confirmaciones.length === 0) return null
   return (
-    <div className="space-y-2">
-      {confirmaciones.map((c) =>
-        c.tipo === "idea" ? (
-          <output key={c.clave} className="block space-y-1 tarjeta p-3 text-sm">
-            {`Aprobada · Claude la escribe para ${c.cuentas.join(", ")}, ${fechaCorta(c.primera)}`}
-            <Link
-              href={`${rutaConFiltro(undefined, null)}#idea-${c.ideaId}`}
-              className="ml-2 inline-block min-h-11 py-3 underline"
-            >
-              Ver
-            </Link>
-          </output>
-        ) : (
-          <output key={c.clave} className="block tarjeta p-3 text-sm">
-            {`Aprobaste ${c.aprobadas} · se escriben en unos minutos`}
-          </output>
-        ),
-      )}
+    <div
+      data-avisos=""
+      className="fixed inset-x-3.5 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-40 mx-auto max-w-[402px] space-y-2"
+    >
+      {confirmaciones.map((c) => (
+        <output key={c.clave} className="flex items-start gap-2 tarjeta p-3 text-sm shadow-relieve">
+          <span className="flex-1">
+            {c.tipo === "idea" ? (
+              <>
+                {`Aprobada · Claude la escribe para ${c.cuentas.join(", ")}, ${fechaCorta(c.primera)}`}
+                <Link
+                  href={`${rutaConFiltro(undefined, null)}#idea-${c.ideaId}`}
+                  className="ml-2 inline-block min-h-11 py-3 underline"
+                >
+                  Ver
+                </Link>
+              </>
+            ) : (
+              `Aprobaste ${c.aprobadas} · se escriben en unos minutos`
+            )}
+          </span>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            onClick={() => cerrar(c.clave)}
+            className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center text-apagado"
+          >
+            <X aria-hidden="true" strokeWidth={1.75} className="size-4" />
+          </button>
+        </output>
+      ))}
     </div>
   )
 }

@@ -632,6 +632,19 @@ describe("the confirmation after approving", () => {
     expect(screen.getByText(/^Aprobada · Claude la escribe para Página de WAV/)).toBeVisible()
   })
 
+  test("floats above the bottom bar so it shows wherever the list was scrolled, and can be closed", async () => {
+    vi.useFakeTimers()
+    const a = acciones()
+    a.aprobar.mockResolvedValue({ ok: true, asignaciones: [{ cuentaId: PAGINA.id, planeadaPara: PRIMERA }] })
+    conConfirmaciones(a)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+    await act(() => vi.advanceTimersByTimeAsync(10_000))
+    const aviso = screen.getByText(/^Aprobada · Claude la escribe/)
+    expect(aviso.closest("[data-avisos]")?.className).toContain("fixed")
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar aviso" }))
+    expect(screen.queryByText(/^Aprobada · Claude la escribe/)).not.toBeInTheDocument()
+  })
+
   test("a refused approval shows no confirmation", async () => {
     vi.useFakeTimers()
     const a = acciones()
