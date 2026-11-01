@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { MarcaDeEstado } from "@/app/(app)/marca-de-estado"
 import { FirmaConfirmada } from "@/app/(app)/piezas/[id]/firmada"
 import { ESTADOS, type EstadoDePieza, NOMBRE_DEL_ESTADO } from "@/lib/piezas/estados"
@@ -50,7 +50,8 @@ describe("a piece state mark", () => {
 
 describe("the signed confirmation", () => {
   test("carries the resolved check next to the word", () => {
-    const { container } = render(<FirmaConfirmada huella={"a".repeat(64)} />)
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {})
+    const { container } = render(<FirmaConfirmada huella={"a".repeat(64)} programadaPara={null} />)
     const icono = container.querySelector("svg")
     expect(icono).toHaveAttribute("data-forma", "check")
     expect(icono?.getAttribute("class")).toContain("text-exito")

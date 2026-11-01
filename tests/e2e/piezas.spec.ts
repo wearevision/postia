@@ -136,7 +136,7 @@ test("a signed piece keeps the bottom bar and leads to the next one waiting; a m
   await leerHastaElFinal(page)
   await page.getByRole("button", { name: /^Firmar para el / }).click()
   await expect(page.getByText("Programada", { exact: true })).toBeVisible()
-  await page.getByRole("link", { name: "Siguiente por firmar" }).click()
+  await page.getByRole("link", { name: /^Siguiente: Perfil E2E.* \(quedan 1\)$/ }).click()
   await expect(page.getByText("Primera pieza por firmar.")).toBeVisible()
 
   await page.goto("/piezas/00000000-0000-0000-0000-000000000000")

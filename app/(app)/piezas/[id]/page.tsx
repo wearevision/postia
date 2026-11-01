@@ -9,12 +9,12 @@ import { MOTIVO_DE_FIRMA_CAIDA } from "@/lib/piezas/cambio"
 import type { EstadoDePieza } from "@/lib/piezas/estados"
 import { fechaLarga } from "@/lib/piezas/fechas"
 import { bandeja, detalle } from "@/lib/piezas/lectura"
-import { siguientePorFirmar } from "@/lib/piezas/siguiente"
+import { type SiguientePorFirmar, siguientePorFirmar } from "@/lib/piezas/siguiente"
 import { lineaEnReserva } from "@/lib/piezas/textos"
 import { textosDelDiseno } from "@/lib/plantillas/texto"
 import { type EstadoDeRedaccion, estadoDeRedaccion } from "@/lib/redaccion/lectura"
 import { type ClaudeEnLaRevision, resumenDeRevision } from "@/lib/redaccion/resumen"
-import { rutaDeEditarCarrusel, rutaDePieza } from "@/lib/sesion/rutas"
+import { rutaDeEditarCarrusel } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { pilaresActivos } from "@/lib/voz/lectura"
 import { MarcaDeEstado } from "../../marca-de-estado"
@@ -37,7 +37,7 @@ import {
 import { FirmaCaida } from "./caida"
 import { Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
 import { FirmaDePieza } from "./firma"
-import { FirmaConfirmada } from "./firmada"
+import { DespuesDeFirmar, FirmaConfirmada } from "./firmada"
 import { FinDelTexto, LecturaDePieza } from "./lectura"
 import { PilarDePieza } from "./pilar"
 import { CorregirTexto, PedirOtraVersion } from "./redaccion"
@@ -115,17 +115,17 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
     }
   }
 
-  /** The next piece waiting for a signature; null when none is left or the inbox could not be read. */
-  async function leerSiguiente(): Promise<string | null> {
+  /** The next piece waiting for a signature; null when none is left, undefined when the inbox could not be read. */
+  async function leerSiguiente(): Promise<SiguientePorFirmar | null | undefined> {
     try {
       return siguientePorFirmar((await bandeja(db)).porFirmar, piezaId)
     } catch (error) {
-      // Only a shortcut: the signed piece must still open without it.
+      // Only a shortcut: the signed piece must still open without it, and without claiming nothing is left.
       console.error(
         "No pude leer la bandeja para la siguiente pieza",
         error instanceof Error ? error.message : String(error),
       )
-      return null
+      return undefined
     }
   }
 
@@ -137,7 +137,7 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
     estado === "por_aprobar" ? revisarAntesDeFirmar() : [],
     conClaude ? leerRedaccion() : null,
     rearmable ? leerDiseno() : null,
-    recienFirmada ? leerSiguiente() : null,
+    recienFirmada ? leerSiguiente() : undefined,
   ])
   const armando = diseno?.abierto ?? false
   const firmaCaida = estado === "por_aprobar" && pieza.motivo === MOTIVO_DE_FIRMA_CAIDA
@@ -212,6 +212,14 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
           <p className="text-sm text-apagado">Pilar: {pieza.pilarNombre}</p>
         )}
       </header>
+
+      {recienFirmada && (
+        <FirmaConfirmada
+          huella={version.huella}
+          programadaPara={estado === "programada" ? pieza.programadaPara : null}
+        />
+      )}
+      {recienFirmada && siguiente !== undefined && <DespuesDeFirmar siguiente={siguiente} />}
 
       {firmaCaida && <FirmaCaida cambio={pieza.cambio} />}
 
@@ -300,12 +308,6 @@ export default async function Pieza({ params }: { params: Promise<{ id: string }
             {editable && editarCarrusel()}
           </div>
         </details>
-      )}
-      {recienFirmada && <FirmaConfirmada huella={version.huella} />}
-      {recienFirmada && siguiente && (
-        <Link href={rutaDePieza(siguiente)} className="boton-primario w-full">
-          Siguiente por firmar
-        </Link>
       )}
       {estado === "en_reserva" && (
         <div className="space-y-3">

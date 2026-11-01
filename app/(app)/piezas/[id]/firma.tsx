@@ -60,8 +60,11 @@ export function FirmaDePieza({
   const [sinRed, setSinRed] = useState(false)
   const avisoDeRed = useRef<HTMLDivElement>(null)
   const campoDeFecha = useRef<HTMLInputElement>(null)
+  // A saved signature keeps the button busy: the page swaps this form for the signed view when it re-renders.
+  const [firmada, setFirmada] = useState(false)
+  const ocupada = pendiente || firmada
   const lectura = useLectura()
-  const bloqueada = pendiente || !lectura.puedeFirmar
+  const bloqueada = ocupada || !lectura.puedeFirmar
   // Signing for a date needs the date it shows: an edited date not saved yet, or being saved, is not that date.
   const fechaSinGuardar = guardando || (cambiando && fecha !== valorLocal(fechaPropuesta))
   const motivos = [lectura.motivo && "motivo-de-lectura", fechaSinGuardar && "motivo-de-fecha"].filter(Boolean)
@@ -101,7 +104,8 @@ export function FirmaDePieza({
           : firmarParaReserva({ piezaId, huella, abiertaEn }),
       )
       if (resultado === null) setSinRed(true)
-      else if (!resultado.ok) {
+      else if (resultado.ok) setFirmada(true)
+      else {
         setError(resultado.error)
         if (resultado.error === FECHA_EN_EL_PASADO) {
           setCambiando(true)
@@ -197,11 +201,11 @@ export function FirmaDePieza({
       <button
         type="submit"
         disabled={bloqueada || fechaSinGuardar}
-        aria-busy={pendiente && cual === "fecha"}
+        aria-busy={ocupada && cual === "fecha"}
         aria-describedby={motivos.length > 0 ? motivos.join(" ") : undefined}
         className="boton-primario w-full gap-2"
       >
-        {pendiente && cual === "fecha" ? <Ocupado /> : `Firmar para el ${fechaCorta(fechaPropuesta)}`}
+        {ocupada && cual === "fecha" ? <Ocupado /> : `Firmar para el ${fechaCorta(fechaPropuesta)}`}
       </button>
       {ruta === "a_mano" && <p className="text-sm text-apagado">Te aviso a la hora para publicarla a mano.</p>}
       <div className="space-y-1">
@@ -209,11 +213,11 @@ export function FirmaDePieza({
           type="button"
           disabled={bloqueada}
           onClick={() => lanzar("reserva")}
-          aria-busy={pendiente && cual === "reserva"}
+          aria-busy={ocupada && cual === "reserva"}
           aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
           className="inline-flex min-h-11 items-center gap-2 font-medium underline disabled:cursor-not-allowed disabled:text-apagado disabled:no-underline"
         >
-          {pendiente && cual === "reserva" ? <Ocupado /> : "Guardar en la reserva, sin fecha"}
+          {ocupada && cual === "reserva" ? <Ocupado /> : "Guardar en la reserva, sin fecha"}
         </button>
         <p id="explicacion-de-reserva" className="text-sm text-apagado">
           {explicacionDeReserva(ruta, cuenta)}

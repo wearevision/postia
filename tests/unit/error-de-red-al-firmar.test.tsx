@@ -85,7 +85,8 @@ describe("when the connection drops while signing", () => {
     })
     firmar()
     await waitFor(() => expect(alFirmar).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeEnabled())
+    // A saved signature keeps the button busy until the page re-renders; the status going quiet means it finished.
+    await waitFor(() => expect(screen.getByRole("status")).toBeEmptyDOMElement())
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
