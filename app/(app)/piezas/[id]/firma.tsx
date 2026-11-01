@@ -1,6 +1,7 @@
 "use client"
 
 import { Loader2, Lock } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import { FECHA_EN_EL_PASADO, fechaCorta, fechaLarga, instanteDesdeValorLocal, valorLocal } from "@/lib/piezas/fechas"
@@ -72,11 +73,6 @@ export function FirmaDePieza({
   const fechaSinGuardar = guardando || (cambiando && fecha !== valorLocal(fechaPropuesta))
   const motivos = [lectura.motivo && "motivo-de-lectura", fechaSinGuardar && "motivo-de-fecha"].filter(Boolean)
   const [enfocarFecha, setEnfocarFecha] = useState(abrirFecha)
-
-  useEffect(() => {
-    // The request lives in the address; dropped once read, saving the date (which remounts this form) leaves it closed.
-    if (abrirFecha) window.history.replaceState(window.history.state, "", window.location.pathname)
-  }, [abrirFecha])
 
   useEffect(() => {
     if (sinRed) avisoDeRed.current?.focus()
@@ -153,6 +149,7 @@ export function FirmaDePieza({
 
   return (
     <form onSubmit={enviar} className="space-y-4">
+      {abrirFecha && <QuitarPedidoDeFecha />}
       <section className="space-y-2">
         <p>
           Sale el <strong>{fechaLarga(fechaPropuesta)}</strong>
@@ -284,4 +281,17 @@ function Ocupado() {
       Firmando…
     </>
   )
+}
+
+/**
+ * The «change date» request lives in the address (?cambiar=fecha). It is dropped through the router, not
+ * history.replaceState: the refresh after saving re-renders the server page with the router's URL, and a lingering
+ * request reopened the editor. Mounted only when the request is present, so other screens need no router.
+ */
+function QuitarPedidoDeFecha() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace(window.location.pathname, { scroll: false })
+  }, [router])
+  return null
 }

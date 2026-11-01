@@ -66,8 +66,9 @@ describe("the signing view reached to change the date", () => {
   test("drops the request from the address so saving the date does not reopen the editor", () => {
     window.history.replaceState(null, "", "/piezas/p1?cambiar=fecha")
     montar()
-    expect(window.location.pathname).toBe("/piezas/p1")
-    expect(window.location.search).toBe("")
+    // Through the router, not history.replaceState: the refresh after saving re-renders the server page with the
+    // router's URL, and a lingering ?cambiar=fecha reopened the editor.
+    expect(router.replace).toHaveBeenCalledWith("/piezas/p1", { scroll: false })
   })
 
   test("still needs the new date saved before signing, and never signs by itself", () => {
