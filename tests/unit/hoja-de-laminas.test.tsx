@@ -10,7 +10,10 @@ const observadores: FalsoObservador[] = []
 
 class FalsoObservador {
   elementos = new Set<Element>()
-  constructor(readonly aviso: (entradas: Entrada[]) => void) {
+  constructor(
+    readonly aviso: (entradas: Entrada[]) => void,
+    readonly opciones: IntersectionObserverInit = {},
+  ) {
     observadores.push(this)
   }
   observe(elemento: Element) {
@@ -119,6 +122,19 @@ describe("the sheet with every slide together", () => {
     expect(listo).toBeEnabled()
     fireEvent.click(listo)
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+})
+
+describe("the end of the sheet", () => {
+  test("counts as reached as soon as any of it shows: a 1 px marker at a fractional position never shows 90 %", () => {
+    montar()
+    abrir()
+    const fin = within(hoja()).getByTestId("fin-de-la-hoja")
+    const suyo = observadores.find((o) => o.elementos.has(fin))
+    const umbral = suyo?.opciones.threshold
+    expect(Array.isArray(umbral) ? umbral : [umbral ?? 0]).toContain(0)
+    mostrar(fin, 0.75)
+    expect(within(hoja()).getByRole("button", { name: "Listo" })).toBeEnabled()
   })
 })
 

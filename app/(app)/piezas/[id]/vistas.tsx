@@ -114,18 +114,25 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
     const observador = new IntersectionObserver(
       (entradas) => {
         for (const entrada of entradas) {
-          if (entrada.target === fin.current) {
-            if (entrada.isIntersecting) setAlFinal(true)
-          } else if (entrada.intersectionRatio >= PROPORCION_VISTA) {
-            marcarLamina(Number((entrada.target as HTMLElement).dataset.i))
-          }
+          if (entrada.intersectionRatio >= PROPORCION_VISTA) marcarLamina(Number((entrada.target as HTMLElement).dataset.i))
         }
       },
       { root: zona, threshold: [PROPORCION_VISTA, 1] },
     )
+    // Its own observer at threshold 0: the 1 px marker can sit at a fractional position where only part of it ever
+    // shows at full scroll, so a 90 % threshold never fired and «Listo» stayed disabled on shorter screens.
+    const alLlegar = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((entrada) => entrada.isIntersecting)) setAlFinal(true)
+      },
+      { root: zona, threshold: 0 },
+    )
     for (const lamina of laminas.querySelectorAll("li")) observador.observe(lamina)
-    if (fin.current) observador.observe(fin.current)
-    return () => observador.disconnect()
+    if (fin.current) alLlegar.observe(fin.current)
+    return () => {
+      observador.disconnect()
+      alLlegar.disconnect()
+    }
   }, [marcarLamina])
 
   return createPortal(
@@ -144,7 +151,7 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
           Cerrar
         </button>
       </div>
-      <div ref={desplazable} className="flex-1 overflow-y-auto px-4">
+      <div ref={desplazable} className="flex-1 overflow-y-auto overscroll-contain px-4">
         <ol ref={lista} className="grid grid-cols-2 gap-3">
           {vistas.map((src, i) => (
             <li key={src} data-i={i}>
