@@ -114,10 +114,12 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
     const observador = new IntersectionObserver(
       (entradas) => {
         for (const entrada of entradas) {
-          if (entrada.intersectionRatio >= PROPORCION_VISTA) marcarLamina(Number((entrada.target as HTMLElement).dataset.i))
+          if (entrada.intersectionRatio >= PROPORCION_VISTA || pasoEntera(entrada))
+            marcarLamina(Number((entrada.target as HTMLElement).dataset.i))
         }
       },
-      { root: zona, threshold: [PROPORCION_VISTA, 1] },
+      // 0 too, to hear a slide leave: a fast scroll can carry it past without any frame at 90 %.
+      { root: zona, threshold: [0, PROPORCION_VISTA, 1] },
     )
     // Its own observer at threshold 0: the 1 px marker can sit at a fractional position where only part of it ever
     // shows at full scroll, so a 90 % threshold never fired and «Listo» stayed disabled on shorter screens.
@@ -181,4 +183,15 @@ function HojaDeLaminas({ vistas, alCerrar }: { vistas: string[]; alCerrar: () =>
     </div>,
     document.body,
   )
+}
+
+/**
+ * A slide that left through the top of the sheet crossed all of it; if it is shorter than the sheet it was whole on
+ * screen at some point, even when the scroll was too fast for the observer to catch that frame.
+ */
+function pasoEntera(entrada: IntersectionObserverEntry): boolean {
+  const caja = entrada.rootBounds
+  if (entrada.isIntersecting || !caja) return false
+  const lamina = entrada.boundingClientRect
+  return lamina.bottom <= caja.top && lamina.height <= caja.height
 }

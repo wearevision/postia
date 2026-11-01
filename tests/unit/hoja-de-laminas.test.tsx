@@ -4,7 +4,14 @@ import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
 import { FinDelTexto, LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
 import { VistasDelCarrusel } from "@/app/(app)/piezas/[id]/vistas"
 
-type Entrada = { target: Element; isIntersecting: boolean; intersectionRatio: number }
+type Caja = { top: number; bottom: number; height: number }
+type Entrada = {
+  target: Element
+  isIntersecting: boolean
+  intersectionRatio: number
+  boundingClientRect?: Caja
+  rootBounds?: Caja | null
+}
 
 const observadores: FalsoObservador[] = []
 
@@ -135,6 +142,50 @@ describe("the end of the sheet", () => {
     expect(Array.isArray(umbral) ? umbral : [umbral ?? 0]).toContain(0)
     mostrar(fin, 0.75)
     expect(within(hoja()).getByRole("button", { name: "Listo" })).toBeEnabled()
+  })
+})
+
+describe("a fast scroll", () => {
+  test("counts a slide that went past the top whole, even if no frame caught it 90 % visible", () => {
+    montar()
+    abrir()
+    const lamina = laminaEnLaHoja(2)
+    act(() => {
+      for (const observador of observadores) {
+        if (observador.elementos.has(lamina))
+          observador.aviso([
+            {
+              target: lamina,
+              isIntersecting: false,
+              intersectionRatio: 0,
+              boundingClientRect: { top: -260, bottom: -40, height: 220 },
+              rootBounds: { top: 60, bottom: 440, height: 380 },
+            },
+          ])
+      }
+    })
+    expect(screen.getByRole("img", { name: "Viste 1 de 3 láminas" })).toBeInTheDocument()
+  })
+
+  test("does not count a slide taller than the sheet that went past, since it was never whole on screen", () => {
+    montar()
+    abrir()
+    const lamina = laminaEnLaHoja(2)
+    act(() => {
+      for (const observador of observadores) {
+        if (observador.elementos.has(lamina))
+          observador.aviso([
+            {
+              target: lamina,
+              isIntersecting: false,
+              intersectionRatio: 0,
+              boundingClientRect: { top: -560, bottom: -40, height: 520 },
+              rootBounds: { top: 60, bottom: 440, height: 380 },
+            },
+          ])
+      }
+    })
+    expect(screen.getByRole("img", { name: "Viste 0 de 3 láminas" })).toBeInTheDocument()
   })
 })
 
