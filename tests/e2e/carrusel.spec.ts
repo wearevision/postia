@@ -76,7 +76,7 @@ test("a carousel asked for in the editor shows its slides at gate 1 and opens ag
 
   await page
     .locator("summary")
-    .filter({ hasText: /^Cambiar$/ })
+    .filter({ hasText: /^Editar el carrusel( o el pilar)?$/ })
     .click()
   await page.getByRole("link", { name: "Editar el carrusel" }).click()
   await expect(page.getByRole("heading", { name: "Editar carrusel" })).toBeVisible()

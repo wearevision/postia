@@ -23,7 +23,8 @@ describe("Veredicto", () => {
     expect(screen.getByRole("heading", { name: "Revisa antes de firmar" })).toBeVisible()
     expect(screen.getAllByText("Nombra a Copec, que no se nombra.")).toHaveLength(1)
     expect(screen.getByText("«$100»: nunca se publican precios ni presupuestos.")).toBeVisible()
-    expect(screen.getByText("Puedes firmar igual: tú decides.")).toBeVisible()
+    // It shows, it never blocks; the redundant reassurance was cut.
+    expect(screen.queryByText("Puedes firmar igual: tú decides.")).toBeNull()
   })
 
   test("says the clients were not reviewed when the exceptions could not be read, without claiming nothing was found", () => {

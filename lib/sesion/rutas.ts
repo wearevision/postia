@@ -24,6 +24,13 @@ export function rutaDePieza(id: string): string {
   return `/piezas/${id}`
 }
 
+/** The piece's page asked to open its date editor, after a signed piece was unscheduled to move its date. */
+export const CAMBIAR_FECHA = "fecha"
+
+export function rutaParaCambiarFecha(id: string): string {
+  return `${rutaDePieza(id)}?cambiar=${CAMBIAR_FECHA}`
+}
+
 export function rutaDeEditarCarrusel(piezaId: string): string {
   return `${RUTA_DE_CARRUSEL}?pieza=${encodeURIComponent(piezaId)}`
 }
