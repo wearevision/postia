@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
+import { FirmaDePieza } from "@/app/(app)/piezas/[id]/firma"
+import { FinDelTexto, LecturaDePieza } from "@/app/(app)/piezas/[id]/lectura"
 import { VistasDelCarrusel } from "@/app/(app)/piezas/[id]/vistas"
 
 type Entrada = { target: Element; isIntersecting: boolean; intersectionRatio: number }
@@ -128,5 +129,54 @@ describe("while the sheet is open", () => {
     cerrar.focus()
     mostrar(laminaEnLaHoja(1), 1)
     expect(cerrar).toHaveFocus()
+  })
+})
+
+describe("slides seen in the sheet unlock signing like swiping does", () => {
+  function montarConFirma() {
+    render(
+      <LecturaDePieza laminas={3}>
+        <VistasDelCarrusel vistas={VISTAS} />
+        <FinDelTexto />
+        <FirmaDePieza
+          piezaId="11111111-1111-4111-8111-111111111111"
+          huella={"a".repeat(64)}
+          fechaPropuesta="2026-11-03T14:00:00.000Z"
+          abiertaEn="2026-11-02T20:00:00.000Z"
+          ruta="api"
+          cuenta="Federico"
+          firmar={vi.fn(async () => ({ ok: true as const }))}
+          firmarParaReserva={vi.fn(async () => ({ ok: true as const }))}
+          planear={vi.fn(async () => ({ ok: true as const }))}
+        />
+      </LecturaDePieza>,
+    )
+  }
+  const motivo = () => document.getElementById("motivo-de-lectura")
+
+  test("keeps the missing-slides reason while the sheet showed only some, even after closing it", () => {
+    montarConFirma()
+    abrir()
+    mostrar(laminaEnLaHoja(1), 1)
+    mostrar(within(hoja()).getByTestId("fin-de-la-hoja"), 1)
+    fireEvent.click(within(hoja()).getByRole("button", { name: "Listo" }))
+    expect(motivo()).toHaveTextContent(/2/)
+    expect(motivo()).not.toHaveTextContent("Falta leer el texto hasta el final.")
+  })
+
+  test("every slide shown in the sheet counts as seen, leaving only the text to read", () => {
+    montarConFirma()
+    abrir()
+    for (const n of [1, 2, 3]) mostrar(laminaEnLaHoja(n), 0.95)
+    fireEvent.click(within(hoja()).getByRole("button", { name: "Cerrar" }))
+    expect(motivo()).toHaveTextContent("Falta leer el texto hasta el final.")
+  })
+
+  test("a slide only partly shown in the sheet does not count", () => {
+    montarConFirma()
+    abrir()
+    mostrar(laminaEnLaHoja(3), 0.5)
+    fireEvent.click(within(hoja()).getByRole("button", { name: "Cerrar" }))
+    expect(screen.getByRole("img", { name: "Viste 0 de 3 láminas" })).toBeInTheDocument()
   })
 })
