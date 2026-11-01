@@ -92,8 +92,13 @@ test("an owner reviews a series: approves one idea, discards the other, and sees
 
   await primera.getByRole("button", { name: "Aprobar" }).click()
   await expect(primera.getByText(/Se aprueba en \d+ s/)).toBeVisible()
-  // Approved, it leaves «Por revisar».
+  // Approved, it leaves «Por revisar» but the page confirms where it went, with a link to it under «Todas».
   await expect(primera).toHaveCount(0, { timeout: 15_000 })
+  await expect(page.getByText(`Aprobada · Claude la escribe para ${nombreDeCuenta}`, { exact: false })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Ver", exact: true })).toHaveAttribute(
+    "href",
+    /\/ideas\?estado=todas#idea-/,
+  )
 
   await segunda.getByRole("button", { name: "Descartar" }).click()
   await expect(segunda).toHaveCount(0)
@@ -191,8 +196,9 @@ test("an owner sees a cross under «Cruces» with both of its sources and approv
 
   await cruce.getByRole("button", { name: "Aprobar" }).click()
   await expect(cruce.getByText(/Se aprueba en \d+ s/)).toBeVisible()
-  // Approved, it leaves «Por revisar»: «Todas» shows its slot.
+  // Approved, it leaves «Por revisar»: the page confirms it and «Todas» shows its slot.
   await expect(cruce).toHaveCount(0, { timeout: 15_000 })
+  await expect(page.getByText(`Aprobada · Claude la escribe para ${nombreDeCuenta}`, { exact: false })).toBeVisible()
   await page.getByRole("link", { name: /^Todas \(\d+\)$/ }).click()
   await expect(cruce.getByRole("listitem", { name: nombreDeCuenta }).getByText("Por escribir")).toBeVisible()
   await expect(cruce.getByRole("button", { name: "Aprobar" })).toHaveCount(0)

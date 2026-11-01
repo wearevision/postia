@@ -9,7 +9,7 @@ import {
   ideasYSeries,
   type SerieDeIdeas,
 } from "@/lib/series/lectura"
-import { RUTA_DE_IDEAS, RUTA_DE_INVESTIGAR, rutaDeInvestigacion } from "@/lib/sesion/rutas"
+import { RUTA_DE_INVESTIGAR, rutaDeInvestigacion } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { Refrescar } from "../piezas/refrescar"
 import {
@@ -20,6 +20,7 @@ import {
   moverAsignacionAccion,
   pedirOtraIdeaAccion,
 } from "./acciones"
+import { Confirmaciones, ConfirmacionesProvider } from "./confirmaciones"
 import { Filtros } from "./filtros"
 import { AprobarSerie, SerieEnCurso, TarjetaDeIdea } from "./idea"
 
@@ -129,42 +130,45 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<Pa
   const buscandoOtra = [...cruces, ...sueltas].some((i) => i.pidiendoOtra)
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-semibold">Ideas y series</h1>
-      {serie && (
-        <Link href={rutaConFiltro(undefined, estado)} className="inline-block min-h-11 py-3 text-sm underline">
-          Ver todas las series
-        </Link>
-      )}
-      <Filtros serie={serie} estado={estado} conteos={conteos} />
-      {lista.some((s) => s.trabajando) ? (
-        <Refrescar mensaje="Se está armando la serie. Esta página se actualiza sola." />
-      ) : (
-        buscandoOtra && <Refrescar mensaje="Se está buscando otra idea. Esta página se actualiza sola." />
-      )}
-      {vacia ? (
-        <div className="space-y-3">
-          <p className="text-apagado">No hay ideas por revisar.</p>
-          <Link href={rutaConFiltro(serie, null)} className="boton w-full py-3">
-            Ver todas
+    <ConfirmacionesProvider>
+      <div className="mx-auto max-w-md space-y-6">
+        <h1 className="text-2xl font-semibold">Ideas y series</h1>
+        {serie && (
+          <Link href={rutaConFiltro(undefined, estado)} className="inline-block min-h-11 py-3 text-sm underline">
+            Ver todas las series
           </Link>
-        </div>
-      ) : (
-        <>
-          <Grupo titulo="Cruces" ideas={cruces} estado={estado} cuentas={cuentas} />
-          <Grupo titulo="Ideas sueltas del domingo" ideas={sueltas} estado={estado} cuentas={cuentas} />
-          {lista.length === 0 ? (
-            <div className="space-y-3">
-              <p className="text-apagado">Todavía no hay series. Al aprobar un informe, PostIA arma la suya.</p>
-              <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
-                Ir a Investigar
-              </Link>
-            </div>
-          ) : (
-            lista.map((s) => <Serie key={s.investigacionId} serie={s} estado={estado} cuentas={cuentas} />)
-          )}
-        </>
-      )}
-    </div>
+        )}
+        <Filtros serie={serie} estado={estado} conteos={conteos} />
+        <Confirmaciones />
+        {lista.some((s) => s.trabajando) ? (
+          <Refrescar mensaje="Se está armando la serie. Esta página se actualiza sola." />
+        ) : (
+          buscandoOtra && <Refrescar mensaje="Se está buscando otra idea. Esta página se actualiza sola." />
+        )}
+        {vacia ? (
+          <div className="space-y-3">
+            <p className="text-apagado">No hay ideas por revisar.</p>
+            <Link href={rutaConFiltro(serie, null)} className="boton w-full py-3">
+              Ver todas
+            </Link>
+          </div>
+        ) : (
+          <>
+            <Grupo titulo="Cruces" ideas={cruces} estado={estado} cuentas={cuentas} />
+            <Grupo titulo="Ideas sueltas del domingo" ideas={sueltas} estado={estado} cuentas={cuentas} />
+            {lista.length === 0 ? (
+              <div className="space-y-3">
+                <p className="text-apagado">Todavía no hay series. Al aprobar un informe, PostIA arma la suya.</p>
+                <Link href={RUTA_DE_INVESTIGAR} className="boton w-full py-3">
+                  Ir a Investigar
+                </Link>
+              </div>
+            ) : (
+              lista.map((s) => <Serie key={s.investigacionId} serie={s} estado={estado} cuentas={cuentas} />)
+            )}
+          </>
+        )}
+      </div>
+    </ConfirmacionesProvider>
   )
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import type { Resultado } from "@/lib/marcas/acciones"
 import {
+  type AsignacionAprobada,
   aprobarIdea,
   aprobarSerie,
   descartarIdea,
@@ -26,11 +27,14 @@ async function conRevalidacion<T extends Resultado>(resultado: Promise<T>): Prom
   return r
 }
 
-export async function aprobarIdeaAccion(ideaId: string, cuentas: string[]): Promise<Resultado> {
+export async function aprobarIdeaAccion(
+  ideaId: string,
+  cuentas: string[],
+): Promise<Resultado<{ asignaciones: AsignacionAprobada[] }>> {
   return conRevalidacion(aprobarIdea(await createActionClient(), { ideaId, cuentas }))
 }
 
-export async function aprobarSerieAccion(investigacionId: string): Promise<Resultado> {
+export async function aprobarSerieAccion(investigacionId: string): Promise<Resultado<{ aprobadas: number }>> {
   // A partial approval changes the page too (some proposals are now approved), so revalidate on every result.
   const r = await aprobarSerie(await createActionClient(), investigacionId)
   revalidar()
