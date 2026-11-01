@@ -45,15 +45,38 @@ describe("EditorDeCarrusel", () => {
     router.refresh.mockReset()
   })
 
-  test("the account is fixed to the piece's, and a personal account shows only the personal themes", () => {
+  test("the account is fixed to the piece's, and it offers all 9 themes with the account's own first", () => {
     montar({ cuenta: FEDE, tema: "personal-arena" })
     expect(screen.getByText("Perfil de Federico")).toBeVisible()
     expect(screen.queryByRole("combobox", { name: "Cuenta" })).toBeNull()
     const diseno = within(screen.getByRole("group", { name: "Diseño" }))
-    expect(diseno.getAllByRole("radio")).toHaveLength(3)
-    for (const nombre of ["Personal claro", "Personal grafito", "Personal arena"])
-      expect(diseno.getByRole("radio", { name: nombre })).toBeVisible()
+    expect(diseno.getAllByRole("radio").map((r) => r.closest("label")?.textContent)).toEqual([
+      "Personal claro",
+      "Personal grafito",
+      "Personal arena",
+      "WR3 oscura",
+      "WR3 papel",
+      "WR3 magenta",
+      "WAV noche",
+      "WAV papel",
+      "WAV degradado",
+    ])
     expect(screen.getByRole("radio", { name: "Personal arena" })).toBeChecked()
+  })
+
+  test("WAV's page also offers all 9 themes, its own first", () => {
+    montar()
+    const diseno = within(screen.getByRole("group", { name: "Diseño" }))
+    const nombres = diseno.getAllByRole("radio").map((r) => r.closest("label")?.textContent)
+    expect(nombres).toHaveLength(9)
+    expect(nombres.slice(0, 6)).toEqual([
+      "WR3 oscura",
+      "WR3 papel",
+      "WR3 magenta",
+      "WAV noche",
+      "WAV papel",
+      "WAV degradado",
+    ])
   })
 
   test("prefills the slides, and the closing link follows the family when the theme changes", () => {
@@ -101,7 +124,8 @@ describe("EditorDeCarrusel", () => {
     expect(screen.getByRole("button", { name: `Subir la lámina ${ultima}` })).toBeDisabled()
     fireEvent.click(screen.getByRole("button", { name: "Quitar la lámina 2" }))
     expect(laminas()).toHaveLength(antes)
-  })
+    // Some twenty role queries over the whole form: under the parallel suite they pass the default 5 s.
+  }, 15_000)
 
   test("sends the piece, the account, the theme, the texts and the slides, and shows a refusal", async () => {
     const pedir = vi.fn<Pedir>(async () => ({ ok: false, error: "Lámina 2: El título pasa las 12 palabras." }))

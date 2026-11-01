@@ -7,7 +7,7 @@ import { aBorrador, type Borrador, CAMPOS, deBorrador, NOMBRE_DEL_TIPO } from "@
 import type { Familia } from "@/lib/plantillas/estilos"
 import { carruselInicial } from "@/lib/plantillas/iniciales"
 import { type Carrusel, TIPOS_DE_LAMINA, type TipoDeLamina } from "@/lib/plantillas/laminas"
-import { familiaDe, type IdDeTema, TEMAS, temasDeLaVoz } from "@/lib/plantillas/temas"
+import { familiaDe, type IdDeTema, TEMAS, temasParaElegir } from "@/lib/plantillas/temas"
 import { rutaDePieza } from "@/lib/sesion/rutas"
 
 type Voz = "yo" | "nosotros"
@@ -125,7 +125,7 @@ export function EditorDeCarrusel({ cuentas, inicial, pedir }: Props) {
 
       <fieldset className="space-y-2">
         <legend className="text-sm">Diseño</legend>
-        {temasDeLaVoz(voz).map((t) => (
+        {temasParaElegir(voz).map((t) => (
           <label key={t} className="tarjeta flex min-h-11 items-center gap-3 px-3">
             <input type="radio" name="tema" value={t} checked={tema === t} onChange={() => elegirTema(t)} />
             {TEMAS[t].nombre}

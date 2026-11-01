@@ -46,12 +46,30 @@ describe("design requests", () => {
       }
   })
 
-  test("an owner queues a design; a theme of another family is refused", async () => {
+  test("an owner queues a design in any of the 9 themes; an unknown theme is refused", async () => {
     const { data, error } = await dueno.db.rpc("pedir_diseno", pedido(cuenta))
     expect(error).toBeNull()
     expect(data).toMatch(/^[0-9a-f-]{36}$/)
+    await admin()
+      .from("pedidos_de_diseno")
+      .update({ estado: "obsoleto" })
+      .eq("id", data as string)
     const otra = await dueno.db.rpc("pedir_diseno", pedido(cuenta, { p_tema: "personal-claro" }))
-    expect(otra.error?.message).toBe("tema_de_otra_marca")
+    expect(otra.error).toBeNull()
+    await admin()
+      .from("pedidos_de_diseno")
+      .update({ estado: "obsoleto" })
+      .eq("id", otra.data as string)
+    const rara = await dueno.db.rpc("pedir_diseno", pedido(cuenta, { p_tema: "neon" }))
+    expect(rara.error?.message).toBe("tema_desconocido")
+  })
+
+  test("SQL knows exactly the 9 TypeScript themes", async () => {
+    for (const tema of [...IDS_DE_TEMA, "neon"]) {
+      const { data, error } = await admin().rpc("tema_conocido", { p_tema: tema })
+      expect(error).toBeNull()
+      expect(data, tema).toBe(IDS_DE_TEMA.includes(tema as (typeof IDS_DE_TEMA)[number]))
+    }
   })
 
   test("a design far larger than any 10 slides is refused by the table itself", async () => {
