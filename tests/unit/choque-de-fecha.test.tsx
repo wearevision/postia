@@ -34,9 +34,8 @@ describe("choosing a day that already has a piece of the account", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     const campo = screen.getByLabelText("Fecha y hora de publicación")
     fireEvent.change(campo, { target: { value: "2026-11-03T18:00" } })
-    expect(screen.getByText("Ese día ya sale otra publicación de esta cuenta a las 11:00.")).toHaveAttribute(
-      "role",
-      "status",
+    expect(screen.getAllByRole("status")).toContain(
+      screen.getByText("Ese día ya sale otra publicación de esta cuenta a las 11:00."),
     )
     expect(campo).toHaveAccessibleDescription("Ese día ya sale otra publicación de esta cuenta a las 11:00.")
     fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))

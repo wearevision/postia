@@ -475,17 +475,20 @@ describe("aprobar_idea", () => {
     expect((await leerIdea(ideaId)).estado).toBe("propuesta")
   })
 
-  test("refuses a weekend or a past date", async () => {
+  test("refuses a past date and accepts a weekend (D19 publishes every day)", async () => {
     const wav = await cuentaDe(marcaWav, "empresa", "a_mano")
     const { id, hallazgos } = await informeAprobado()
     const [ideaId] = await guardarSerie(id, [idea({ fuentes: hallazgos, cuenta: wav, eje: 502 })])
-    for (const fecha of [sabado(), new Date(Date.now() - 3_600_000).toISOString()]) {
-      const { error } = await dueno.db.rpc("aprobar_idea", {
-        p_idea: ideaId,
-        p_asignaciones: [{ cuenta: wav, planeada_para: fecha }],
-      })
-      expect(error?.message, fecha).toBe("fecha_no_valida")
-    }
+    const pasada = await dueno.db.rpc("aprobar_idea", {
+      p_idea: ideaId,
+      p_asignaciones: [{ cuenta: wav, planeada_para: new Date(Date.now() - 3_600_000).toISOString() }],
+    })
+    expect(pasada.error?.message).toBe("fecha_no_valida")
+    const enSabado = await dueno.db.rpc("aprobar_idea", {
+      p_idea: ideaId,
+      p_asignaciones: [{ cuenta: wav, planeada_para: sabado() }],
+    })
+    expect(enSabado.error).toBeNull()
   })
 
   test("a slot held by a piece or by an open assignment is busy", async () => {
@@ -650,7 +653,12 @@ describe("mover_asignacion", () => {
       "42501",
     )
     expect(
-      (await dueno.db.rpc("mover_asignacion", { p_asignacion: asignacion, p_fecha: sabado() })).error?.message,
+      (
+        await dueno.db.rpc("mover_asignacion", {
+          p_asignacion: asignacion,
+          p_fecha: new Date(Date.now() - 3_600_000).toISOString(),
+        })
+      ).error?.message,
     ).toBe("fecha_no_valida")
     expect((await dueno.db.rpc("mover_asignacion", { p_asignacion: asignacion, p_fecha: nueva })).error).toBeNull()
     const { data } = await admin().from("asignaciones").select("planeada_para").eq("id", asignacion).single()

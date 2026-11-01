@@ -199,9 +199,9 @@ export function FirmaDePieza({
           </button>
         )}
         {choque && (
-          <p id="aviso-de-choque" role="status" className="text-sm">
+          <output id="aviso-de-choque" className="block text-sm">
             {choque}
-          </p>
+          </output>
         )}
       </section>
       {reescribiendo && (
