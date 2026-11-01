@@ -1,4 +1,3 @@
-// The manifest and the generated icons are rendered outside the page, where CSS tokens do not exist. These mirror
-// --background and --foreground in app/globals.css; change both together. WAV's brand colors replace them later.
+// The manifest and the theme color are rendered outside the page, where CSS tokens do not exist. This mirrors
+// --background in app/globals.css; change both together. The icons draw their own colors (lib/diseno/icono.ts).
 export const COLOR_DE_FONDO = "#ffffff"
-export const COLOR_DEL_TEXTO = "#171717"
