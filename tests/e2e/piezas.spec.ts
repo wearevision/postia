@@ -38,7 +38,7 @@ test("an owner creates a text piece, moves its date by the signature, signs it a
   await page.goto(rutaDePieza(piezaId))
 
   // One date control, by the signature: «Cambiar fecha» saves the plan and the signature follows it.
-  const firmar = page.getByRole("button", { name: /^Firmar (?!para).+ · / })
+  const firmar = page.getByRole("button", { name: /^Firmar para el / })
   await expect(firmar).toBeVisible()
   await expect(page.getByLabel("Fecha y hora de publicación")).toHaveCount(0)
   const nombreAntes = (await firmar.textContent()) ?? ""
@@ -92,7 +92,7 @@ test("a new piece arrives planned and, signed for the reserve, shows in the cale
 
   await expect(page.locator("strong", { hasText: /^\p{L}+ \d+ de \p{L}+, \d{2}:\d{2}$/u })).toBeVisible()
   await leerHastaElFinal(page)
-  await page.getByRole("button", { name: "Firmar para la reserva" }).click()
+  await page.getByRole("button", { name: "Guardar en la reserva, sin fecha" }).click()
   await expect(page.getByText(/^En reserva: la app le pone fecha/)).toBeVisible()
 
   await page.goto("/calendario")
@@ -129,12 +129,12 @@ test("a signed piece keeps the bottom bar and leads to the next one waiting; a m
     piezaId = await crearPiezaDeTexto(dueno, { cuentaId: cuenta.id, texto })
   }
   await page.goto(rutaDePieza(piezaId))
-  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeVisible()
+  await expect(page.getByRole("button", { name: /^Firmar para el / })).toBeVisible()
 
   await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Volver" })).toBeVisible()
   await leerHastaElFinal(page)
-  await page.getByRole("button", { name: /^Firmar (?!para).+ · / }).click()
+  await page.getByRole("button", { name: /^Firmar para el / }).click()
   await expect(page.getByText("Programada", { exact: true })).toBeVisible()
   await page.getByRole("link", { name: "Siguiente por firmar" }).click()
   await expect(page.getByText("Primera pieza por firmar.")).toBeVisible()

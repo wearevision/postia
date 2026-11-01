@@ -45,18 +45,18 @@ function montar() {
 describe("while signing", () => {
   test("shows the pressed button as busy and blocks the other one", () => {
     montar()
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
     const ocupado = screen.getByRole("button", { name: "Firmando…" })
     expect(ocupado).toHaveAttribute("aria-busy", "true")
     expect(ocupado).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" })).toBeDisabled()
   })
 
   test("shows the reserve button as busy when that is the one pressed", () => {
     montar()
-    fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" }))
     expect(screen.getByRole("button", { name: "Firmando…" })).toHaveAttribute("aria-busy", "true")
-    expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeDisabled()
   })
 
   test("announces it politely in a region that is never replaced", () => {
@@ -64,17 +64,17 @@ describe("while signing", () => {
     const region = screen.getByRole("status")
     expect(region).toHaveAttribute("aria-live", "polite")
     expect(region).toBeEmptyDOMElement()
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
     expect(screen.getByRole("status")).toBe(region)
     expect(region).toHaveTextContent("Firmando…")
   })
 
   test("goes back to the normal buttons when signing fails, and says so in the alert", async () => {
     const salida = montar()
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
     act(() => salida.terminar({ ok: false, error: "Elige una fecha y hora futuras." }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
-    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeEnabled())
     expect(screen.queryByRole("button", { name: "Firmando…" })).not.toBeInTheDocument()
     expect(screen.getByRole("status")).toBeEmptyDOMElement()
   })

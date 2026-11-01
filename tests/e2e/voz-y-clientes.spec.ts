@@ -69,7 +69,7 @@ test("an owner writes the editorial line, marks a client not to be named, and ga
   await expect(veredicto).toBeVisible()
   await expect(veredicto.getByText(`Nombra a ${cliente}, que no se nombra.`)).toBeVisible()
   await leerHastaElFinal(page)
-  await expect(page.getByRole("button", { name: /^Firmar (?!para).+ · / })).toBeEnabled()
+  await expect(page.getByRole("button", { name: /^Firmar para el / })).toBeEnabled()
   await page
     .locator("summary")
     .filter({ hasText: /^Cambiar$/ })

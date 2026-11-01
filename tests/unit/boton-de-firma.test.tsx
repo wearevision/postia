@@ -27,21 +27,24 @@ describe("short date for buttons", () => {
 })
 
 describe("the signing button", () => {
-  test("names the account and the date it would sign", () => {
+  test("is the one primary action and names only the date it would sign: the header names the account", () => {
     montar()
-    expect(screen.getByRole("button", { name: "Firmar WAV · mar 3 nov, 15:00" })).toBeInTheDocument()
+    const boton = screen.getByRole("button", { name: "Firmar para el mar 3 nov, 15:00" })
+    expect(boton).toHaveClass("boton-primario")
+    expect(boton).not.toHaveTextContent("WAV")
+    expect(document.querySelectorAll(".boton-primario")).toHaveLength(1)
   })
 
   test("keeps the shown date while the date field is open and unsaved", () => {
     montar()
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T09:30" } })
-    expect(screen.getByRole("button", { name: "Firmar WAV · mar 3 nov, 15:00" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Firmar para el mar 3 nov, 15:00" })).toBeInTheDocument()
   })
 
   test("keeps saying that a hand-published piece is published by hand", () => {
     montar("a_mano")
-    expect(screen.getByRole("button", { name: "Firmar WAV · mar 3 nov, 15:00" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Firmar para el mar 3 nov, 15:00" })).toBeInTheDocument()
     expect(screen.getByText("Te aviso a la hora para publicarla a mano.")).toBeInTheDocument()
   })
 })

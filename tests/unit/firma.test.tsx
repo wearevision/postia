@@ -33,7 +33,7 @@ describe("FirmaDePieza", () => {
     montar()
     expect(screen.getByText("martes 3 de noviembre, 11:00", { exact: false })).toBeInTheDocument()
     expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Firmar Federico · mar 3 nov, 11:00" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Firmar para el mar 3 nov, 11:00" })).toBeInTheDocument()
   })
 
   test("no longer renders the post text, which the page shows above", () => {
@@ -52,7 +52,7 @@ describe("FirmaDePieza", () => {
 
   test("signs for the shown date", async () => {
     const firmar = montar()
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar Federico/ }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
     await waitFor(() =>
       expect(firmar).toHaveBeenCalledWith({
         piezaId: PIEZA,
@@ -66,7 +66,7 @@ describe("FirmaDePieza", () => {
   test("shows the error from signing as an alert", async () => {
     const firmar = vi.fn(async () => ({ ok: false as const, error: "Elige una fecha y hora futuras." }))
     montar({ firmar })
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
   })
 
@@ -77,22 +77,19 @@ describe("FirmaDePieza", () => {
 })
 
 describe("signing for the reserve", () => {
-  test("offers it as a secondary action with one line that explains it", () => {
+  test("offers it as a secondary text link with one short line that explains it", () => {
     montar()
-    expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeInTheDocument()
-    const boton = screen.getByRole("button", { name: "Firmar para la reserva" })
-    const explicacion = screen.getByText(
-      "Sin fecha. Cuando a Federico le falte una pieza firmada, la app le pone fecha y la publica sin volver a preguntarte.",
-    )
+    const boton = screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" })
+    expect(boton).not.toHaveClass("boton-primario")
+    expect(boton).not.toHaveClass("boton")
+    const explicacion = screen.getByText("La app la publica cuando a Federico le falte una pieza.")
     expect(boton).toHaveAccessibleDescription(explicacion.textContent ?? "")
   })
 
   test("for a by-hand account the explanation promises a notice, not a publication", () => {
     montar({ ruta: "a_mano", cuenta: "Página de WAV" })
     expect(
-      screen.getByText(
-        "Sin fecha. Cuando a Página de WAV le falte una pieza firmada, la app le pone fecha y te avisa para publicarla a mano, sin volver a preguntarte.",
-      ),
+      screen.getByText("Te aviso para publicarla a mano cuando a Página de WAV le falte una pieza."),
     ).toBeInTheDocument()
     expect(screen.queryByText(/la publica/)).toBeNull()
   })
@@ -100,7 +97,7 @@ describe("signing for the reserve", () => {
   test("signs the exact version without a date", async () => {
     const firmarParaReserva = vi.fn(async () => ({ ok: true as const }))
     const firmar = montar({ firmarParaReserva })
-    fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" }))
     await waitFor(() =>
       expect(firmarParaReserva).toHaveBeenCalledWith({ piezaId: PIEZA, huella: HUELLA, abiertaEn: ABIERTA_EN }),
     )
@@ -111,7 +108,7 @@ describe("signing for the reserve", () => {
     montar({
       firmarParaReserva: vi.fn(async () => ({ ok: false as const, error: "Esta pieza ya no espera tu firma." })),
     })
-    fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Esta pieza ya no espera tu firma.")
   })
 })
@@ -192,17 +189,17 @@ describe("changing the date", () => {
     montar()
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
-    const firmar = screen.getByRole("button", { name: /^Firmar Federico/ })
+    const firmar = screen.getByRole("button", { name: /^Firmar para el / })
     expect(firmar).toBeDisabled()
     expect(screen.getByText("Guarda la fecha antes de firmar.")).toBeInTheDocument()
     expect(firmar).toHaveAccessibleDescription(/Guarda la fecha antes de firmar\./)
-    expect(screen.getByRole("button", { name: "Firmar para la reserva" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" })).toBeEnabled()
   })
 
   test("an open editor with the shown date unchanged does not block signing", () => {
     montar()
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
-    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeEnabled()
     expect(screen.queryByText("Guarda la fecha antes de firmar.")).not.toBeInTheDocument()
   })
 
@@ -210,7 +207,7 @@ describe("changing the date", () => {
     montar({ planear: vi.fn(() => new Promise<Resultado>(() => {})) })
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
-    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeDisabled()
   })
 
   test("a failed save keeps the editor open and signing blocked", async () => {
@@ -220,7 +217,7 @@ describe("changing the date", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar fecha" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Esa cuenta ya tiene una pieza a esa hora.")
     expect(screen.getByLabelText("Fecha y hora de publicación")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeDisabled()
   })
 
   test("Cancelar closes the editor and resets the field", () => {
@@ -229,14 +226,14 @@ describe("changing the date", () => {
     fireEvent.change(screen.getByLabelText("Fecha y hora de publicación"), { target: { value: "2026-11-04T15:00" } })
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
     expect(screen.queryByLabelText("Fecha y hora de publicación")).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /^Firmar Federico/ })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeEnabled()
     fireEvent.click(screen.getByRole("button", { name: "Cambiar fecha" }))
     expect(screen.getByLabelText("Fecha y hora de publicación")).toHaveValue("2026-11-03T11:00")
   })
 
   test("a refusal because the date is past opens the date editor", async () => {
     montar({ firmar: vi.fn(async () => ({ ok: false as const, error: "Elige una fecha y hora futuras." })) })
-    fireEvent.click(screen.getByRole("button", { name: /^Firmar Federico/ }))
+    fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
     expect(await screen.findByRole("alert")).toHaveTextContent("Elige una fecha y hora futuras.")
     expect(screen.getByLabelText("Fecha y hora de publicación")).toBeInTheDocument()
   })

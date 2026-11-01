@@ -201,22 +201,24 @@ export function FirmaDePieza({
         aria-describedby={motivos.length > 0 ? motivos.join(" ") : undefined}
         className="boton-primario w-full gap-2"
       >
-        {pendiente && cual === "fecha" ? <Ocupado /> : `Firmar ${cuenta} · ${fechaCorta(fechaPropuesta)}`}
+        {pendiente && cual === "fecha" ? <Ocupado /> : `Firmar para el ${fechaCorta(fechaPropuesta)}`}
       </button>
       {ruta === "a_mano" && <p className="text-sm text-apagado">Te aviso a la hora para publicarla a mano.</p>}
-      <button
-        type="button"
-        disabled={bloqueada}
-        onClick={() => lanzar("reserva")}
-        aria-busy={pendiente && cual === "reserva"}
-        aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
-        className="boton w-full gap-2"
-      >
-        {pendiente && cual === "reserva" ? <Ocupado /> : "Firmar para la reserva"}
-      </button>
-      <p id="explicacion-de-reserva" className="text-sm text-apagado">
-        {explicacionDeReserva(ruta, cuenta)}
-      </p>
+      <div className="space-y-1">
+        <button
+          type="button"
+          disabled={bloqueada}
+          onClick={() => lanzar("reserva")}
+          aria-busy={pendiente && cual === "reserva"}
+          aria-describedby={lectura.motivo ? "explicacion-de-reserva motivo-de-lectura" : "explicacion-de-reserva"}
+          className="inline-flex min-h-11 items-center gap-2 font-medium underline disabled:cursor-not-allowed disabled:text-apagado disabled:no-underline"
+        >
+          {pendiente && cual === "reserva" ? <Ocupado /> : "Guardar en la reserva, sin fecha"}
+        </button>
+        <p id="explicacion-de-reserva" className="text-sm text-apagado">
+          {explicacionDeReserva(ruta, cuenta)}
+        </p>
+      </div>
       <output aria-live="polite" className="sr-only">
         {pendiente ? (intento > 1 ? `Reintentando solo · ${intento} de ${INTENTOS}` : "Firmando…") : ""}
       </output>

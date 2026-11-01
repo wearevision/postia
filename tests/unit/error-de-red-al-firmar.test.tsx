@@ -26,7 +26,7 @@ function montar(firmar: () => Promise<Resultado>, firmarParaReserva: () => Promi
   return { alFirmar, alFirmarReserva }
 }
 
-const firmar = () => fireEvent.click(screen.getByRole("button", { name: /^Firmar \S+ · / }))
+const firmar = () => fireEvent.click(screen.getByRole("button", { name: /^Firmar para el / }))
 const alerta = () => screen.findByRole("alert")
 
 describe("when the connection drops while signing", () => {
@@ -85,7 +85,7 @@ describe("when the connection drops while signing", () => {
     })
     firmar()
     await waitFor(() => expect(alFirmar).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeEnabled())
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
@@ -102,7 +102,7 @@ describe("when the connection drops while signing", () => {
       async () => ({ ok: true }),
       () => SIN_RED(),
     )
-    fireEvent.click(screen.getByRole("button", { name: "Firmar para la reserva" }))
+    fireEvent.click(screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" }))
     await alerta()
     fireEvent.click(screen.getByRole("button", { name: "Reintentar ahora" }))
     await waitFor(() => expect(alFirmarReserva).toHaveBeenCalledTimes(6))
@@ -118,7 +118,7 @@ describe("when the connection drops while signing", () => {
     const campo = screen.getByLabelText("Fecha y hora de publicación")
     expect(campo).toHaveValue("2026-11-03T15:00")
     expect(campo).toHaveFocus()
-    expect(screen.getByRole("button", { name: /^Firmar \S+ · / })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /^Firmar para el / })).toBeEnabled()
   })
 
   test("does not retry when the server answers with a reason", async () => {

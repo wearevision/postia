@@ -69,8 +69,8 @@ function montar(vistas: string[] = VISTAS, clave = "v1", bloqueo: string | null 
   return render(pieza)
 }
 
-const botonDeFirma = () => screen.getByRole("button", { name: /^Firmar \S+ · / })
-const botonDeReserva = () => screen.getByRole("button", { name: "Firmar para la reserva" })
+const botonDeFirma = () => screen.getByRole("button", { name: /^Firmar para el / })
+const botonDeReserva = () => screen.getByRole("button", { name: "Guardar en la reserva, sin fecha" })
 
 function verTodas(de: number) {
   for (let n = 1; n <= de; n++) mostrar(laminaDe(n, de), 1)
