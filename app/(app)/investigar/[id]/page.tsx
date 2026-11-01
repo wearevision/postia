@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { limpiarCita } from "@/lib/investigacion/cita"
 import {
   estaAbierta,
   type HallazgoDeInforme,
@@ -36,13 +37,14 @@ function Hallazgo({
   descartable: boolean
 }) {
   const descartado = hallazgo.estado === "descartado"
+  const cita = hallazgo.cita ? limpiarCita(hallazgo.cita) : ""
   return (
     <li
       aria-label={descartado ? "Hallazgo descartado" : "Hallazgo"}
       className={`space-y-2 tarjeta p-3 text-sm ${descartado ? "opacity-50" : ""}`}
     >
       <p>{hallazgo.resumen}</p>
-      {hallazgo.cita && <p className="text-apagado">«{hallazgo.cita}»</p>}
+      {cita && <p className="text-apagado">«{cita}»</p>}
       <a href={hallazgo.enlace} target="_blank" rel="noopener noreferrer" className="block underline">
         {hallazgo.medio}
         {hallazgo.publicadoEn && ` · ${fechaDePublicacion(hallazgo.publicadoEn)}`}
