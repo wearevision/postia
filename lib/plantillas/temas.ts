@@ -110,3 +110,9 @@ export const esTema = (valor: string): valor is IdDeTema => Object.hasOwn(TEMAS,
 export function temasDeLaVoz(voz: "yo" | "nosotros"): IdDeTema[] {
   return IDS_DE_TEMA.filter((t) => (voz === "yo" ? familiaDe(t) === "personal" : familiaDe(t) !== "personal"))
 }
+
+/** Every theme can be chosen by hand for any account (SQL tema_conocido); the account's own family goes first. */
+export function temasParaElegir(voz: "yo" | "nosotros"): IdDeTema[] {
+  const propios = temasDeLaVoz(voz)
+  return [...propios, ...IDS_DE_TEMA.filter((t) => !propios.includes(t))]
+}

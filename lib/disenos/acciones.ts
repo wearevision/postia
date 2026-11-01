@@ -8,6 +8,7 @@ import type { Json } from "@/lib/supabase/database.types"
 const MENSAJES: Record<string, string> = {
   solo_el_dueno_pide_disenos: "Solo el dueño de la marca puede pedir carruseles.",
   tema_de_otra_marca: "Ese diseño no es de esta marca.",
+  tema_desconocido: "Ese diseño no existe.",
   pieza_de_otra_cuenta: "Esa pieza es de otra cuenta.",
   solo_carruseles: "Esta pieza no es un carrusel.",
   pieza_no_editable: "Esta pieza ya no se puede editar.",

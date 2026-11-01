@@ -47,11 +47,10 @@ describe("asking for a carousel", () => {
     expect(despues.count).toBe(antes.count)
   })
 
-  test("translates a theme of another family", async () => {
-    expect(await pedirDiseno(dueno.db, entrada({ tema: "personal-claro" }))).toEqual({
-      ok: false,
-      error: "Ese diseño no es de esta marca.",
-    })
+  test("queues a theme of another family: any of the 9 can be chosen by hand", async () => {
+    const r = await pedirDiseno(dueno.db, entrada({ tema: "personal-claro" }))
+    expect(r.ok).toBe(true)
+    if (r.ok) await admin().from("pedidos_de_diseno").update({ estado: "obsoleto" }).eq("id", r.pedidoId)
   })
 
   test("a piece's design state: open while a request runs, then the failure's reason", async () => {
