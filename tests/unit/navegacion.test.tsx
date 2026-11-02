@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, test, vi } from "vitest"
+import { act, render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { Navegacion } from "@/app/(app)/navegacion"
 
 const ruta = vi.hoisted(() => ({ actual: "/" }))
@@ -72,5 +72,59 @@ describe("Navegacion", () => {
       expect(enlace.className).toContain("aria-[current=page]:text-primario")
       expect(enlace.className).toContain("min-h-14")
     }
+  })
+})
+
+/** iOS shrinks the visual viewport, not the window, when the keyboard opens. */
+function viewportDe(alto: number) {
+  const viewport = Object.assign(new EventTarget(), { height: alto })
+  vi.stubGlobal("visualViewport", viewport)
+  return {
+    cambiar(nuevo: number) {
+      viewport.height = nuevo
+      act(() => {
+        viewport.dispatchEvent(new Event("resize"))
+      })
+    },
+  }
+}
+
+describe("Navegacion with the iPhone keyboard", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  test("hides while the keyboard is open, so iOS cannot leave it floating mid-screen", () => {
+    vi.stubGlobal("innerHeight", 844)
+    const viewport = viewportDe(844)
+    render(<Navegacion />)
+    expect(screen.getByRole("navigation", { name: "Principal" })).toBeVisible()
+    viewport.cambiar(500)
+    expect(screen.queryByRole("navigation", { name: "Principal" })).not.toBeInTheDocument()
+    viewport.cambiar(844)
+    expect(screen.getByRole("navigation", { name: "Principal" })).toBeVisible()
+  })
+
+  test("when the keyboard closes it re-lays the page where it is, which puts iOS's fixed elements back", () => {
+    vi.stubGlobal("innerHeight", 844)
+    vi.stubGlobal("scrollX", 0)
+    vi.stubGlobal("scrollY", 1200)
+    const scrollTo = vi.fn()
+    vi.stubGlobal("scrollTo", scrollTo)
+    const viewport = viewportDe(844)
+    render(<Navegacion />)
+    viewport.cambiar(500)
+    expect(scrollTo).not.toHaveBeenCalled()
+    viewport.cambiar(844)
+    expect(scrollTo).toHaveBeenCalledWith(0, 1200)
+  })
+
+  test("a small resize, like the address bar, is not the keyboard", () => {
+    vi.stubGlobal("innerHeight", 844)
+    const viewport = viewportDe(844)
+    render(<Navegacion />)
+    viewport.cambiar(780)
+    expect(screen.getByRole("navigation", { name: "Principal" })).toBeVisible()
   })
 })
