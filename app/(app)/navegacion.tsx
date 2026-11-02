@@ -3,6 +3,7 @@
 import { CalendarDays, House, Lightbulb, type LucideIcon, Search, SlidersHorizontal } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import {
   RUTA_DE_AJUSTES,
   RUTA_DE_CALENDARIO,
@@ -33,8 +34,36 @@ const ENLACES: Enlace[] = [
   },
 ]
 
+/** Taller than the address bar or the predictive strip: only the keyboard shrinks the visual viewport this much. */
+const ALTO_MINIMO_DEL_TECLADO = 150
+
+/**
+ * iOS home-screen apps can leave fixed elements where the keyboard pushed them once it closes, floating mid-screen
+ * and scrolling with the page. The bar hides while the keyboard is open, and when it closes the page is scrolled to
+ * where it already is, which makes WebKit lay the fixed elements out again.
+ */
+function useTecladoAbierto(): boolean {
+  const [abierto, setAbierto] = useState(false)
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    let estaba = false
+    const medir = () => {
+      const esta = window.innerHeight - viewport.height > ALTO_MINIMO_DEL_TECLADO
+      if (estaba && !esta) window.scrollTo(window.scrollX, window.scrollY)
+      estaba = esta
+      setAbierto(esta)
+    }
+    viewport.addEventListener("resize", medir)
+    return () => viewport.removeEventListener("resize", medir)
+  }, [])
+  return abierto
+}
+
 export function Navegacion() {
   const ruta = usePathname()
+  const tecladoAbierto = useTecladoAbierto()
+  if (tecladoAbierto) return null
   return (
     <nav
       aria-label="Principal"
