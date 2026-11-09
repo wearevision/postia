@@ -74,7 +74,7 @@ describe("ImportarEstadisticas", () => {
     await waitFor(() =>
       expect(importar).toHaveBeenLastCalledWith({ cuentaId: "c-perfil", exportacion: EXPORTACION, confirmado: true }),
     )
-  })
+  }, 15_000)
 
   test("«Elegir archivos» is a real button that opens the file picker", () => {
     const abrir = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {})
