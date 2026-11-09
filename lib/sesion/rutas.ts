@@ -59,3 +59,9 @@ export function destinoDe(ruta: string, conSesion: boolean): string | null {
   if (!conSesion) return PUBLICAS.has(ruta) ? null : RUTA_DE_INGRESO
   return ruta === RUTA_DE_INGRESO ? RUTA_DE_INICIO : null
 }
+
+export const RUTA_DE_RENDIMIENTO = "/rendimiento"
+
+export function rutaDeRendimiento(cuentaId: string): string {
+  return `${RUTA_DE_RENDIMIENTO}?cuenta=${encodeURIComponent(cuentaId)}`
+}

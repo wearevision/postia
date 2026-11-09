@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { resumenDeGasto } from "@/lib/gasto/lectura"
-import { RUTA_DE_CLIENTES, RUTA_DE_SALIR, RUTA_DE_VOZ } from "@/lib/sesion/rutas"
+import { RUTA_DE_CLIENTES, RUTA_DE_RENDIMIENTO, RUTA_DE_SALIR, RUTA_DE_VOZ } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { mensajeDeLinkedin } from "../marcas/mensajes"
 import { guardarSuscripcionAccion, guardarTopeAccion, importarEstadisticasAccion, probarAvisoAccion } from "./acciones"
@@ -28,6 +28,9 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
       />
       <GastoDelMes resumen={resumen} guardar={guardarTopeAccion} />
       <ImportarEstadisticas cuentas={cuentas} importar={importarEstadisticasAccion} />
+      <Link href={RUTA_DE_RENDIMIENTO} className="boton w-full justify-start py-3">
+        Ver el rendimiento
+      </Link>
       <nav aria-label="Más" className="space-y-2">
         <Link href={RUTA_DE_VOZ} className="boton w-full justify-start py-3">
           Voz y línea editorial
