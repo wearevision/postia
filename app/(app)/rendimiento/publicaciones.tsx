@@ -2,11 +2,11 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { fechaCorta } from "@/lib/piezas/fechas"
 import {
   CAMPOS_DE_ORDEN,
   type CampoDeOrden,
   cifra,
+  fechaDePublicacion,
   ordenarPublicaciones,
   porcentajeDeTasa,
 } from "@/lib/rendimiento/formato"
@@ -31,6 +31,7 @@ export function Publicaciones({ publicaciones }: { publicaciones: PublicacionCon
       <h2 id="titulo-publicaciones" className="text-lg font-semibold">
         Publicaciones
       </h2>
+      <p className="text-sm text-apagado">Enganche = interacciones ÷ impresiones. Alcance = impresiones.</p>
       <label className="block space-y-1 text-sm">
         <span>Ordenar por</span>
         <select
@@ -49,9 +50,10 @@ export function Publicaciones({ publicaciones }: { publicaciones: PublicacionCon
         {ordenarPublicaciones(publicaciones, campo).map((p) => (
           <li key={p.id} className="tarjeta space-y-2 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-apagado">{fechaCorta(p.publicadaEl)}</span>
-              {p.marca === "mejor" && <span className={`${CHIP} border-exito text-exito`}>Mejor</span>}
-              {p.marca === "peor" && <span className={`${CHIP} border-peligro text-peligro`}>Peor</span>}
+              <span className="text-apagado">{fechaDePublicacion(p.publicadaEl)}</span>
+              {p.marca === "mejor" && <span className={`${CHIP} border-exito text-exito`}>Mejor enganche</span>}
+              {p.marca === "peor" && <span className={`${CHIP} border-peligro text-peligro`}>Menor enganche</span>}
+              {p.masAlcance && <span className={`${CHIP} border-control text-foreground`}>Más alcance</span>}
             </div>
             {p.piezaId ? (
               <Link href={rutaDePieza(p.piezaId)} className="block min-h-11 py-2 underline">
@@ -63,7 +65,7 @@ export function Publicaciones({ publicaciones }: { publicaciones: PublicacionCon
             <dl className="grid grid-cols-3 gap-2">
               <Dato nombre="Impresiones" valor={cifra(p.impresiones)} />
               <Dato nombre="Interacciones" valor={cifra(p.interacciones)} />
-              <Dato nombre="Tasa" valor={porcentajeDeTasa(p.tasa)} />
+              <Dato nombre="Enganche" valor={porcentajeDeTasa(p.tasa)} />
               {p.clics !== null && <Dato nombre="Clics" valor={cifra(p.clics)} />}
               {p.seguidoresNuevos !== null && <Dato nombre="Nuevos seguidores" valor={cifra(p.seguidoresNuevos)} />}
             </dl>

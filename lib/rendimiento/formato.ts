@@ -24,6 +24,13 @@ export function cifra(valor: number | null): string {
 }
 
 const DIA_Y_MES = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })
+const DIA_DE_PUBLICACION = new Intl.DateTimeFormat("es-CL", {
+  timeZone: "UTC",
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+})
 const MES = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", month: "short", year: "numeric" })
 
 function sinPunto(partes: Intl.DateTimeFormatPart[]): Record<string, string> {
@@ -41,6 +48,15 @@ function diaLegible(dia: string): string {
   return `${p.day} ${p.month} ${p.year}`
 }
 
+/**
+ * «dom 1 nov 2026» from the `YYYY-MM-DD` day LinkedIn gives: read in UTC so the day never shifts, with no hour, since
+ * the export has none.
+ */
+export function fechaDePublicacion(dia: string): string {
+  const p = sinPunto(DIA_DE_PUBLICACION.formatToParts(new Date(`${dia.slice(0, 10)}T00:00:00Z`)))
+  return `${p.weekday} ${p.day} ${p.month} ${p.year}`
+}
+
 /** «10 nov 2025 al 9 nov 2026» from two `YYYY-MM-DD` days. */
 export function periodoLegible(desde: string, hasta: string): string {
   return `${diaLegible(desde)} al ${diaLegible(hasta)}`
@@ -50,7 +66,7 @@ export type CampoDeOrden = "fecha" | "tasa" | "impresiones" | "interacciones"
 
 export const CAMPOS_DE_ORDEN: { campo: CampoDeOrden; nombre: string }[] = [
   { campo: "fecha", nombre: "Fecha" },
-  { campo: "tasa", nombre: "Tasa de interacción" },
+  { campo: "tasa", nombre: "Enganche" },
   { campo: "impresiones", nombre: "Impresiones" },
   { campo: "interacciones", nombre: "Interacciones" },
 ]
