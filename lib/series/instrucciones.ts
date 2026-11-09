@@ -6,6 +6,7 @@ import {
   type ContextoDeRedaccion,
   comoDatos,
   lineaEditorial,
+  loQueFunciona,
   reglasDeLaCasa,
   vozDeLaMarca,
 } from "@/lib/redaccion/instrucciones"
@@ -222,6 +223,7 @@ export function sistemaDeCarrusel(c: ContextoDeRedaccion, temas: readonly IdDeTe
     `Escribes carruseles PDF para LinkedIn en la cuenta «${c.cuenta.nombre}», en español de Chile. Federico no escribe láminas: lo que escribas es lo que él firma.`,
     vozDeLaMarca(c),
     `# Línea editorial (versión ${c.linea.version})\n\n${lineaEditorial(c)}`,
+    ...loQueFunciona(c),
     `# Reglas que no se rompen\n${reglasDeLaCasa(c)}`,
     [
       "# Lo que respondes",

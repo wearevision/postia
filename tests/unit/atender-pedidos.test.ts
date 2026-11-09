@@ -15,6 +15,7 @@ const CONTEXTO: ContextoDeRedaccion = {
     pilares: [],
   },
   noNombrar: [],
+  aprendizajes: [],
 }
 const VEREDICTO = { voz: { ok: true, comentario: "" }, hallazgos: [] }
 

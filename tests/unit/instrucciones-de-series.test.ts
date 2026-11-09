@@ -78,6 +78,7 @@ const CONTEXTO: ContextoDeRedaccion = {
     pilares: [{ nombre: "Oficio", deQueHabla: "Cómo se monta", material: "", porSemana: 1 }],
   },
   noNombrar: ["Copec"],
+  aprendizajes: [],
 }
 
 describe("sistemaDeSerie", () => {

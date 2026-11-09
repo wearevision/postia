@@ -31,7 +31,11 @@ export function ImportarEstadisticas({
       const r = await importar(entrada)
       if (r.ok) {
         setPendienteDeConfirmar(null)
-        setListo(`Listo: ${r.publicaciones} publicaciones, ${r.dePostia} de PostIA y ${r.anteriores} anteriores.`)
+        setListo(
+          `Listo: ${r.publicaciones} publicaciones, ${r.dePostia} de PostIA y ${r.anteriores} anteriores.${
+            r.leyendo ? " PostIA está leyendo tus publicaciones para proponer aprendizajes." : ""
+          }`,
+        )
         return
       }
       setError(r.error)

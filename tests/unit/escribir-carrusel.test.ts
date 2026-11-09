@@ -16,6 +16,7 @@ const CONTEXTO: ContextoDeRedaccion = {
     pilares: [],
   },
   noNombrar: [],
+  aprendizajes: [],
 }
 
 const TEMAS: IdDeTema[] = ["oscura", "papel"]

@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from "vitest"
 import { importarEstadisticas } from "@/lib/rendimiento/acciones"
 import type { Exportacion } from "@/lib/rendimiento/exportacion"
 import type { Db } from "@/lib/supabase/database"
-import { cuentaDe, marcaConDueno, personaConSesion, publicadaConUrn, publicadaEl } from "./entorno"
+import { admin, cuentaDe, marcaConDueno, personaConSesion, publicadaConUrn, publicadaEl } from "./entorno"
 
 let dueno: { db: Db; userId: string }
 let cuenta: string
@@ -27,6 +27,15 @@ beforeAll(async () => {
   await publicadaConUrn(dueno.db, cuenta, URN)
 })
 
+async function lecturasDe(cuentaId: string) {
+  const { data, error } = await admin()
+    .from("lecturas_de_rendimiento")
+    .select("estado, importacion_id")
+    .eq("cuenta_id", cuentaId)
+  if (error) throw error
+  return data
+}
+
 describe("importarEstadisticas", () => {
   test("imports and sums up what it found", async () => {
     expect(await importarEstadisticas(dueno.db, { cuentaId: cuenta, exportacion: exportacion() })).toEqual({
@@ -35,6 +44,7 @@ describe("importarEstadisticas", () => {
       dePostia: 1,
       anteriores: 0,
       sinIdentificar: 0,
+      leyendo: true,
     })
   })
 
@@ -105,6 +115,35 @@ describe("importarEstadisticas", () => {
       dePostia: 1,
       anteriores: 0,
       sinIdentificar: 0,
+      leyendo: true,
     })
+  })
+
+  test("queues a reading of the account tied to the import it follows, and a second import does not queue another", async () => {
+    const nueva = await cuentaDe(await marcaConDueno(dueno.userId))
+    expect(
+      await importarEstadisticas(dueno.db, { cuentaId: nueva, exportacion: exportacion(), confirmado: true }),
+    ).toMatchObject({
+      ok: true,
+      leyendo: true,
+    })
+    const [lectura, ...otras] = await lecturasDe(nueva)
+    expect(otras).toEqual([])
+    expect(lectura).toMatchObject({ estado: "pendiente" })
+    expect(lectura?.importacion_id).not.toBeNull()
+    expect(
+      await importarEstadisticas(dueno.db, { cuentaId: nueva, exportacion: exportacion(), confirmado: true }),
+    ).toMatchObject({
+      ok: true,
+      leyendo: true,
+    })
+    expect(await lecturasDe(nueva)).toHaveLength(1)
+  })
+
+  test("a refused import queues no reading", async () => {
+    const nueva = await cuentaDe(await marcaConDueno(dueno.userId))
+    const ajeno = await personaConSesion("acciones-rendimiento-sin-lectura")
+    await importarEstadisticas(ajeno.db, { cuentaId: nueva, exportacion: exportacion(), confirmado: true })
+    expect(await lecturasDe(nueva)).toEqual([])
   })
 })

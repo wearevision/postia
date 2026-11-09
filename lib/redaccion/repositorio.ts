@@ -3,6 +3,7 @@ import { leerExcepciones } from "@/lib/clientes/lectura"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
 import { proponerFecha } from "@/lib/piezas/horarios"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
+import { textosAprobados } from "@/lib/rendimiento/lectura"
 import type { Db } from "@/lib/supabase/database"
 import { lineaDeMarca } from "@/lib/voz/lectura"
 import type { PedidoDeTexto, PuertosDeAtencion } from "./atender"
@@ -28,11 +29,14 @@ function fechaLibre(tipo: "persona" | "empresa", ocupados: readonly number[], ah
   }
 }
 
-/** What Claude gets about a brand and one of its accounts; null when the brand has no editorial line yet. */
+/**
+ * What Claude gets about a brand and one of its accounts; null when the brand has no editorial line yet. The approved
+ * learnings are the account's own: never another account's, never ones Federico has not decided.
+ */
 export async function contextoDeRedaccion(
   db: Db,
   marcaId: string,
-  cuenta: { nombre: string; tipo: string },
+  cuenta: { id: string; nombre: string; tipo: string },
 ): Promise<ContextoDeRedaccion | null> {
   const linea = await lineaDeMarca(db, marcaId)
   if (!linea?.actual) return null
@@ -41,6 +45,7 @@ export async function contextoDeRedaccion(
     cuenta: { nombre: cuenta.nombre, tipo: leerTipo(cuenta.tipo) },
     linea: { version: linea.actual.version, secciones: linea.actual.secciones, pilares: linea.actual.pilares },
     noNombrar: nombresVetados(await leerExcepciones(db), diaEnSantiago(Date.now())),
+    aprendizajes: await textosAprobados(db, cuenta.id),
   }
 }
 
@@ -94,7 +99,7 @@ export function repositorioDeRedaccion(db: Db): Omit<PuertosDeAtencion, "pedir">
     async contexto(pedido) {
       const { data: pieza, error } = await db
         .from("pedidos_de_texto")
-        .select("cuentas(nombre, tipo)")
+        .select("cuentas(id, nombre, tipo)")
         .eq("id", pedido.id)
         .single()
       if (error) fallo("No pude leer la cuenta del pedido", error)

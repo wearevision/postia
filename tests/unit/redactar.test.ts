@@ -14,6 +14,7 @@ const CONTEXTO: ContextoDeRedaccion = {
     pilares: [],
   },
   noNombrar: [],
+  aprendizajes: [],
 }
 
 function responde(r: RespuestaDeClaude) {

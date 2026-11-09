@@ -265,3 +265,72 @@ export async function rendimientoDeCuenta(db: Db, cuentaId: string): Promise<Ren
     muestraChica: muestraChica(publicaciones),
   }
 }
+
+export interface AprendizajeLeido {
+  id: string
+  texto: string
+  porque: string
+  /** How many posts back it. */
+  respaldo: number
+}
+
+export interface AprendizajesDeCuenta {
+  porDecidir: AprendizajeLeido[]
+  /** Backed by fewer than 8 posts: shown folded, with a warning. */
+  pistas: AprendizajeLeido[]
+  aprobados: AprendizajeLeido[]
+  /** A reading is queued or running. */
+  leyendo: boolean
+  /** Why the latest reading failed, when it was the latest one. */
+  ultimoFallo: string | null
+}
+
+const ABIERTAS = ["pendiente", "trabajando"]
+export const MAXIMO_EN_EL_CONTEXTO = 10
+
+export async function aprendizajesDeCuenta(db: Db, cuentaId: string): Promise<AprendizajesDeCuenta> {
+  const [filas, lecturas] = await Promise.all([
+    leerTodo<AprendizajeLeido & { estado: string }>("No pude leer los aprendizajes", (desde, hasta) =>
+      db
+        .from("aprendizajes")
+        .select("id, texto, porque, respaldo, estado")
+        .eq("cuenta_id", cuentaId)
+        .in("estado", ["propuesto", "pista", "aprobado"])
+        .order("decidido_en", { ascending: false, nullsFirst: false })
+        .order("creado_en", { ascending: false })
+        .order("id")
+        .range(desde, hasta),
+    ),
+    db
+      .from("lecturas_de_rendimiento")
+      .select("estado, motivo")
+      .eq("cuenta_id", cuentaId)
+      .order("creada_en", { ascending: false })
+      .limit(1),
+  ])
+  if (lecturas.error) fallo("No pude leer la lectura de rendimiento", lecturas.error)
+  const ultima = lecturas.data[0]
+  const de = (estado: string) => filas.filter((f) => f.estado === estado).map(({ estado: _, ...a }) => a)
+  return {
+    porDecidir: de("propuesto"),
+    pistas: de("pista"),
+    aprobados: de("aprobado"),
+    leyendo: ultima ? ABIERTAS.includes(ultima.estado) : false,
+    ultimoFallo: ultima?.estado === "fallo" ? ultima.motivo : null,
+  }
+}
+
+/** The texts Federico approved for an account, newest decision first: what the writers get as context. */
+export async function textosAprobados(db: Db, cuentaId: string, limite = MAXIMO_EN_EL_CONTEXTO): Promise<string[]> {
+  const { data, error } = await db
+    .from("aprendizajes")
+    .select("texto")
+    .eq("cuenta_id", cuentaId)
+    .eq("estado", "aprobado")
+    .order("decidido_en", { ascending: false })
+    .order("creado_en", { ascending: false })
+    .order("id")
+    .limit(limite)
+  if (error) fallo("No pude leer los aprendizajes aprobados", error)
+  return data.map((a) => a.texto)
+}

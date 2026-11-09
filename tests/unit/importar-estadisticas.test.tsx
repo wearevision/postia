@@ -32,13 +32,34 @@ describe("ImportarEstadisticas", () => {
       dePostia: 3,
       anteriores: 9,
       sinIdentificar: 0,
+      leyendo: true,
     }))
     render(<ImportarEstadisticas cuentas={CUENTAS} leer={leer} importar={importar} />)
     const archivo = elegirArchivo()
     fireEvent.click(screen.getByRole("button", { name: "Importar" }))
     await waitFor(() => expect(importar).toHaveBeenCalledWith({ cuentaId: "c-perfil", exportacion: EXPORTACION }))
     expect(leer).toHaveBeenCalledWith([archivo])
-    expect(screen.getByRole("status")).toHaveTextContent("Listo: 12 publicaciones, 3 de PostIA y 9 anteriores.")
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Listo: 12 publicaciones, 3 de PostIA y 9 anteriores. PostIA está leyendo tus publicaciones para proponer aprendizajes.",
+    )
+  })
+
+  test("does not promise a reading when none could be queued", async () => {
+    const importar = vi.fn(async () => ({
+      ok: true as const,
+      publicaciones: 2,
+      dePostia: 1,
+      anteriores: 1,
+      sinIdentificar: 0,
+      leyendo: false,
+    }))
+    render(
+      <ImportarEstadisticas cuentas={CUENTAS} leer={async () => ({ ok: true, ...EXPORTACION })} importar={importar} />,
+    )
+    elegirArchivo()
+    fireEvent.click(screen.getByRole("button", { name: "Importar" }))
+    expect(await screen.findByRole("status")).toHaveTextContent("Listo: 2 publicaciones, 1 de PostIA y 1 anteriores.")
+    expect(screen.getByRole("status")).not.toHaveTextContent("leyendo")
   })
 
   test("a file that is not LinkedIn's shows the reader's error and imports nothing", async () => {
@@ -64,7 +85,14 @@ describe("ImportarEstadisticas", () => {
         error: "Ninguna publicación del archivo es de esta cuenta en PostIA.",
         confirmar: true,
       })
-      .mockResolvedValueOnce({ ok: true, publicaciones: 1, dePostia: 0, anteriores: 1, sinIdentificar: 0 })
+      .mockResolvedValueOnce({
+        ok: true,
+        publicaciones: 1,
+        dePostia: 0,
+        anteriores: 1,
+        sinIdentificar: 0,
+        leyendo: false,
+      })
     render(
       <ImportarEstadisticas cuentas={CUENTAS} leer={async () => ({ ok: true, ...EXPORTACION })} importar={importar} />,
     )
@@ -109,6 +137,7 @@ describe("ImportarEstadisticas", () => {
       dePostia: 1,
       anteriores: 1,
       sinIdentificar: 0,
+      leyendo: false,
     }))
     render(
       <ImportarEstadisticas
