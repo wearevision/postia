@@ -59,7 +59,7 @@ function hoja(hojas: Hojas, prefijo: string): Celda[][] | undefined {
 const texto = (c: Celda) => (c === null || c === undefined ? "" : String(c).trim())
 
 function entero(c: Celda): number | null {
-  const t = texto(c).replace(/[.\s ]/g, "")
+  const t = texto(c).replace(/[.\s\u00a0]/g, "")
   return /^\d+$/.test(t) ? Number(t) : null
 }
 
@@ -77,7 +77,7 @@ function urnDe(url: Celda): string | null {
 }
 
 function porcentaje(c: Celda): { porcentaje: number | null; menorAUno: boolean } {
-  const t = texto(c).replace(/ /g, " ")
+  const t = texto(c).replace(/\u00a0/g, " ")
   if (t.startsWith("<")) return { porcentaje: null, menorAUno: true }
   const n = Number.parseFloat(t.replace("%", "").replace(",", "."))
   return { porcentaje: Number.isFinite(n) ? n : null, menorAUno: false }
