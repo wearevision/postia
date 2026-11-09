@@ -74,12 +74,31 @@ describe("ImportarEstadisticas", () => {
     await waitFor(() =>
       expect(importar).toHaveBeenLastCalledWith({ cuentaId: "c-perfil", exportacion: EXPORTACION, confirmado: true }),
     )
+  }, 15_000)
+
+  test("«Elegir archivos» is a real button that opens the file picker", () => {
+    const abrir = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {})
+    render(<ImportarEstadisticas cuentas={CUENTAS} leer={vi.fn()} importar={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Elegir archivos" }))
+    expect(abrir).toHaveBeenCalledOnce()
+    abrir.mockRestore()
   })
 
-  test("without a file it asks for one", () => {
+  test("«Importar» with no file opens the picker instead of an error", () => {
+    const abrir = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {})
     render(<ImportarEstadisticas cuentas={CUENTAS} leer={vi.fn()} importar={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Importar" }))
-    expect(screen.getByRole("alert")).toHaveTextContent("Elige el archivo que descargaste de LinkedIn.")
+    expect(abrir).toHaveBeenCalledOnce()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    abrir.mockRestore()
+  })
+
+  test("shows the chosen files by name, in Spanish, instead of the browser's own text", () => {
+    render(<ImportarEstadisticas cuentas={CUENTAS} leer={vi.fn()} importar={vi.fn()} />)
+    expect(screen.getByText("Ningún archivo elegido")).toBeInTheDocument()
+    elegirArchivo()
+    expect(screen.getByText("estadisticas.xlsx")).toBeInTheDocument()
+    expect(screen.queryByText("Ningún archivo elegido")).not.toBeInTheDocument()
   })
 
   test("lists the profile and the page, takes several files and explains which to upload", async () => {
