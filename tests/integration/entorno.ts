@@ -158,3 +158,20 @@ export async function limpiarMapa(): Promise<void> {
   const temas = await db.from("temas").delete().not("id", "is", null)
   if (temas.error) throw temas.error
 }
+
+/** A piece of `cuentaId` that PostIA published as `urn`: signed by its owner, then sent (the row a publish leaves). */
+export async function publicadaConUrn(db: Db, cuentaId: string, urn: string): Promise<string> {
+  const pieza = await piezaDe(db, cuentaId)
+  const { id: version, huella } = await versionVigente(pieza)
+  const { data: firma, error } = await db.rpc("firmar_pieza", {
+    p_pieza: pieza,
+    p_huella: huella,
+    p_programada_para: new Date(Date.now() + 3_600_000).toISOString(),
+  })
+  if (error) throw error
+  const { error: errorDeEnvio } = await admin()
+    .from("publicaciones")
+    .insert({ pieza_id: pieza, version_id: version, firma_id: firma as string, post_urn: urn })
+  if (errorDeEnvio) throw errorDeEnvio
+  return pieza
+}
