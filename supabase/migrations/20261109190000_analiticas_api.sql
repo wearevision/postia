@@ -64,3 +64,212 @@ create trigger conexiones_de_analiticas_sueltan_su_secreto
 revoke execute on function public.conectar_analiticas(uuid, text, text[], timestamptz),
   public.soltar_secreto_de_analiticas() from public, anon, authenticated;
 grant execute on function public.conectar_analiticas(uuid, text, text[], timestamptz) to authenticated;
+
+-- Task 2: reading the figures. The Trigger.dev task reads LinkedIn's API for the page (share and follower statistics)
+-- and the profile (own post analytics) and stores them with origen = 'api'. A person's tap and the daily schedule only
+-- queue a reading (same shape as lecturas_de_rendimiento); the task takes one at a time.
+-- Retention (LinkedIn Data Storage Requirements): page reporting data up to 1 year, a member's post analytics 48 hours.
+-- API figures never reach Claude: the learnings reader keeps reading origen = 'importacion' only.
+
+create table public.lecturas_de_analiticas (
+  id uuid primary key default gen_random_uuid(),
+  cuenta_id uuid not null references public.cuentas (id) on delete cascade,
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'trabajando', 'lista', 'fallo')),
+  -- What the owner reads: a summary when «lista», the reason when «fallo».
+  motivo text check (length(motivo) <= 500),
+  arrendado_hasta timestamptz,
+  -- Null when the daily schedule queued it.
+  pedida_por uuid references auth.users (id) on delete set null,
+  creada_en timestamptz not null default now(),
+  terminada_en timestamptz
+);
+-- At most one open reading per account: a second tap never doubles the calls against the daily limit.
+create unique index lecturas_de_analiticas_una_abierta on public.lecturas_de_analiticas (cuenta_id)
+  where estado in ('pendiente', 'trabajando');
+create index lecturas_de_analiticas_abiertas on public.lecturas_de_analiticas (creada_en)
+  where estado in ('pendiente', 'trabajando');
+create index lecturas_de_analiticas_recientes on public.lecturas_de_analiticas (cuenta_id, creada_en desc);
+create index lecturas_de_analiticas_por_persona on public.lecturas_de_analiticas (pedida_por) where pedida_por is not null;
+
+alter table public.lecturas_de_analiticas enable row level security;
+create policy "duenos leen lecturas de analiticas" on public.lecturas_de_analiticas for select to authenticated
+  using (exists (select 1 from public.cuentas c where c.id = cuenta_id and public.es_dueno(c.marca_id)));
+revoke all on public.lecturas_de_analiticas from anon, authenticated;
+grant select on public.lecturas_de_analiticas to authenticated;
+
+-- Can PostIA read this account's figures right now? A page through its publishing connection (it carries
+-- rw_organization_admin), a profile through its analytics connection; an expired one does not count.
+create function public.analiticas_conectadas(p_cuenta uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.cuentas c
+     where c.id = p_cuenta
+       and ((c.tipo = 'persona' and exists (select 1 from public.conexiones_de_analiticas a
+                                             where a.cuenta_id = c.id and a.expira_en > now()))
+         or (c.tipo = 'empresa' and exists (select 1 from public.conexiones x
+                                             where x.id = c.conexion_id and x.expira_en > now()))))
+$$;
+
+-- «Actualizar desde LinkedIn»: the owner queues one reading for the account.
+create function public.pedir_lectura_de_analiticas(p_cuenta uuid) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_marca uuid;
+  v_id uuid;
+begin
+  select marca_id into v_marca from public.cuentas where id = p_cuenta;
+  if v_marca is null or not public.es_dueno(v_marca) then
+    raise exception using errcode = '42501', message = 'solo_el_dueno_pide_lecturas';
+  end if;
+  if not public.analiticas_conectadas(p_cuenta) then
+    raise exception using errcode = '55000', message = 'analiticas_sin_conexion';
+  end if;
+  begin
+    insert into public.lecturas_de_analiticas (cuenta_id, pedida_por) values (p_cuenta, auth.uid())
+    returning id into v_id;
+  exception when unique_violation then
+    raise exception using errcode = '55000', message = 'lectura_en_curso';
+  end;
+  return v_id;
+end $$;
+
+-- The daily schedule (service role): one reading for every connected account that has none open.
+create function public.programar_lecturas_de_analiticas() returns integer
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_creadas integer;
+begin
+  insert into public.lecturas_de_analiticas (cuenta_id)
+  select c.id from public.cuentas c
+   where public.analiticas_conectadas(c.id)
+     and not exists (select 1 from public.lecturas_de_analiticas l
+                      where l.cuenta_id = c.id and l.estado in ('pendiente', 'trabajando'))
+  on conflict do nothing;
+  get diagnostics v_creadas = row_count;
+  return v_creadas;
+end $$;
+
+-- The reader (service role only). One at a time, like tomar_lecturas.
+create function public.tomar_lecturas_de_analiticas() returns setof public.lecturas_de_analiticas
+language sql security definer set search_path = '' as $$
+  update public.lecturas_de_analiticas l set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes'
+   where l.id in (
+     select id from public.lecturas_de_analiticas
+      where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
+      order by creada_en
+      limit 1
+      for update skip locked)
+  returning l.*
+$$;
+
+create function public.terminar_lectura_de_analiticas(p_id uuid, p_estado text, p_motivo text default null) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if p_estado not in ('lista', 'fallo') then
+    raise exception using errcode = '22023', message = 'estado_de_lectura_invalido';
+  end if;
+  update public.lecturas_de_analiticas
+     set estado = p_estado, motivo = left(p_motivo, 500), terminada_en = now(), arrendado_hasta = null
+   where id = p_id and estado = 'trabajando';
+end $$;
+
+-- The profile's analytics token (service role only; the page's comes from credencial_de_cuenta).
+create function public.credencial_de_analiticas(p_cuenta uuid) returns table (token text, expira_en timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select s.decrypted_secret, a.expira_en
+    from public.conexiones_de_analiticas a
+    join vault.decrypted_secrets s on s.name = 'analiticas:' || a.cuenta_id
+   where a.cuenta_id = p_cuenta
+$$;
+
+-- p_datos: {publicaciones: [{post_urn, impresiones, interacciones, clics}], dias: [{dia, seguidores_nuevos}]}.
+-- Only posts PostIA sent for that account are stored (the URN must be in publicaciones); the others are dropped.
+-- The same post read again replaces its figures (a refresh, not an accumulation).
+create function public.guardar_metricas_api(p_cuenta uuid, p_datos jsonb) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_publicaciones integer;
+  v_dias integer;
+begin
+  if not exists (select 1 from public.cuentas where id = p_cuenta) then
+    raise exception using errcode = 'P0002', message = 'cuenta_no_encontrada';
+  end if;
+  if jsonb_typeof(p_datos -> 'publicaciones') <> 'array' or jsonb_typeof(p_datos -> 'dias') <> 'array'
+     or exists (select 1 from jsonb_array_elements(p_datos -> 'publicaciones') e
+                 where jsonb_typeof(e) <> 'object'
+                    or coalesce(e ->> 'post_urn', '') !~ '^urn:li:(share|ugcPost):[0-9]+$'
+                    or jsonb_typeof(e -> 'impresiones') <> 'number' or (e ->> 'impresiones') !~ '^[0-9]+$'
+                    or jsonb_typeof(e -> 'interacciones') <> 'number' or (e ->> 'interacciones') !~ '^[0-9]+$'
+                    or (jsonb_typeof(e -> 'clics') not in ('number', 'null') and e ? 'clics')
+                    or (jsonb_typeof(e -> 'clics') = 'number' and (e ->> 'clics') !~ '^[0-9]+$'))
+     or exists (select 1 from jsonb_array_elements(p_datos -> 'dias') e
+                 where jsonb_typeof(e) <> 'object' or coalesce(e ->> 'dia', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                    or jsonb_typeof(e -> 'seguidores_nuevos') <> 'number' or (e ->> 'seguidores_nuevos') !~ '^[0-9]+$') then
+    raise exception using errcode = '22023', message = 'datos_invalidos';
+  end if;
+
+  insert into public.metricas_de_publicacion (cuenta_id, post_urn, pieza_id, publicada_el, impresiones, interacciones,
+                                              clics, origen, leida_en)
+  select distinct on (e ->> 'post_urn')
+         p_cuenta, e ->> 'post_urn', pu.pieza_id, (pu.enviado_en at time zone 'America/Santiago')::date,
+         (e ->> 'impresiones')::integer, (e ->> 'interacciones')::integer, (e ->> 'clics')::integer, 'api', now()
+    from jsonb_array_elements(p_datos -> 'publicaciones') e
+    join public.publicaciones pu on pu.post_urn = e ->> 'post_urn'
+    join public.piezas pz on pz.id = pu.pieza_id and pz.cuenta_id = p_cuenta
+   order by e ->> 'post_urn', pu.enviado_en desc
+  on conflict (cuenta_id, post_urn, origen) do update
+     set pieza_id = excluded.pieza_id, publicada_el = excluded.publicada_el, impresiones = excluded.impresiones,
+         interacciones = excluded.interacciones, clics = excluded.clics, leida_en = excluded.leida_en;
+  get diagnostics v_publicaciones = row_count;
+
+  insert into public.metricas_diarias (cuenta_id, dia, seguidores_nuevos, origen)
+  select p_cuenta, (e ->> 'dia')::date, (e ->> 'seguidores_nuevos')::integer, 'api'
+    from jsonb_array_elements(p_datos -> 'dias') e
+  on conflict (cuenta_id, dia, origen) do update set seguidores_nuevos = excluded.seguidores_nuevos;
+  get diagnostics v_dias = row_count;
+
+  return jsonb_build_object('publicaciones', v_publicaciones, 'dias', v_dias);
+exception
+  when invalid_text_representation or invalid_datetime_format or datetime_field_overflow or check_violation
+       or not_null_violation then
+    raise exception using errcode = '22023', message = 'datos_invalidos';
+end $$;
+
+-- Nightly (service role): API figures past their retention, and readings older than a month. Returns rows removed.
+create function public.barrer_analiticas() returns integer
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_borradas integer := 0;
+  v_n integer;
+begin
+  delete from public.metricas_de_publicacion m using public.cuentas c
+   where c.id = m.cuenta_id and m.origen = 'api'
+     and ((c.tipo = 'persona' and m.leida_en < now() - interval '48 hours')
+       or (c.tipo = 'empresa' and m.leida_en < now() - interval '1 year'));
+  get diagnostics v_n = row_count;
+  v_borradas := v_borradas + v_n;
+
+  -- Daily figures carry no read time: they go by their day. A profile stores none today; the cap keeps it that way.
+  delete from public.metricas_diarias d using public.cuentas c
+   where c.id = d.cuenta_id and d.origen = 'api'
+     and ((c.tipo = 'persona' and d.dia < (now() at time zone 'America/Santiago')::date - 2)
+       or (c.tipo = 'empresa' and d.dia < (now() at time zone 'America/Santiago')::date - 365));
+  get diagnostics v_n = row_count;
+  v_borradas := v_borradas + v_n;
+
+  delete from public.lecturas_de_analiticas
+   where estado in ('lista', 'fallo') and creada_en < now() - interval '30 days';
+  get diagnostics v_n = row_count;
+  return v_borradas + v_n;
+end $$;
+
+revoke execute on function public.analiticas_conectadas(uuid), public.pedir_lectura_de_analiticas(uuid),
+  public.programar_lecturas_de_analiticas(), public.tomar_lecturas_de_analiticas(),
+  public.terminar_lectura_de_analiticas(uuid, text, text), public.credencial_de_analiticas(uuid),
+  public.guardar_metricas_api(uuid, jsonb), public.barrer_analiticas()
+  from public, anon, authenticated;
+grant execute on function public.pedir_lectura_de_analiticas(uuid) to authenticated;
+grant execute on function public.programar_lecturas_de_analiticas(), public.tomar_lecturas_de_analiticas(),
+  public.terminar_lectura_de_analiticas(uuid, text, text), public.credencial_de_analiticas(uuid),
+  public.guardar_metricas_api(uuid, jsonb), public.barrer_analiticas()
+  to service_role;

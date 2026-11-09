@@ -215,3 +215,15 @@ export function secretosLlamados(nombre: string): number {
   })
   return Number(salida.trim())
 }
+
+/**
+ * tomar_lecturas_de_analiticas leases the oldest open reading of every account, so a test that leases starts with none
+ * open. Local test database only.
+ */
+export async function cerrarLecturasDeAnaliticasAbiertas(): Promise<void> {
+  const { error } = await admin()
+    .from("lecturas_de_analiticas")
+    .update({ estado: "fallo", motivo: "Cerrado entre pruebas.", arrendado_hasta: null })
+    .in("estado", ["pendiente", "trabajando"])
+  if (error) throw error
+}

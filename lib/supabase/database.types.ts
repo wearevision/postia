@@ -880,6 +880,47 @@ export type Database = {
         }
         Relationships: []
       }
+      lecturas_de_analiticas: {
+        Row: {
+          arrendado_hasta: string | null
+          creada_en: string
+          cuenta_id: string
+          estado: string
+          id: string
+          motivo: string | null
+          pedida_por: string | null
+          terminada_en: string | null
+        }
+        Insert: {
+          arrendado_hasta?: string | null
+          creada_en?: string
+          cuenta_id: string
+          estado?: string
+          id?: string
+          motivo?: string | null
+          pedida_por?: string | null
+          terminada_en?: string | null
+        }
+        Update: {
+          arrendado_hasta?: string | null
+          creada_en?: string
+          cuenta_id?: string
+          estado?: string
+          id?: string
+          motivo?: string | null
+          pedida_por?: string | null
+          terminada_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecturas_de_analiticas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lecturas_de_rendimiento: {
         Row: {
           arrendado_hasta: string | null
@@ -1840,11 +1881,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      analiticas_conectadas: { Args: { p_cuenta: string }; Returns: boolean }
       aprobar_idea: {
         Args: { p_asignaciones: Json; p_idea: string }
         Returns: string[]
       }
       aprobar_informe: { Args: { p_investigacion: string }; Returns: undefined }
+      barrer_analiticas: { Args: never; Returns: number }
       barrer_elecciones: { Args: { p_ahora?: string }; Returns: number }
       barrer_gastos: { Args: { p_ahora?: string }; Returns: number }
       cambiar_ritmo: {
@@ -1945,6 +1988,13 @@ export type Database = {
       crear_vigilancia: {
         Args: { p_dia: string; p_temas: string[] }
         Returns: string
+      }
+      credencial_de_analiticas: {
+        Args: { p_cuenta: string }
+        Returns: {
+          expira_en: string
+          token: string
+        }[]
       }
       credencial_de_cuenta: {
         Args: { p_cuenta: string }
@@ -2076,6 +2126,10 @@ export type Database = {
           p_secciones: Json
         }
         Returns: number
+      }
+      guardar_metricas_api: {
+        Args: { p_cuenta: string; p_datos: Json }
+        Returns: Json
       }
       guardar_renovacion: {
         Args: {
@@ -2220,6 +2274,10 @@ export type Database = {
         Returns: string
       }
       pedir_lectura: { Args: { p_cuenta: string }; Returns: string }
+      pedir_lectura_de_analiticas: {
+        Args: { p_cuenta: string }
+        Returns: string
+      }
       pedir_otra_idea: { Args: { p_idea: string }; Returns: string }
       pedir_reescritura: {
         Args: { p_instruccion: string; p_pieza: string }
@@ -2273,6 +2331,7 @@ export type Database = {
         Args: { p_pieza: string; p_pilar?: string }
         Returns: undefined
       }
+      programar_lecturas_de_analiticas: { Args: never; Returns: number }
       quitar_excepcion: { Args: { p_id: string }; Returns: undefined }
       recalcular_centroide: { Args: { p_tema: string }; Returns: undefined }
       registrar_falla_de_espacio: {
@@ -2339,6 +2398,10 @@ export type Database = {
         Args: { p_estado: string; p_id: string; p_motivo?: string }
         Returns: undefined
       }
+      terminar_lectura_de_analiticas: {
+        Args: { p_estado: string; p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       terminar_pedido: {
         Args: { p_estado: string; p_motivo?: string; p_pedido: string }
         Returns: undefined
@@ -2393,6 +2456,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "lecturas_de_rendimiento"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      tomar_lecturas_de_analiticas: {
+        Args: never
+        Returns: {
+          arrendado_hasta: string | null
+          creada_en: string
+          cuenta_id: string
+          estado: string
+          id: string
+          motivo: string | null
+          pedida_por: string | null
+          terminada_en: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "lecturas_de_analiticas"
           isOneToOne: false
           isSetofReturn: true
         }

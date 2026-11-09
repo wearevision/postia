@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest"
 import {
   archivosParaBorrar,
+  barrerAnaliticas,
   barrerElecciones,
   limpiarCarpetas,
   mantenimientoNocturno,
@@ -50,6 +51,7 @@ describe("mantenimientoNocturno", () => {
         avisos,
         gastos,
         elecciones,
+        analiticas: async () => 0,
       }),
     ).rejects.toThrow("sin storage")
     expect(avisos).toHaveBeenCalledTimes(1)
@@ -72,13 +74,14 @@ describe("mantenimientoNocturno", () => {
         throw sinBase
       },
       elecciones: async () => 0,
+      analiticas: async () => 0,
     })
     const error = await resultado.catch((e: unknown) => e)
     expect(error).toBeInstanceOf(AggregateError)
     expect(error instanceof AggregateError ? error.errors : []).toEqual([sinStorage, sinBase])
     expect(registroDeError).toHaveBeenCalledWith("Falló el paso nocturno «archivos»: sin storage")
     expect(registroDeError).toHaveBeenCalledWith("Falló el paso nocturno «gastos»: sin base")
-    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: avisos, elecciones=0")
+    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: avisos, elecciones=0, analiticas=0")
     registroDeError.mockRestore()
     registro.mockRestore()
   })
@@ -93,23 +96,27 @@ describe("mantenimientoNocturno", () => {
       },
       gastos: async () => 2,
       elecciones: async () => 1,
+      analiticas: async () => 4,
     }).catch((e: unknown) => e)
     expect(error instanceof AggregateError ? error.errors.map((e: Error) => e.message) : []).toEqual(["sin push"])
     expect(registroDeError).toHaveBeenCalledWith("Falló el paso nocturno «avisos»: sin push")
-    expect(registro).toHaveBeenCalledWith("Pasos nocturnos que sí terminaron: archivos=3, gastos=2, elecciones=1")
+    expect(registro).toHaveBeenCalledWith(
+      "Pasos nocturnos que sí terminaron: archivos=3, gastos=2, elecciones=1, analiticas=4",
+    )
     registroDeError.mockRestore()
     registro.mockRestore()
   })
 
-  test("returns how many files were removed, how many reservations expired and how many page choices were swept", async () => {
+  test("returns how many files were removed, how many reservations expired and how many page choices and API figures were swept", async () => {
     expect(
       await mantenimientoNocturno({
         archivos: async () => 3,
         avisos: async () => {},
         gastos: async () => 2,
         elecciones: async () => 1,
+        analiticas: async () => 5,
       }),
-    ).toEqual({ archivos: 3, gastosVencidos: 2, eleccionesVencidas: 1 })
+    ).toEqual({ archivos: 3, gastosVencidos: 2, eleccionesVencidas: 1, analiticasVencidas: 5 })
   })
 })
 
@@ -123,5 +130,18 @@ describe("barrerElecciones", () => {
   test("a database failure surfaces", async () => {
     const rpc = vi.fn(async () => ({ data: null, error: { message: "sin base" } }))
     await expect(barrerElecciones({ rpc } as unknown as Db)).rejects.toThrow("sin base")
+  })
+})
+
+describe("barrerAnaliticas", () => {
+  test("runs barrer_analiticas and returns how many rows it removed", async () => {
+    const rpc = vi.fn(async () => ({ data: 7, error: null }))
+    expect(await barrerAnaliticas({ rpc } as unknown as Db)).toBe(7)
+    expect(rpc).toHaveBeenCalledWith("barrer_analiticas")
+  })
+
+  test("a database failure surfaces", async () => {
+    const rpc = vi.fn(async () => ({ data: null, error: { message: "sin base" } }))
+    await expect(barrerAnaliticas({ rpc } as unknown as Db)).rejects.toThrow("sin base")
   })
 })

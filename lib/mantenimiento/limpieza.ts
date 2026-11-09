@@ -100,26 +100,40 @@ export async function mantenimientoNocturno(pasos: {
   avisos(): Promise<void>
   gastos(): Promise<number>
   elecciones(): Promise<number>
-}): Promise<{ archivos: number; gastosVencidos: number; eleccionesVencidas: number }> {
-  const [archivos, avisos, gastos, elecciones] = await Promise.allSettled([
+  analiticas(): Promise<number>
+}): Promise<{
+  archivos: number
+  gastosVencidos: number
+  eleccionesVencidas: number
+  analiticasVencidas: number
+}> {
+  const [archivos, avisos, gastos, elecciones, analiticas] = await Promise.allSettled([
     pasos.archivos(),
     pasos.avisos(),
     pasos.gastos(),
     pasos.elecciones(),
+    pasos.analiticas(),
   ])
   if (
     archivos.status === "fulfilled" &&
     avisos.status === "fulfilled" &&
     gastos.status === "fulfilled" &&
-    elecciones.status === "fulfilled"
+    elecciones.status === "fulfilled" &&
+    analiticas.status === "fulfilled"
   ) {
-    return { archivos: archivos.value, gastosVencidos: gastos.value, eleccionesVencidas: elecciones.value }
+    return {
+      archivos: archivos.value,
+      gastosVencidos: gastos.value,
+      eleccionesVencidas: elecciones.value,
+      analiticasVencidas: analiticas.value,
+    }
   }
   const resultados = [
     { paso: "archivos", resultado: archivos },
     { paso: "avisos", resultado: avisos },
     { paso: "gastos", resultado: gastos },
     { paso: "elecciones", resultado: elecciones },
+    { paso: "analiticas", resultado: analiticas },
   ]
   const fallas: { paso: string; razon: unknown }[] = []
   const terminados: string[] = []
@@ -142,5 +156,15 @@ export async function mantenimientoNocturno(pasos: {
 export async function barrerElecciones(db: Db): Promise<number> {
   const { data, error } = await db.rpc("barrer_elecciones")
   if (error) throw new Error(`No pude barrer las elecciones de página: ${error.message}`, { cause: error })
+  return data
+}
+
+/**
+ * API figures past their retention (a profile's after 48 hours, a page's after a year) and old readings: LinkedIn's
+ * Data Storage Requirements (supabase/migrations/…_analiticas_api.sql).
+ */
+export async function barrerAnaliticas(db: Db): Promise<number> {
+  const { data, error } = await db.rpc("barrer_analiticas")
+  if (error) throw new Error(`No pude barrer las cifras de la API: ${error.message}`, { cause: error })
   return data
 }
