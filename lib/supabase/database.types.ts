@@ -699,6 +699,44 @@ export type Database = {
           },
         ]
       }
+      importaciones_de_metricas: {
+        Row: {
+          creada_en: string
+          creada_por: string | null
+          cuenta_id: string
+          desde: string
+          hasta: string
+          id: string
+          seguidores_total: number | null
+        }
+        Insert: {
+          creada_en?: string
+          creada_por?: string | null
+          cuenta_id: string
+          desde: string
+          hasta: string
+          id?: string
+          seguidores_total?: number | null
+        }
+        Update: {
+          creada_en?: string
+          creada_por?: string | null
+          cuenta_id?: string
+          desde?: string
+          hasta?: string
+          id?: string
+          seguidores_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importaciones_de_metricas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investigaciones: {
         Row: {
           angulos: Json
@@ -826,6 +864,107 @@ export type Database = {
           voz?: string
         }
         Relationships: []
+      }
+      metricas_de_publicacion: {
+        Row: {
+          clics: number | null
+          cuenta_id: string
+          extracto: string | null
+          id: string
+          impresiones: number | null
+          interacciones: number | null
+          leida_en: string
+          origen: string
+          pieza_id: string | null
+          post_urn: string
+          publicada_el: string
+          seguidores_nuevos: number | null
+        }
+        Insert: {
+          clics?: number | null
+          cuenta_id: string
+          extracto?: string | null
+          id?: string
+          impresiones?: number | null
+          interacciones?: number | null
+          leida_en?: string
+          origen: string
+          pieza_id?: string | null
+          post_urn: string
+          publicada_el: string
+          seguidores_nuevos?: number | null
+        }
+        Update: {
+          clics?: number | null
+          cuenta_id?: string
+          extracto?: string | null
+          id?: string
+          impresiones?: number | null
+          interacciones?: number | null
+          leida_en?: string
+          origen?: string
+          pieza_id?: string | null
+          post_urn?: string
+          publicada_el?: string
+          seguidores_nuevos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metricas_de_publicacion_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metricas_de_publicacion_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metricas_diarias: {
+        Row: {
+          cuenta_id: string
+          dia: string
+          impresiones: number | null
+          interacciones: number | null
+          origen: string
+          seguidores_nuevos: number | null
+          visitantes_unicos: number | null
+          visitas: number | null
+        }
+        Insert: {
+          cuenta_id: string
+          dia: string
+          impresiones?: number | null
+          interacciones?: number | null
+          origen: string
+          seguidores_nuevos?: number | null
+          visitantes_unicos?: number | null
+          visitas?: number | null
+        }
+        Update: {
+          cuenta_id?: string
+          dia?: string
+          impresiones?: number | null
+          interacciones?: number | null
+          origen?: string
+          seguidores_nuevos?: number | null
+          visitantes_unicos?: number | null
+          visitas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metricas_diarias_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       miembros: {
         Row: {
@@ -1245,6 +1384,47 @@ export type Database = {
             columns: ["version_id"]
             isOneToOne: false
             referencedRelation: "versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publico_de_la_cuenta: {
+        Row: {
+          cantidad: number | null
+          categoria: string
+          id: string
+          importacion_id: string
+          menor_a_uno: boolean
+          porcentaje: number | null
+          tipo: string
+          valor: string
+        }
+        Insert: {
+          cantidad?: number | null
+          categoria: string
+          id?: string
+          importacion_id: string
+          menor_a_uno?: boolean
+          porcentaje?: number | null
+          tipo: string
+          valor: string
+        }
+        Update: {
+          cantidad?: number | null
+          categoria?: string
+          id?: string
+          importacion_id?: string
+          menor_a_uno?: boolean
+          porcentaje?: number | null
+          tipo?: string
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publico_de_la_cuenta_importacion_id_fkey"
+            columns: ["importacion_id"]
+            isOneToOne: false
+            referencedRelation: "importaciones_de_metricas"
             referencedColumns: ["id"]
           },
         ]
@@ -1794,6 +1974,10 @@ export type Database = {
           similitud: number
         }[]
       }
+      importar_metricas: {
+        Args: { p_cuenta: string; p_datos: Json }
+        Returns: Json
+      }
       liberar_gasto: {
         Args: { p_ahora?: string; p_clave: string }
         Returns: string
@@ -2005,6 +2189,7 @@ export type Database = {
         Args: { p_estado: string; p_motivo?: string; p_trabajo: string }
         Returns: undefined
       }
+      texto_para_comparar: { Args: { p_texto: string }; Returns: string }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_asignaciones: {
         Args: { p_hasta: string; p_limite: number }

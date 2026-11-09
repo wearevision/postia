@@ -3,15 +3,19 @@ import { resumenDeGasto } from "@/lib/gasto/lectura"
 import { RUTA_DE_CLIENTES, RUTA_DE_SALIR, RUTA_DE_VOZ } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 import { mensajeDeLinkedin } from "../marcas/mensajes"
-import { guardarSuscripcionAccion, guardarTopeAccion, probarAvisoAccion } from "./acciones"
+import { guardarSuscripcionAccion, guardarTopeAccion, importarEstadisticasAccion, probarAvisoAccion } from "./acciones"
 import { AvisosDelCelular } from "./avisos-del-celular"
 import { CuentasDeLinkedin } from "./cuentas"
 import { GastoDelMes } from "./gasto"
+import { ImportarEstadisticas } from "./importar-estadisticas"
 
 export default async function Ajustes({ searchParams }: { searchParams: Promise<{ linkedin?: string }> }) {
   const mensaje = mensajeDeLinkedin((await searchParams).linkedin)
   // A person without a brand never reaches the app shell, so a failing read is a real error and should surface.
-  const resumen = await resumenDeGasto(await createClient())
+  const supabase = await createClient()
+  const resumen = await resumenDeGasto(supabase)
+  const { data: cuentas, error } = await supabase.from("cuentas").select("id, nombre, tipo").order("nombre")
+  if (error) throw new Error(`No pude leer las cuentas: ${error.message}`, { cause: error })
   return (
     <section className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Ajustes</h1>
@@ -23,6 +27,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         probar={probarAvisoAccion}
       />
       <GastoDelMes resumen={resumen} guardar={guardarTopeAccion} />
+      <ImportarEstadisticas cuentas={cuentas} importar={importarEstadisticasAccion} />
       <nav aria-label="Más" className="space-y-2">
         <Link href={RUTA_DE_VOZ} className="boton w-full justify-start py-3">
           Voz y línea editorial

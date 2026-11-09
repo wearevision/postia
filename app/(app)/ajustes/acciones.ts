@@ -6,6 +6,7 @@ import { servicioPushReal } from "@/lib/avisos/push"
 import type { SuscripcionDelNavegador } from "@/lib/avisos/tipos"
 import { guardarTope } from "@/lib/gasto/acciones"
 import type { Resultado } from "@/lib/marcas/acciones"
+import { importarEstadisticas, type ResultadoDeImportacion } from "@/lib/rendimiento/acciones"
 import { createActionClient } from "@/lib/supabase/action"
 
 export async function guardarSuscripcionAccion(suscripcion: SuscripcionDelNavegador) {
@@ -22,6 +23,12 @@ export async function probarAvisoAccion(): Promise<string> {
 
 export async function guardarTopeAccion(entrada: unknown): Promise<Resultado> {
   const resultado = await guardarTope(await createActionClient(), entrada)
+  if (resultado.ok) revalidatePath("/ajustes")
+  return resultado
+}
+
+export async function importarEstadisticasAccion(entrada: unknown): Promise<ResultadoDeImportacion> {
+  const resultado = await importarEstadisticas(await createActionClient(), entrada)
   if (resultado.ok) revalidatePath("/ajustes")
   return resultado
 }
