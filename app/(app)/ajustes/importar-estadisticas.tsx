@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import type { ResultadoDeImportacion } from "@/lib/rendimiento/acciones"
 import type { Exportacion } from "@/lib/rendimiento/exportacion"
@@ -24,6 +24,7 @@ export function ImportarEstadisticas({
   const [listo, setListo] = useState<string | null>(null)
   const [pendienteDeConfirmar, setPendienteDeConfirmar] = useState<Entrada | null>(null)
   const [pendiente, iniciar] = useTransition()
+  const selector = useRef<HTMLInputElement>(null)
 
   function enviar(entrada: Entrada) {
     iniciar(async () => {
@@ -42,7 +43,8 @@ export function ImportarEstadisticas({
     evento.preventDefault()
     setError(null)
     setListo(null)
-    if (archivos.length === 0) return setError("Elige el archivo que descargaste de LinkedIn.")
+    // The native file input looked like plain text, so «Importar» with nothing chosen opens the picker itself.
+    if (archivos.length === 0) return selector.current?.click()
     iniciar(async () => {
       const leido = await leer(archivos)
       if (!leido.ok) return setError(leido.error)
@@ -71,16 +73,38 @@ export function ImportarEstadisticas({
           </select>
         </label>
       )}
-      <label className="block space-y-1 text-sm">
-        <span>Archivo de LinkedIn</span>
+      <div className="space-y-2 text-sm">
+        <p>Archivos de LinkedIn</p>
+        {/* Visually hidden, not display:none: iOS opens the picker from click() on a rendered input. */}
         <input
+          ref={selector}
           type="file"
+          aria-label="Archivo de LinkedIn"
           accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
           multiple
           onChange={(e) => setArchivos([...(e.target.files ?? [])])}
-          className="block w-full"
+          className="sr-only"
         />
-      </label>
+        <button
+          type="button"
+          disabled={pendiente}
+          onClick={() => selector.current?.click()}
+          className="boton w-full py-3"
+        >
+          Elegir archivos
+        </button>
+        {archivos.length === 0 ? (
+          <p className="text-apagado">Ningún archivo elegido</p>
+        ) : (
+          <ul aria-label="Archivos elegidos" className="space-y-1">
+            {archivos.map((a) => (
+              <li key={`${a.name}-${a.size}`} className="break-all">
+                {a.name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <button type="submit" disabled={pendiente} className="boton w-full py-3">
         Importar
       </button>
