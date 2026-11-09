@@ -19,6 +19,7 @@ import {
 export type { FilaDePublicoConCambio, MesDeRendimiento }
 
 const PAGINA = 1000
+const ABIERTAS = ["pendiente", "trabajando"]
 const POR_LOTE = 100
 const LARGO_DEL_TEXTO = 140
 const TEXTO_SIN_PIEZA = "Publicación anterior a PostIA"
@@ -43,6 +44,8 @@ export interface PublicacionConRendimiento {
   marca: Marca | null
   /** Among the 3 widest-reaching (impressions), apart from the engagement mark. */
   masAlcance: boolean
+  /** Its figures were read from LinkedIn's API, not from an imported file. */
+  deLinkedin: boolean
 }
 
 export interface ImportacionLeida {
@@ -168,6 +171,7 @@ async function leerPublicaciones(db: Db, cuentaId: string): Promise<PublicacionC
       interacciones: f.interacciones,
       clics: f.clics,
       seguidoresNuevos: f.seguidores_nuevos,
+      deLinkedin: f.origen === "api",
     })),
   )
   return conTasa.sort((a, b) => b.publicadaEl.localeCompare(a.publicadaEl) || a.id.localeCompare(b.id))
@@ -266,6 +270,62 @@ export async function rendimientoDeCuenta(db: Db, cuentaId: string): Promise<Ren
   }
 }
 
+export interface AnaliticasDeCuenta {
+  tipo: string
+  /** PostIA can read the figures from LinkedIn's API right now (same rule as analiticas_conectadas). */
+  conectada: boolean
+  /** Only the owner asks for a reading. */
+  esDueno: boolean
+  /** A reading is queued or running. */
+  leyendo: boolean
+  /** When the latest successful reading finished. */
+  actualizadaEn: string | null
+  /** Why the latest reading failed, when it was the latest one. */
+  ultimoFallo: string | null
+}
+
+const vigente = (conexion: { expira_en: string } | null, ahora: number) =>
+  conexion !== null && Date.parse(conexion.expira_en) > ahora
+
+export async function analiticasDeCuenta(db: Db, cuentaId: string): Promise<AnaliticasDeCuenta> {
+  const [cuenta, ultima, lista] = await Promise.all([
+    db
+      .from("cuentas")
+      .select("tipo, marca_id, conexiones(expira_en), conexiones_de_analiticas(expira_en)")
+      .eq("id", cuentaId)
+      .single(),
+    db
+      .from("lecturas_de_analiticas")
+      .select("estado, motivo")
+      .eq("cuenta_id", cuentaId)
+      .order("creada_en", { ascending: false })
+      .limit(1),
+    db
+      .from("lecturas_de_analiticas")
+      .select("terminada_en")
+      .eq("cuenta_id", cuentaId)
+      .eq("estado", "lista")
+      .order("terminada_en", { ascending: false })
+      .limit(1),
+  ])
+  if (cuenta.error) fallo("No pude leer la cuenta", cuenta.error)
+  if (ultima.error) fallo("No pude leer la lectura de LinkedIn", ultima.error)
+  if (lista.error) fallo("No pude leer la última lectura de LinkedIn", lista.error)
+  const { tipo, marca_id, conexiones, conexiones_de_analiticas } = cuenta.data
+  const dueno = await db.from("miembros").select("rol").eq("marca_id", marca_id).eq("rol", "dueno").limit(1)
+  if (dueno.error) fallo("No pude revisar quién es dueño de la cuenta", dueno.error)
+  const ahora = Date.now()
+  const reciente = ultima.data[0]
+  return {
+    tipo,
+    conectada: tipo === "persona" ? vigente(conexiones_de_analiticas, ahora) : vigente(conexiones, ahora),
+    esDueno: dueno.data.length > 0,
+    leyendo: reciente ? ABIERTAS.includes(reciente.estado) : false,
+    actualizadaEn: lista.data[0]?.terminada_en ?? null,
+    ultimoFallo: reciente?.estado === "fallo" ? reciente.motivo : null,
+  }
+}
+
 export interface AprendizajeLeido {
   id: string
   texto: string
@@ -285,7 +345,6 @@ export interface AprendizajesDeCuenta {
   ultimoFallo: string | null
 }
 
-const ABIERTAS = ["pendiente", "trabajando"]
 export const MAXIMO_EN_EL_CONTEXTO = 10
 
 export async function aprendizajesDeCuenta(db: Db, cuentaId: string): Promise<AprendizajesDeCuenta> {

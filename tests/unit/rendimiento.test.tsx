@@ -4,13 +4,15 @@ import { Publicaciones } from "@/app/(app)/rendimiento/publicaciones"
 import { VistaDeRendimiento } from "@/app/(app)/rendimiento/vista"
 import {
   cifra,
+  fuenteDeCifras,
+  haceCuanto,
   mesLegible,
   ordenarPublicaciones,
   periodoLegible,
   porcentajeDeAudiencia,
   porcentajeDeTasa,
 } from "@/lib/rendimiento/formato"
-import type { PublicacionConRendimiento, RendimientoDeCuenta } from "@/lib/rendimiento/lectura"
+import type { AnaliticasDeCuenta, PublicacionConRendimiento, RendimientoDeCuenta } from "@/lib/rendimiento/lectura"
 
 function publicacion(cambios: Partial<PublicacionConRendimiento> & { id: string }): PublicacionConRendimiento {
   return {
@@ -24,6 +26,7 @@ function publicacion(cambios: Partial<PublicacionConRendimiento> & { id: string 
     seguidoresNuevos: null,
     marca: null,
     masAlcance: false,
+    deLinkedin: false,
     ...cambios,
   }
 }
@@ -85,6 +88,46 @@ describe("formato", () => {
     expect(periodoLegible("2025-11-10", "2026-11-09")).toBe("10 nov 2025 al 9 nov 2026")
   })
 
+  test("says how long ago in hours, under an hour, and in days past two days", () => {
+    const ahora = Date.parse("2026-11-09T12:00:00Z")
+    expect(haceCuanto("2026-11-09T11:30:00Z", ahora)).toBe("hace menos de 1 h")
+    expect(haceCuanto("2026-11-09T07:00:00Z", ahora)).toBe("hace 5 h")
+    expect(haceCuanto("2026-11-08T12:00:00Z", ahora)).toBe("hace 24 h")
+    expect(haceCuanto("2026-11-07T10:00:00Z", ahora)).toBe("hace 2 días")
+    expect(haceCuanto("2026-11-09T12:05:00Z", ahora)).toBe("hace menos de 1 h")
+  })
+
+  test("names each source of the figures: the API with its age, the imported file with its period", () => {
+    const ahora = Date.parse("2026-11-09T12:00:00Z")
+    const importacion = { desde: "2025-11-10", hasta: "2026-11-09" }
+    expect(
+      fuenteDeCifras({ tipo: "empresa", conectada: true, actualizadaEn: "2026-11-09T09:00:00Z", importacion }, ahora),
+    ).toEqual({
+      api: "Cifras de LinkedIn (API), actualizadas hace 3 h",
+      importacion: "Archivo importado (del 10 nov 2025 al 9 nov 2026)",
+      nota: null,
+    })
+    expect(fuenteDeCifras({ tipo: "empresa", conectada: false, actualizadaEn: null, importacion }, ahora)).toEqual({
+      api: null,
+      importacion: "Archivo importado (del 10 nov 2025 al 9 nov 2026)",
+      nota: null,
+    })
+  })
+
+  test("a connected profile never read yet says so and carries LinkedIn's 48-hour note", () => {
+    const ahora = Date.parse("2026-11-09T12:00:00Z")
+    expect(fuenteDeCifras({ tipo: "persona", conectada: true, actualizadaEn: null, importacion: null }, ahora)).toEqual(
+      {
+        api: "Cifras de LinkedIn (API): todavía sin leer",
+        importacion: null,
+        nota: "LinkedIn permite guardar estas cifras 48 horas: se actualizan cada día",
+      },
+    )
+    expect(
+      fuenteDeCifras({ tipo: "persona", conectada: false, actualizadaEn: null, importacion: null }, ahora).nota,
+    ).toBeNull()
+  })
+
   test("sorts descending by the chosen field and leaves missing values last", () => {
     const ids = (c: Parameters<typeof ordenarPublicaciones>[1]) =>
       ordenarPublicaciones(PUBLICACIONES, c).map((p) => p.id)
@@ -117,6 +160,20 @@ describe("Publicaciones", () => {
     expect(screen.getAllByText("Más alcance")).toHaveLength(1)
     expect(screen.getByText("Enganche = interacciones ÷ impresiones. Alcance = impresiones.")).toBeInTheDocument()
     expect(screen.queryByText("Peor")).toBeNull()
+  })
+
+  test("tags the posts whose figures come from LinkedIn's API", () => {
+    render(
+      <Publicaciones
+        publicaciones={[
+          publicacion({ id: "api", texto: "Leída por la API", deLinkedin: true }),
+          publicacion({ id: "imp", texto: "Importada" }),
+        ]}
+      />,
+    )
+    const [deApi, importada] = within(screen.getByRole("list", { name: "Publicaciones" })).getAllByRole("listitem")
+    expect(within(deApi as HTMLElement).getByText("LinkedIn")).toBeInTheDocument()
+    expect(within(importada as HTMLElement).queryByText("LinkedIn")).toBeNull()
   })
 
   test("shows the day LinkedIn gives, with its year and no made-up hour", () => {
@@ -216,7 +273,18 @@ const CUENTAS = [
   { id: "pagina", nombre: "Página de WAV", tipo: "empresa", tieneDatos: false },
 ]
 
+const SIN_ANALITICAS: AnaliticasDeCuenta = {
+  tipo: "persona",
+  conectada: false,
+  esDueno: true,
+  leyendo: false,
+  actualizadaEn: null,
+  ultimoFallo: null,
+}
+
 const EXTRAS = {
+  analiticas: SIN_ANALITICAS,
+  ahora: Date.parse("2026-11-09T12:00:00Z"),
   aprendizajes: {
     porDecidir: [{ id: "a1", texto: "Los casos con cifras rinden más.", porque: "Más enganche.", respaldo: 9 }],
     pistas: [],
@@ -224,7 +292,11 @@ const EXTRAS = {
     leyendo: false,
     ultimoFallo: null,
   },
-  acciones: { decidir: async () => ({ ok: true as const }), pedirLectura: async () => ({ ok: true as const }) },
+  acciones: {
+    decidir: async () => ({ ok: true as const }),
+    pedirLectura: async () => ({ ok: true as const }),
+    actualizarDesdeLinkedin: async () => ({ ok: true as const }),
+  },
 }
 
 describe("VistaDeRendimiento", () => {
@@ -238,7 +310,7 @@ describe("VistaDeRendimiento", () => {
 
   test("shows the period, the followers total and the small-sample notice", () => {
     render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} {...EXTRAS} />)
-    expect(screen.getByText("Datos del 10 nov 2025 al 9 nov 2026")).toBeInTheDocument()
+    expect(screen.getByText("Archivo importado (del 10 nov 2025 al 9 nov 2026)")).toBeInTheDocument()
     expect(screen.getByText(/3\.448 seguidores/)).toBeInTheDocument()
     expect(
       screen.getByText("Todavía son pocas publicaciones con interacciones para sacar conclusiones."),
@@ -293,6 +365,37 @@ describe("VistaDeRendimiento", () => {
         .getByText(/Software/)
         .closest("li")?.textContent,
     ).not.toMatch(/sube|baja|nuevo/)
+  })
+
+  test("a connected profile shows when LinkedIn's API was read, the 48-hour note and the update button", () => {
+    render(
+      <VistaDeRendimiento
+        cuentas={CUENTAS}
+        cuentaId="perfil"
+        datos={DATOS}
+        {...EXTRAS}
+        analiticas={{ ...SIN_ANALITICAS, conectada: true, actualizadaEn: "2026-11-09T10:00:00Z" }}
+      />,
+    )
+    expect(screen.getByText("Cifras de LinkedIn (API), actualizadas hace 2 h")).toBeInTheDocument()
+    expect(
+      screen.getByText("LinkedIn permite guardar estas cifras 48 horas: se actualizan cada día"),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Actualizar desde LinkedIn" })).toBeEnabled()
+  })
+
+  test("a connected account with no figures yet still offers the update from LinkedIn", () => {
+    render(
+      <VistaDeRendimiento
+        cuentas={CUENTAS}
+        cuentaId="pagina"
+        {...EXTRAS}
+        analiticas={{ ...SIN_ANALITICAS, tipo: "empresa", conectada: true }}
+        datos={{ ...DATOS, publicaciones: [], meses: [], publico: [], ultimaImportacion: null }}
+      />,
+    )
+    expect(screen.getByText("Todavía no hay estadísticas de esta cuenta.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Actualizar desde LinkedIn" })).toBeEnabled()
   })
 
   test("shows the no-data state with a link to import when the account has nothing", () => {

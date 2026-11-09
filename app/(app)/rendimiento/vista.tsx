@@ -1,29 +1,53 @@
 import Link from "next/link"
-import { periodoLegible } from "@/lib/rendimiento/formato"
-import type { AprendizajesDeCuenta, CuentaConRendimiento, RendimientoDeCuenta } from "@/lib/rendimiento/lectura"
+import type { Resultado } from "@/lib/marcas/acciones"
+import { fuenteDeCifras } from "@/lib/rendimiento/formato"
+import type {
+  AnaliticasDeCuenta,
+  AprendizajesDeCuenta,
+  CuentaConRendimiento,
+  RendimientoDeCuenta,
+} from "@/lib/rendimiento/lectura"
 import { RUTA_DE_AJUSTES, rutaDeRendimiento } from "@/lib/sesion/rutas"
 import { type AccionesDeAprendizajes, Aprendizajes } from "./aprendizajes"
+import { FuenteDeLasCifras } from "./fuente"
 import { Publicaciones } from "./publicaciones"
 import { Publico } from "./publico"
 import { Tendencia } from "./tendencia"
 
 const NUMERO = new Intl.NumberFormat("es-CL")
 
+export interface AccionesDeRendimiento extends AccionesDeAprendizajes {
+  actualizarDesdeLinkedin: (cuentaId: string) => Promise<Resultado>
+}
+
 export function VistaDeRendimiento({
   cuentas,
   cuentaId,
   datos,
   aprendizajes,
+  analiticas,
   acciones,
+  ahora,
 }: {
   cuentas: CuentaConRendimiento[]
   cuentaId: string
   datos: RendimientoDeCuenta
   aprendizajes: AprendizajesDeCuenta
-  acciones: AccionesDeAprendizajes
+  analiticas: AnaliticasDeCuenta
+  acciones: AccionesDeRendimiento
+  /** Render time, so the «hace N h» line is computed once on the server. */
+  ahora: number
 }) {
   const sinDatos = datos.publicaciones.length === 0 && datos.meses.length === 0 && datos.publico.length === 0
-  const importacion = datos.ultimaImportacion
+  const fuente = (
+    <FuenteDeLasCifras
+      key={cuentaId}
+      cuentaId={cuentaId}
+      analiticas={analiticas}
+      fuente={fuenteDeCifras({ ...analiticas, importacion: datos.ultimaImportacion }, ahora)}
+      actualizar={acciones.actualizarDesdeLinkedin}
+    />
+  )
   return (
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-semibold">Rendimiento</h1>
@@ -44,6 +68,7 @@ export function VistaDeRendimiento({
       {sinDatos ? (
         <div className="space-y-3">
           <p className="text-apagado">Todavía no hay estadísticas de esta cuenta.</p>
+          {fuente}
           <Link href={RUTA_DE_AJUSTES} className="boton w-full py-3">
             Importar estadísticas
           </Link>
@@ -51,7 +76,7 @@ export function VistaDeRendimiento({
       ) : (
         <>
           <header className="space-y-1 text-sm">
-            {importacion && <p>Datos del {periodoLegible(importacion.desde, importacion.hasta)}</p>}
+            {fuente}
             {datos.seguidoresTotal !== null && (
               <p className="text-apagado">{NUMERO.format(datos.seguidoresTotal)} seguidores</p>
             )}
