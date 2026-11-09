@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js"
 import { describe, expect, test } from "vitest"
 import { marcarExcepcion, quitarExcepcion } from "@/lib/clientes/acciones"
 import { clientes, leerExcepciones } from "@/lib/clientes/lectura"
+import { diaEnSantiago, sumarDias } from "@/lib/piezas/calendario"
+import { enSantiago } from "@/lib/piezas/horarios"
 import type { Database } from "@/lib/supabase/database.types"
 import { admin, entornoLocal, marcaConDueno, personaConSesion } from "./entorno"
 
@@ -227,15 +229,19 @@ describe("lib/clientes", () => {
 
   test("marcarExcepcion refuses an end date that already passed in Chile and takes today", async () => {
     const { db } = await duenoDeAlguna("cli-fecha")
-    // 23:00 of November 2 in Chile.
-    const ahora = Date.parse("2026-11-03T02:00:00Z")
+    // 23:00 of today in Chile, when UTC is already tomorrow. Relative to the real clock: the database checks the date
+    // against its own now, so a fixed day stopped passing once it went by.
+    const hoy = diaEnSantiago(Date.now())
+    const [anio, mes, dia] = hoy.split("-").map(Number)
+    const ahora = enSantiago(anio, mes, dia, 23, 0).getTime()
+    const ayer = sumarDias(hoy, -1)
     const entrada = (hasta: string) => ({
       cliente: `Cliente ${randomUUID().slice(0, 6)}`,
       tipo: "sin_logo",
       alias: "",
       hasta,
     })
-    expect(await marcarExcepcion(db, entrada("2026-11-01"), ahora)).toEqual({ ok: false, error: "La fecha ya pasó." })
-    expect(await marcarExcepcion(db, entrada("2026-11-02"), ahora)).toMatchObject({ ok: true })
+    expect(await marcarExcepcion(db, entrada(ayer), ahora)).toEqual({ ok: false, error: "La fecha ya pasó." })
+    expect(await marcarExcepcion(db, entrada(hoy), ahora)).toMatchObject({ ok: true })
   })
 })
