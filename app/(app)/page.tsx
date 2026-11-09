@@ -5,7 +5,7 @@ import { leerConteos } from "@/lib/inicio/conteos"
 import { informesPorAprobar } from "@/lib/investigacion/lectura"
 import { bandeja } from "@/lib/piezas/lectura"
 import { ideasPorRevisar } from "@/lib/series/lectura"
-import { RUTA_DE_CALENDARIO } from "@/lib/sesion/rutas"
+import { RUTA_DE_CALENDARIO, RUTA_DE_RENDIMIENTO } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function Inicio() {
@@ -24,8 +24,11 @@ export default async function Inicio() {
       <PorRevisar informes={informes} ideas={ideas} piezas={revisar} />
       <SeccionDePiezas titulo="Publicar a mano" tarjetas={aMano} />
       {vacia && <p className="text-apagado">No hay nada pendiente.</p>}
-      <Link href={RUTA_DE_CALENDARIO} className="inline-block min-h-11 py-3 text-sm underline">
+      <Link href={RUTA_DE_CALENDARIO} className="block min-h-11 py-3 text-sm underline">
         Ver la semana
+      </Link>
+      <Link href={RUTA_DE_RENDIMIENTO} className="block min-h-11 py-3 text-sm underline">
+        Ver el rendimiento
       </Link>
     </div>
   )
