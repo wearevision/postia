@@ -1,6 +1,5 @@
-import { execFileSync } from "node:child_process"
 import { describe, expect, test } from "vitest"
-import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
+import { admin, cuentaDe, marcaConDueno, personaConSesion, secretosLlamados } from "./entorno"
 
 const DIA = 86_400_000
 const EN_DIAS = (dias: number) => new Date(Date.now() + dias * DIA).toISOString()
@@ -8,21 +7,6 @@ const PAGINA = "urn:li:organization:123"
 const OTRA_PAGINA = "urn:li:organization:456"
 
 type Persona = Awaited<ReturnType<typeof personaConSesion>>
-
-/** Vault is out of PostgREST's reach: the test reads secret names straight from the local database. */
-function secretosLlamados(nombre: string): number {
-  const url = execFileSync("supabase", ["status", "-o", "env"], { encoding: "utf8" })
-    .split("\n")
-    .map((linea) => /^DB_URL="?(.*?)"?$/.exec(linea.trim()))
-    .find((m) => m !== null)?.[1]
-  if (!url) throw new Error("Supabase local no está corriendo: pnpm db:start")
-  // psql interpolates :'nombre' only in scripts read from a file or stdin, never in -c.
-  const salida = execFileSync("psql", [url, "-tA", "-v", `nombre=${nombre}`, "-f", "-"], {
-    encoding: "utf8",
-    input: "select count(*) from vault.secrets where name = :'nombre';",
-  })
-  return Number(salida.trim())
-}
 
 async function duenoCon(tipo: "persona" | "empresa", ruta: "api" | "a_mano" = "api") {
   const dueno = await personaConSesion(`pagina-${tipo}`)

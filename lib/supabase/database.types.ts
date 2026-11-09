@@ -320,6 +320,38 @@ export type Database = {
         }
         Relationships: []
       }
+      conexiones_de_analiticas: {
+        Row: {
+          conectada_en: string
+          conectada_por: string
+          cuenta_id: string
+          expira_en: string
+          scopes: string[]
+        }
+        Insert: {
+          conectada_en?: string
+          conectada_por: string
+          cuenta_id: string
+          expira_en: string
+          scopes: string[]
+        }
+        Update: {
+          conectada_en?: string
+          conectada_por?: string
+          cuenta_id?: string
+          expira_en?: string
+          scopes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conexiones_de_analiticas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: true
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cuentas: {
         Row: {
           conexion_id: string | null
@@ -1837,6 +1869,15 @@ export type Database = {
           p_descartados?: number
           p_investigacion: string
           p_repetidos?: number
+        }
+        Returns: undefined
+      }
+      conectar_analiticas: {
+        Args: {
+          p_cuenta: string
+          p_expira_en: string
+          p_scopes: string[]
+          p_token: string
         }
         Returns: undefined
       }

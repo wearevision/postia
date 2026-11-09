@@ -131,6 +131,16 @@ describe("mensajeDeLinkedin", () => {
     )
   })
 
+  test("explains the analytics connection in Spanish, including the missing scope", () => {
+    expect(mensajeDeLinkedin("analiticas_conectada")).toBe("Analíticas de LinkedIn conectadas.")
+    expect(mensajeDeLinkedin("permisos_analiticas")).toBe(
+      "LinkedIn no dio permiso para leer las analíticas. Vuelve a conectar y acepta el permiso de estadísticas.",
+    )
+    expect(mensajeDeLinkedin("analiticas_solo_perfil")).toBe(
+      "Las analíticas se conectan en el perfil de LinkedIn, no en la página.",
+    )
+  })
+
   test("tells the owner which button fits the account", () => {
     expect(mensajeDeLinkedin("cuenta_es_pagina")).toBe("Esta cuenta es una página: usa «Conectar página de LinkedIn».")
     expect(mensajeDeLinkedin("cuenta_es_perfil")).toBe("Esta cuenta es un perfil: usa «Conectar LinkedIn».")

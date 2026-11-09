@@ -69,7 +69,7 @@ export type ResultadoDePagina = { ok: true; eleccion: string } | { ok: false; mo
 const URN_DE_ORGANIZACION = /^urn:li:organization:([0-9]+)$/
 
 /** What a log may say about an error: its kind and HTTP code, never its message (LinkedIn's or the database's words). */
-function tipoDeError(error: unknown): string {
+export function tipoDeError(error: unknown): string {
   if (error instanceof RechazoDeLinkedin) return `${error.name} HTTP ${error.http}`
   return error instanceof Error ? error.name : typeof error
 }

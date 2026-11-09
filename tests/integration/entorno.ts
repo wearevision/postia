@@ -200,3 +200,18 @@ export async function publicadaEl(db: Db, cuentaId: string, texto: string, envia
   }
   return pieza
 }
+
+/** Vault is out of PostgREST's reach: the test reads secret names straight from the local database. */
+export function secretosLlamados(nombre: string): number {
+  const url = execFileSync("supabase", ["status", "-o", "env"], { encoding: "utf8" })
+    .split("\n")
+    .map((linea) => /^DB_URL="?(.*?)"?$/.exec(linea.trim()))
+    .find((m) => m !== null)?.[1]
+  if (!url) throw new Error("Supabase local no está corriendo: pnpm db:start")
+  // psql interpolates :'nombre' only in scripts read from a file or stdin, never in -c.
+  const salida = execFileSync("psql", [url, "-tA", "-v", `nombre=${nombre}`, "-f", "-"], {
+    encoding: "utf8",
+    input: "select count(*) from vault.secrets where name = :'nombre';",
+  })
+  return Number(salida.trim())
+}
