@@ -13,25 +13,38 @@ const Exportacion = z.object({
   publicaciones: z
     .array(
       z.object({
-        postUrn: z.string().regex(/^urn:li:(share|ugcPost):[0-9]+$/),
+        postUrn: z.string().regex(/^urn:li:(share|ugcPost|activity):[0-9]+$/),
         publicadaEl: Dia,
         interacciones: Entero.nullable(),
         impresiones: Entero.nullable(),
+        extracto: z.string().max(300).nullish(),
+        clics: Entero.nullish(),
+        seguidoresNuevos: Entero.nullish(),
       }),
     )
     .max(200),
   sinIdentificar: Entero,
   dias: z
-    .array(z.object({ dia: Dia, impresiones: Entero, interacciones: Entero, seguidoresNuevos: Entero.nullable() }))
+    .array(
+      z.object({
+        dia: Dia,
+        impresiones: Entero,
+        interacciones: Entero,
+        seguidoresNuevos: Entero.nullable(),
+        visitas: Entero.nullish(),
+        visitantesUnicos: Entero.nullish(),
+      }),
+    )
     .max(800),
   publico: z
     .array(
       z.object({
-        tipo: z.enum(["publico", "contenido"]),
+        tipo: z.enum(["publico", "contenido", "seguidores", "visitantes"]),
         categoria: z.string().trim().min(1).max(80),
         valor: z.string().trim().min(1).max(200),
         porcentaje: z.number().min(0).max(100).nullable(),
         menorAUno: z.boolean(),
+        cantidad: Entero.nullish(),
       }),
     )
     .max(300),

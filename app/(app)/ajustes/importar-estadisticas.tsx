@@ -4,22 +4,22 @@ import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
 import type { ResultadoDeImportacion } from "@/lib/rendimiento/acciones"
 import type { Exportacion } from "@/lib/rendimiento/exportacion"
-import { leerArchivoDeLinkedin } from "@/lib/rendimiento/lector"
+import { leerArchivosDeLinkedin } from "@/lib/rendimiento/lector"
 
 type Entrada = { cuentaId: string; exportacion: Exportacion; confirmado?: true }
 
 export function ImportarEstadisticas({
   cuentas,
-  leer = leerArchivoDeLinkedin,
+  leer = leerArchivosDeLinkedin,
   importar,
 }: {
   cuentas: readonly { id: string; nombre: string }[]
   /** The browser reader; a server page cannot pass it, so it is the default and tests replace it. */
-  leer?: (archivo: File) => Promise<Resultado<Exportacion>>
+  leer?: (archivos: File[]) => Promise<Resultado<Exportacion>>
   importar: (entrada: Entrada) => Promise<ResultadoDeImportacion>
 }) {
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? "")
-  const [archivo, setArchivo] = useState<File | null>(null)
+  const [archivos, setArchivos] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [listo, setListo] = useState<string | null>(null)
   const [pendienteDeConfirmar, setPendienteDeConfirmar] = useState<Entrada | null>(null)
@@ -42,9 +42,9 @@ export function ImportarEstadisticas({
     evento.preventDefault()
     setError(null)
     setListo(null)
-    if (!archivo) return setError("Elige el archivo que descargaste de LinkedIn.")
+    if (archivos.length === 0) return setError("Elige el archivo que descargaste de LinkedIn.")
     iniciar(async () => {
-      const leido = await leer(archivo)
+      const leido = await leer(archivos)
       if (!leido.ok) return setError(leido.error)
       const { ok: _, ...exportacion } = leido
       enviar({ cuentaId, exportacion })
@@ -75,7 +75,7 @@ export function ImportarEstadisticas({
         <input
           type="file"
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+          onChange={(e) => setArchivos([...(e.target.files ?? [])])}
           className="block w-full"
         />
       </label>

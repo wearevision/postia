@@ -114,3 +114,94 @@ describe("leerExportacion", () => {
     expect(leerExportacion(sinSeguidores)).toEqual({ ok: false, error: "Al archivo le falta la hoja «SEGUIDORES»." })
   })
 })
+
+function hojasEnIngles(cambios: Partial<Hojas> = {}): Hojas {
+  return {
+    DISCOVERY: [
+      ["Overall Performance", "11/10/2025 - 11/9/2026"],
+      ["Impressions", "3693"],
+    ],
+    ENGAGEMENT: [
+      ["Date", "Impressions", "Engagements"],
+      ["11/10/2025", "0", "0"],
+      ["11/16/2025", "962", "18"],
+    ],
+    FOLLOWERS: [
+      ["Total followers on 11/9/2026", "3448"],
+      [null, null],
+      ["Date", "New followers"],
+      ["11/16/2025", "4"],
+    ],
+    "TOP POSTS": [
+      ["Maximum of 50 posts available to include in this list"],
+      [],
+      ["Post URL", "Post Publish Date", "Engagements", "", "Post URL", "Post Publish Date", "Impressions"],
+      [URL_SHARE, "11/16/2025", "18", "", URL_SHARE, "11/16/2025", "962"],
+      ["", "", "", "", URL_UGC, "11/18/2025", "337"],
+    ],
+    "AUDIENCE DEMOGRAPHICS": [
+      ["Top Demographics", "Value", "Percentage"],
+      ["Company", "CCU", "< 1%"],
+      ["Job title", "Gerente de marketing", "3%"],
+      ["Company size", "11-50", "12%"],
+    ],
+    "CONTENT DEMOGRAPHICS": [
+      ["Top Demographics", "Value", "Percentage"],
+      ["Location", "Santiago", "40%"],
+    ],
+    ...cambios,
+  }
+}
+
+describe("leerExportacion in English", () => {
+  test("reads the same figures as the Spanish export, with M/D/YYYY dates", () => {
+    const r = leerExportacion(hojasEnIngles())
+    if (!r.ok) throw new Error(r.error)
+    const es = leerExportacion(hojas())
+    if (!es.ok) throw new Error(es.error)
+    expect(r.desde).toBe("2025-11-10")
+    expect(r.hasta).toBe("2026-11-09")
+    expect(r.seguidoresTotal).toBe(3448)
+    expect(r.publicaciones).toEqual(es.publicaciones)
+    expect(r.dias).toEqual(es.dias)
+  })
+
+  test("stores the audience categories in Spanish", () => {
+    const r = leerExportacion(hojasEnIngles())
+    if (!r.ok) throw new Error(r.error)
+    expect(r.publico).toEqual([
+      { tipo: "publico", categoria: "Empresa", valor: "CCU", porcentaje: null, menorAUno: true },
+      { tipo: "publico", categoria: "Cargo", valor: "Gerente de marketing", porcentaje: 3, menorAUno: false },
+      { tipo: "publico", categoria: "Tamaño de la empresa", valor: "11-50", porcentaje: 12, menorAUno: false },
+      { tipo: "contenido", categoria: "Ubicación", valor: "Santiago", porcentaje: 40, menorAUno: false },
+    ])
+  })
+
+  test("MOST RECENT POSTS adds recent posts and fills missing impressions, but the top lists win", () => {
+    const recientes = [
+      ["Post URL", "Post Publish Date", "Post type", "Impressions"],
+      [URL_SHARE, "11/16/2025", "Document", "5"],
+      [URL_UGC, "11/18/2025", "Document", "999"],
+      ["https://www.linkedin.com/posts/federico_nuevo-share-7400000000000000001-AbCd", "11/9/2026", "Document", "29"],
+    ]
+    const hojasConTop = hojasEnIngles({ "MOST RECENT POSTS": recientes })
+    hojasConTop["TOP POSTS"][3] = [URL_SHARE, "11/16/2025", "18", "", "", "", ""]
+    const r = leerExportacion(hojasConTop)
+    if (!r.ok) throw new Error(r.error)
+    expect(r.publicaciones).toEqual([
+      { postUrn: "urn:li:share:7395845008874020865", publicadaEl: "2025-11-16", interacciones: 18, impresiones: 5 },
+      {
+        postUrn: "urn:li:ugcPost:7396634456431751170",
+        publicadaEl: "2025-11-18",
+        interacciones: null,
+        impresiones: 337,
+      },
+      { postUrn: "urn:li:share:7400000000000000001", publicadaEl: "2026-11-09", interacciones: null, impresiones: 29 },
+    ])
+  })
+
+  test("a missing English sheet is named in English", () => {
+    const { FOLLOWERS: _, ...sinSeguidores } = hojasEnIngles()
+    expect(leerExportacion(sinSeguidores)).toEqual({ ok: false, error: "Al archivo le falta la hoja «FOLLOWERS»." })
+  })
+})

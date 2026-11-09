@@ -34,7 +34,7 @@ describe("ImportarEstadisticas", () => {
     const archivo = elegirArchivo()
     fireEvent.click(screen.getByRole("button", { name: "Importar" }))
     await waitFor(() => expect(importar).toHaveBeenCalledWith({ cuentaId: "c-perfil", exportacion: EXPORTACION }))
-    expect(leer).toHaveBeenCalledWith(archivo)
+    expect(leer).toHaveBeenCalledWith([archivo])
     expect(screen.getByRole("status")).toHaveTextContent("Listo: 12 publicaciones, 3 de PostIA y 9 anteriores.")
   })
 
