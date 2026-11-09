@@ -27,20 +27,36 @@ export function mediana(valores: number[]): number | null {
 }
 
 /** Keeps the input order; adds the rate and, among the posts that have one, the best and worst. */
+/**
+ * The posts at or beyond the `CUANTAS_MARCAS`-th value, ties included so equal figures never get different marks; none
+ * when those ties take every post (then the mark would not single anything out).
+ */
+function extremos<P>(posts: P[], valor: (p: P) => number, orden: "alto" | "bajo"): Set<P> {
+  if (posts.length < CUANTAS_MARCAS) return new Set()
+  const ordenados = [...posts].sort((a, b) => (orden === "alto" ? valor(b) - valor(a) : valor(a) - valor(b)))
+  const corte = valor(ordenados[CUANTAS_MARCAS - 1] as P)
+  const elegidos = ordenados.filter((p) => (orden === "alto" ? valor(p) >= corte : valor(p) <= corte))
+  return elegidos.length === posts.length ? new Set() : new Set(elegidos)
+}
+
+/**
+ * Engagement marks (rate = interactions ÷ impressions) and a separate reach mark (impressions), each for the top 3
+ * once at least `MINIMO_PARA_MARCAR` posts have that figure. A post is never both best and worst engagement.
+ */
 export function marcar<T extends CifrasDeUnaPublicacion>(
   publicaciones: T[],
-): Array<T & { tasa: number | null; marca: Marca | null }> {
-  const conTasa = publicaciones.map((p) => ({ ...p, tasa: tasa(p), marca: null as Marca | null }))
+): Array<T & { tasa: number | null; marca: Marca | null; masAlcance: boolean }> {
+  const conTasa = publicaciones.map((p) => ({ ...p, tasa: tasa(p), marca: null as Marca | null, masAlcance: false }))
   const comparables = conTasa.filter((p): p is typeof p & { tasa: number } => p.tasa !== null)
   if (comparables.length >= MINIMO_PARA_MARCAR) {
-    const porFecha = (a: CifrasDeUnaPublicacion, b: CifrasDeUnaPublicacion) =>
-      a.publicadaEl.localeCompare(b.publicadaEl)
-    const altas = [...comparables].sort((a, b) => b.tasa - a.tasa || porFecha(a, b))
-    for (const p of altas.slice(0, CUANTAS_MARCAS)) p.marca = "mejor"
-    // A post is never both: with many ties the worst are chosen among those not already marked best.
-    const bajas = altas.slice(CUANTAS_MARCAS).sort((a, b) => a.tasa - b.tasa || porFecha(a, b))
-    for (const p of bajas.slice(0, CUANTAS_MARCAS)) p.marca = "peor"
+    const mejores = extremos(comparables, (p) => p.tasa, "alto")
+    for (const p of mejores) p.marca = "mejor"
+    const resto = comparables.filter((p) => !mejores.has(p))
+    for (const p of extremos(resto, (p) => p.tasa, "bajo")) p.marca = "peor"
   }
+  const conImpresiones = conTasa.filter((p): p is typeof p & { impresiones: number } => p.impresiones !== null)
+  if (conImpresiones.length >= MINIMO_PARA_MARCAR)
+    for (const p of extremos(conImpresiones, (p) => p.impresiones, "alto")) p.masAlcance = true
   return conTasa
 }
 

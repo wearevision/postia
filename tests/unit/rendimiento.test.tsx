@@ -14,7 +14,7 @@ import type { PublicacionConRendimiento, RendimientoDeCuenta } from "@/lib/rendi
 
 function publicacion(cambios: Partial<PublicacionConRendimiento> & { id: string }): PublicacionConRendimiento {
   return {
-    publicadaEl: "2026-10-27T14:00:00.000Z",
+    publicadaEl: "2026-10-27",
     texto: "Un texto",
     piezaId: null,
     impresiones: 1000,
@@ -23,6 +23,7 @@ function publicacion(cambios: Partial<PublicacionConRendimiento> & { id: string 
     clics: null,
     seguidoresNuevos: null,
     marca: null,
+    masAlcance: false,
     ...cambios,
   }
 }
@@ -31,7 +32,7 @@ const PUBLICACIONES = [
   publicacion({
     id: "a",
     texto: "Primera",
-    publicadaEl: "2026-10-01T14:00:00.000Z",
+    publicadaEl: "2026-10-01",
     impresiones: 500,
     interacciones: 50,
     tasa: 0.1,
@@ -40,7 +41,7 @@ const PUBLICACIONES = [
   publicacion({
     id: "b",
     texto: "Segunda",
-    publicadaEl: "2026-10-20T14:00:00.000Z",
+    publicadaEl: "2026-10-20",
     impresiones: 3000,
     interacciones: 30,
     tasa: 0.01,
@@ -50,7 +51,7 @@ const PUBLICACIONES = [
   publicacion({
     id: "c",
     texto: "Tercera",
-    publicadaEl: "2026-10-10T14:00:00.000Z",
+    publicadaEl: "2026-10-10",
     impresiones: null,
     interacciones: null,
     tasa: null,
@@ -107,10 +108,21 @@ describe("Publicaciones", () => {
     expect(filas[0]?.textContent).toContain("1 %")
   })
 
-  test("wears Mejor and Peor chips from the mark", () => {
-    render(<Publicaciones publicaciones={PUBLICACIONES} />)
-    expect(screen.getAllByText("Mejor")).toHaveLength(1)
-    expect(screen.getAllByText("Peor")).toHaveLength(1)
+  test("names its marks by what they measure and explains engagement", () => {
+    render(
+      <Publicaciones publicaciones={[...PUBLICACIONES, publicacion({ id: "d", texto: "Cuarta", masAlcance: true })]} />,
+    )
+    expect(screen.getAllByText("Mejor enganche")).toHaveLength(1)
+    expect(screen.getAllByText("Menor enganche")).toHaveLength(1)
+    expect(screen.getAllByText("Más alcance")).toHaveLength(1)
+    expect(screen.getByText("Enganche = interacciones ÷ impresiones. Alcance = impresiones.")).toBeInTheDocument()
+    expect(screen.queryByText("Peor")).toBeNull()
+  })
+
+  test("shows the day LinkedIn gives, with its year and no made-up hour", () => {
+    render(<Publicaciones publicaciones={[publicacion({ id: "e", publicadaEl: "2026-11-01" })]} />)
+    expect(screen.getByText("dom 1 nov 2026")).toBeInTheDocument()
+    expect(screen.queryByText(/21:00/)).toBeNull()
   })
 
   test("links the text to the piece when there is one", () => {

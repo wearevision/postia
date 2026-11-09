@@ -64,26 +64,21 @@ describe("marcar", () => {
     const resultado = marcar([...posts, sinTasa])
     expect(resultado.at(-1)).toMatchObject({ tasa: null, marca: null })
   })
-  test("on equal rates the earlier date ranks first and nobody is both best and worst", () => {
-    const posts = [
-      post(5, 10, 100),
-      post(2, 10, 100),
-      post(3, 10, 100),
-      post(4, 10, 100),
-      post(1, 10, 100),
-      post(6, 10, 100),
-    ]
-    const marcas = marcar(posts)
-    expect(marcas.filter((p) => p.marca === "mejor").map((p) => p.publicadaEl)).toEqual([
-      "2026-01-02",
-      "2026-01-03",
-      "2026-01-01",
-    ])
-    expect(marcas.filter((p) => p.marca === "peor").map((p) => p.publicadaEl)).toEqual([
-      "2026-01-05",
-      "2026-01-04",
-      "2026-01-06",
-    ])
+  test("marks every post tied at the edge of the top 3, so equal rates never get different marks", () => {
+    const tasas = [10, 9, 8, 8, 5, 4, 3, 2]
+    const marcas = marcar(tasas.map((t, n) => post(n + 1, t, 100))).map((p) => p.marca)
+    expect(marcas).toEqual(["mejor", "mejor", "mejor", "mejor", null, "peor", "peor", "peor"])
+  })
+  test("marks nobody when every post ties, and nobody is both", () => {
+    const iguales = [1, 2, 3, 4, 5, 6].map((n) => post(n, 10, 100))
+    expect(marcar(iguales).every((p) => p.marca === null)).toBe(true)
+  })
+  test("marks the 3 widest-reaching posts apart from the rate, ties included", () => {
+    const impresiones = [962, 337, 323, 299, 292, 50, 40]
+    const alcance = marcar(impresiones.map((i, n) => post(n + 1, 1, i))).map((p) => p.masAlcance)
+    expect(alcance).toEqual([true, true, true, false, false, false, false])
+    const empatadas = marcar([500, 400, 300, 300, 10, 5].map((i, n) => post(n + 1, 1, i))).map((p) => p.masAlcance)
+    expect(empatadas).toEqual([true, true, true, true, false, false])
   })
   test("keeps the input order and adds the rate", () => {
     const posts = [post(3, 4, 100), post(1, 2, 100)]

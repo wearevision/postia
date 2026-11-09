@@ -41,6 +41,8 @@ export interface PublicacionConRendimiento {
   clics: number | null
   seguidoresNuevos: number | null
   marca: Marca | null
+  /** Among the 3 widest-reaching (impressions), apart from the engagement mark. */
+  masAlcance: boolean
 }
 
 export interface ImportacionLeida {
