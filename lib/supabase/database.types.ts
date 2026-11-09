@@ -34,6 +34,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      aprendizajes: {
+        Row: {
+          creado_en: string
+          cuenta_id: string
+          decidido_en: string | null
+          decidido_por: string | null
+          estado: string
+          id: string
+          lectura_id: string | null
+          porque: string
+          publicaciones: string[]
+          respaldo: number
+          texto: string
+        }
+        Insert: {
+          creado_en?: string
+          cuenta_id: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          estado?: string
+          id?: string
+          lectura_id?: string | null
+          porque: string
+          publicaciones?: string[]
+          respaldo: number
+          texto: string
+        }
+        Update: {
+          creado_en?: string
+          cuenta_id?: string
+          decidido_en?: string | null
+          decidido_por?: string | null
+          estado?: string
+          id?: string
+          lectura_id?: string | null
+          porque?: string
+          publicaciones?: string[]
+          respaldo?: number
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprendizajes_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprendizajes_lectura_id_fkey"
+            columns: ["lectura_id"]
+            isOneToOne: false
+            referencedRelation: "lecturas_de_rendimiento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asignaciones: {
         Row: {
           arrendado_hasta: string | null
@@ -790,6 +847,57 @@ export type Database = {
           tema?: string
         }
         Relationships: []
+      }
+      lecturas_de_rendimiento: {
+        Row: {
+          arrendado_hasta: string | null
+          creada_en: string
+          cuenta_id: string
+          estado: string
+          id: string
+          importacion_id: string | null
+          motivo: string | null
+          pedida_por: string
+          terminada_en: string | null
+        }
+        Insert: {
+          arrendado_hasta?: string | null
+          creada_en?: string
+          cuenta_id: string
+          estado?: string
+          id?: string
+          importacion_id?: string | null
+          motivo?: string | null
+          pedida_por: string
+          terminada_en?: string | null
+        }
+        Update: {
+          arrendado_hasta?: string | null
+          creada_en?: string
+          cuenta_id?: string
+          estado?: string
+          id?: string
+          importacion_id?: string | null
+          motivo?: string | null
+          pedida_por?: string
+          terminada_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecturas_de_rendimiento_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lecturas_de_rendimiento_importacion_id_fkey"
+            columns: ["importacion_id"]
+            isOneToOne: false
+            referencedRelation: "importaciones_de_metricas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lineas_editoriales: {
         Row: {
@@ -1814,6 +1922,10 @@ export type Database = {
         Args: { p_idea: Json }
         Returns: Record<string, unknown>
       }
+      decidir_aprendizaje: {
+        Args: { p_estado: string; p_id: string; p_texto?: string }
+        Returns: undefined
+      }
       descartar_hallazgo: { Args: { p_hallazgo: string }; Returns: undefined }
       descartar_idea: { Args: { p_idea: string }; Returns: undefined }
       descartar_informe: {
@@ -1858,6 +1970,10 @@ export type Database = {
       }
       fusionar_temas: { Args: { p_de: string; p_en: string }; Returns: boolean }
       gastado: { Args: { p_marca?: string; p_mes: string }; Returns: number }
+      guardar_aprendizajes: {
+        Args: { p_items: Json; p_lectura: string }
+        Returns: number
+      }
       guardar_diseno: {
         Args: {
           p_archivo_ruta: string
@@ -2062,6 +2178,7 @@ export type Database = {
         }
         Returns: string
       }
+      pedir_lectura: { Args: { p_cuenta: string }; Returns: string }
       pedir_otra_idea: { Args: { p_idea: string }; Returns: string }
       pedir_reescritura: {
         Args: { p_instruccion: string; p_pieza: string }
@@ -2177,6 +2294,10 @@ export type Database = {
           similitud: number
         }[]
       }
+      terminar_lectura: {
+        Args: { p_estado: string; p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       terminar_pedido: {
         Args: { p_estado: string; p_motivo?: string; p_pedido: string }
         Returns: undefined
@@ -2211,6 +2332,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "asignaciones"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      tomar_lecturas: {
+        Args: never
+        Returns: {
+          arrendado_hasta: string | null
+          creada_en: string
+          cuenta_id: string
+          estado: string
+          id: string
+          importacion_id: string | null
+          motivo: string | null
+          pedida_por: string
+          terminada_en: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "lecturas_de_rendimiento"
           isOneToOne: false
           isSetofReturn: true
         }
