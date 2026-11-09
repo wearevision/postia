@@ -116,14 +116,24 @@ type FilaDePublicacion = {
   origen: string
 }
 
-/** Rows of one URN can come from the API and from an import: the API's wins. */
-function unaPorUrn(filas: FilaDePublicacion[]): FilaDePublicacion[] {
-  const elegidas = new Map<string, FilaDePublicacion>()
+/**
+ * Rows of one key can come from the API and from an import: each figure is the API's when it has it, the import's
+ * otherwise (a profile reading has no clicks; a page's daily API row has only followers). The API row's identity wins.
+ */
+function combinar<T extends { origen: string }>(filas: T[], clave: (f: T) => string): T[] {
+  const porClave = new Map<string, { api?: T; importacion?: T }>()
   for (const f of filas) {
-    const previa = elegidas.get(f.post_urn)
-    if (!previa || (previa.origen !== "api" && f.origen === "api")) elegidas.set(f.post_urn, f)
+    const par = porClave.get(clave(f)) ?? {}
+    if (f.origen === "api") par.api = f
+    else par.importacion = f
+    porClave.set(clave(f), par)
   }
-  return [...elegidas.values()]
+  return [...porClave.values()].flatMap(({ api, importacion }) => {
+    if (!api || !importacion) return api ? [api] : importacion ? [importacion] : []
+    const combinada = { ...api }
+    for (const campo of Object.keys(api) as (keyof T)[]) combinada[campo] = api[campo] ?? importacion[campo]
+    return [combinada]
+  })
 }
 
 async function textosDeLasPiezas(db: Db, piezaIds: string[]): Promise<Map<string, string>> {
@@ -158,7 +168,7 @@ async function leerPublicaciones(db: Db, cuentaId: string): Promise<PublicacionC
       .order("id")
       .range(desde, hasta),
   )
-  const unicas = unaPorUrn(filas)
+  const unicas = combinar(filas, (f) => f.post_urn)
   const textos = await textosDeLasPiezas(db, [...new Set(unicas.flatMap((f) => (f.pieza_id ? [f.pieza_id] : [])))])
   const conTasa = marcar(
     unicas.map((f) => ({
@@ -197,12 +207,7 @@ async function leerDias(db: Db, cuentaId: string): Promise<DiaDeRendimiento[]> {
       .order("origen")
       .range(desde, hasta),
   )
-  const porDia = new Map<string, FilaDiaria>()
-  for (const f of filas) {
-    const previa = porDia.get(f.dia)
-    if (!previa || (previa.origen !== "api" && f.origen === "api")) porDia.set(f.dia, f)
-  }
-  return [...porDia.values()].map((f) => ({
+  return combinar(filas, (f) => f.dia).map((f) => ({
     dia: f.dia,
     impresiones: f.impresiones,
     interacciones: f.interacciones,

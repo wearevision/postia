@@ -130,6 +130,49 @@ describe("rendimientoDeCuenta: posts", () => {
     expect(publicaciones[0]).toMatchObject({ interacciones: 9, impresiones: 300, deLinkedin: true })
   })
 
+  test("merges a post's figures field by field: the API's where it has them, the import's for the rest", async () => {
+    const cuenta = await cuentaNueva()
+    const urn = `urn:li:share:${unico()}`
+    await importar(
+      dueno.db,
+      cuenta,
+      datos({
+        publicaciones: [
+          {
+            post_urn: urn,
+            publicada_el: "2026-03-10",
+            interacciones: 1,
+            impresiones: 100,
+            clics: 7,
+            seguidores_nuevos: 2,
+            extracto: "Del archivo",
+          },
+        ],
+      }),
+    )
+    // A profile reading: impressions and interactions, never clicks.
+    const { error } = await admin().from("metricas_de_publicacion").insert({
+      cuenta_id: cuenta,
+      post_urn: urn,
+      publicada_el: "2026-03-10",
+      interacciones: 9,
+      impresiones: 300,
+      clics: null,
+      origen: "api",
+    })
+    expect(error).toBeNull()
+    const { publicaciones } = await rendimientoDeCuenta(dueno.db, cuenta)
+    expect(publicaciones).toHaveLength(1)
+    expect(publicaciones[0]).toMatchObject({
+      impresiones: 300,
+      interacciones: 9,
+      clics: 7,
+      seguidoresNuevos: 2,
+      texto: "Del archivo",
+      deLinkedin: true,
+    })
+  })
+
   test("marks the best and worst against the account's median once there are enough posts", async () => {
     const cuenta = await cuentaNueva()
     const publicaciones = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
@@ -148,6 +191,34 @@ describe("rendimientoDeCuenta: posts", () => {
 })
 
 describe("rendimientoDeCuenta: months and audience", () => {
+  test("a day with imported figures and an API row of followers only keeps the imported figures", async () => {
+    const cuenta = await cuentaNueva()
+    await importar(
+      dueno.db,
+      cuenta,
+      datos({
+        dias: [
+          {
+            dia: "2026-10-05",
+            impresiones: 40,
+            interacciones: 4,
+            seguidores_nuevos: 1,
+            visitas: 6,
+            visitantes_unicos: 5,
+          },
+        ],
+      }),
+    )
+    const { error } = await admin()
+      .from("metricas_diarias")
+      .insert({ cuenta_id: cuenta, dia: "2026-10-05", seguidores_nuevos: 3, origen: "api" })
+    expect(error).toBeNull()
+    const { meses } = await rendimientoDeCuenta(dueno.db, cuenta)
+    expect(meses).toEqual([
+      { mes: "2026-10", impresiones: 40, interacciones: 4, seguidoresNuevos: 3, visitas: 6, visitantesUnicos: 5 },
+    ])
+  })
+
   test("sums days per month and reads the latest import's audience with changes against the one before", async () => {
     const cuenta = await cuentaNueva()
     await importar(
