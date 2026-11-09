@@ -275,6 +275,27 @@ describe("connection problems", () => {
     await leerAnaliticas(p)
     expect(terminar).toHaveBeenCalledWith("lectura-1", "fallo", MENSAJE_RECONECTAR)
   })
+
+  test("logs LinkedIn's detail of an expected failure so the cause can be diagnosed", async () => {
+    const registro = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { p } = puertos({
+      postsDePostia: async () => ["urn:li:share:1"],
+      linkedin: {
+        cifrasDeLaPagina: async () => {
+          throw new LecturaDeLinkedinFallida(
+            "reconectar",
+            MENSAJE_RECONECTAR,
+            "LinkedIn respondió HTTP 403 en organizationalEntityShareStatistics: denied",
+          )
+        },
+        seguidoresDeLaPagina: async () => [],
+        cifrasDeUnPostDelPerfil: async () => ({ impresiones: 0, interacciones: 0 }),
+      },
+    })
+    await leerAnaliticas(p)
+    expect(registro.mock.calls.flat().join(" ")).toContain("HTTP 403 en organizationalEntityShareStatistics")
+    registro.mockRestore()
+  })
 })
 
 describe("unexpected errors", () => {
