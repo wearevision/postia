@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { AnaliticasDeLinkedin } from "@/app/(app)/ajustes/analiticas-de-linkedin"
 import { cambiarRitmoAccion, cambiarRutaAccion, desconectarCuentaAccion } from "@/app/(app)/marcas/acciones"
 import { ConectarLinkedin } from "@/app/(app)/marcas/conectar-linkedin"
 import { Desconectar } from "@/app/(app)/marcas/desconectar"
@@ -17,7 +18,7 @@ export async function CuentasDeLinkedin() {
   const { data: marcas, error } = await db
     .from("marcas")
     .select(
-      "id, nombre, voz, cuentas(id, nombre, tipo, ruta, ritmo_semanal, conexiones(nombre, expira_en, renovacion_expira_en))",
+      "id, nombre, voz, cuentas(id, nombre, tipo, ruta, ritmo_semanal, conexiones(nombre, expira_en, renovacion_expira_en), conexiones_de_analiticas(expira_en))",
     )
     .order("creada_en")
   if (error) throw new Error(`No pude leer las marcas: ${error.message}`, { cause: error })
@@ -73,6 +74,9 @@ export async function CuentasDeLinkedin() {
                     )}
                     {cuenta.conexiones && <Desconectar cuentaId={cuenta.id} desconectar={desconectarCuentaAccion} />}
                   </div>
+                )}
+                {cuenta.tipo === "persona" && (
+                  <AnaliticasDeLinkedin cuentaId={cuenta.id} conexion={cuenta.conexiones_de_analiticas} ahora={ahora} />
                 )}
               </li>
             ))}

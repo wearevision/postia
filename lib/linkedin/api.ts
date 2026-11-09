@@ -9,7 +9,7 @@ import { esUrnDePost } from "./dominio"
 export const VERSION_DE_LINKEDIN = "202610"
 
 const BASE_API = "https://api.linkedin.com"
-const ESPERA_MS = 30_000
+export const ESPERA_MS = 30_000
 const ESPERA_SUBIDA_MS = 120_000
 
 /** 401: expired or revoked. The owner renews it in Ajustes. */
@@ -28,6 +28,14 @@ export class RechazoDeLinkedin extends FallaDeConfiguracion {
   ) {
     super(mensaje)
     this.name = "RechazoDeLinkedin"
+  }
+}
+
+/** 429: LinkedIn's daily call limit. A plain Error subclass: callers that retry on any error keep doing so. */
+export class LimiteDeLinkedin extends Error {
+  constructor(mensaje: string) {
+    super(mensaje)
+    this.name = "LimiteDeLinkedin"
   }
 }
 
@@ -70,6 +78,7 @@ export async function llamar(
   const detalle = (await respuesta.text()).slice(0, 300).split(token).join("[x]")
   const mensaje = `LinkedIn respondió HTTP ${respuesta.status} en ${ruta}: ${detalle}`
   if (respuesta.status === 401) throw new TokenDeLinkedinVencido(mensaje)
+  if (respuesta.status === 429) throw new LimiteDeLinkedin(mensaje)
   if (respuesta.status >= 400 && respuesta.status < 500 && respuesta.status !== 408 && respuesta.status !== 429) {
     throw new RechazoDeLinkedin(respuesta.status, mensaje)
   }

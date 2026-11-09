@@ -62,6 +62,48 @@ export function periodoLegible(desde: string, hasta: string): string {
   return `${diaLegible(desde)} al ${diaLegible(hasta)}`
 }
 
+const HORA = 3_600_000
+
+/** «hace 5 h»; under an hour «hace menos de 1 h»; from two days on, in days. */
+export function haceCuanto(desde: string, ahora: number): string {
+  const horas = Math.floor((ahora - Date.parse(desde)) / HORA)
+  if (horas < 1) return "hace menos de 1 h"
+  if (horas < 48) return `hace ${horas} h`
+  return `hace ${Math.floor(horas / 24)} días`
+}
+
+export interface FuenteDeCifras {
+  /** The API line, only when PostIA can read the account's figures. */
+  api: string | null
+  importacion: string | null
+  /** LinkedIn lets a member's post analytics be kept for 48 hours only. */
+  nota: string | null
+}
+
+export const NOTA_DEL_PERFIL = "LinkedIn permite guardar estas cifras 48 horas: se actualizan cada día"
+
+/** Where the figures on screen come from: LinkedIn's API (with its age), an imported file (with its period), or both. */
+export function fuenteDeCifras(
+  cuenta: {
+    tipo: string
+    conectada: boolean
+    actualizadaEn: string | null
+    importacion: { desde: string; hasta: string } | null
+  },
+  ahora: number,
+): FuenteDeCifras {
+  const { tipo, conectada, actualizadaEn, importacion } = cuenta
+  return {
+    api: !conectada
+      ? null
+      : actualizadaEn
+        ? `Cifras de LinkedIn (API), actualizadas ${haceCuanto(actualizadaEn, ahora)}`
+        : "Cifras de LinkedIn (API): todavía sin leer",
+    importacion: importacion ? `Archivo importado (del ${periodoLegible(importacion.desde, importacion.hasta)})` : null,
+    nota: conectada && tipo === "persona" ? NOTA_DEL_PERFIL : null,
+  }
+}
+
 export type CampoDeOrden = "fecha" | "tasa" | "impresiones" | "interacciones"
 
 export const CAMPOS_DE_ORDEN: { campo: CampoDeOrden; nombre: string }[] = [

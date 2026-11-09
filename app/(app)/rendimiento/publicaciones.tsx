@@ -54,6 +54,7 @@ export function Publicaciones({ publicaciones }: { publicaciones: PublicacionCon
               {p.marca === "mejor" && <span className={`${CHIP} border-exito text-exito`}>Mejor enganche</span>}
               {p.marca === "peor" && <span className={`${CHIP} border-peligro text-peligro`}>Menor enganche</span>}
               {p.masAlcance && <span className={`${CHIP} border-control text-foreground`}>Más alcance</span>}
+              {p.deLinkedin && <span className={`${CHIP} border-control text-apagado`}>LinkedIn</span>}
             </div>
             {p.piezaId ? (
               <Link href={rutaDePieza(p.piezaId)} className="block min-h-11 py-2 underline">

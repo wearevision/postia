@@ -19,6 +19,7 @@ import {
 export type { FilaDePublicoConCambio, MesDeRendimiento }
 
 const PAGINA = 1000
+const ABIERTAS = ["pendiente", "trabajando"]
 const POR_LOTE = 100
 const LARGO_DEL_TEXTO = 140
 const TEXTO_SIN_PIEZA = "Publicación anterior a PostIA"
@@ -43,6 +44,8 @@ export interface PublicacionConRendimiento {
   marca: Marca | null
   /** Among the 3 widest-reaching (impressions), apart from the engagement mark. */
   masAlcance: boolean
+  /** Its figures were read from LinkedIn's API, not from an imported file. */
+  deLinkedin: boolean
 }
 
 export interface ImportacionLeida {
@@ -113,14 +116,24 @@ type FilaDePublicacion = {
   origen: string
 }
 
-/** Rows of one URN can come from the API and from an import: the API's wins. */
-function unaPorUrn(filas: FilaDePublicacion[]): FilaDePublicacion[] {
-  const elegidas = new Map<string, FilaDePublicacion>()
+/**
+ * Rows of one key can come from the API and from an import: each figure is the API's when it has it, the import's
+ * otherwise (a profile reading has no clicks; a page's daily API row has only followers). The API row's identity wins.
+ */
+function combinar<T extends { origen: string }>(filas: T[], clave: (f: T) => string): T[] {
+  const porClave = new Map<string, { api?: T; importacion?: T }>()
   for (const f of filas) {
-    const previa = elegidas.get(f.post_urn)
-    if (!previa || (previa.origen !== "api" && f.origen === "api")) elegidas.set(f.post_urn, f)
+    const par = porClave.get(clave(f)) ?? {}
+    if (f.origen === "api") par.api = f
+    else par.importacion = f
+    porClave.set(clave(f), par)
   }
-  return [...elegidas.values()]
+  return [...porClave.values()].flatMap(({ api, importacion }) => {
+    if (!api || !importacion) return api ? [api] : importacion ? [importacion] : []
+    const combinada = { ...api }
+    for (const campo of Object.keys(api) as (keyof T)[]) combinada[campo] = api[campo] ?? importacion[campo]
+    return [combinada]
+  })
 }
 
 async function textosDeLasPiezas(db: Db, piezaIds: string[]): Promise<Map<string, string>> {
@@ -155,7 +168,7 @@ async function leerPublicaciones(db: Db, cuentaId: string): Promise<PublicacionC
       .order("id")
       .range(desde, hasta),
   )
-  const unicas = unaPorUrn(filas)
+  const unicas = combinar(filas, (f) => f.post_urn)
   const textos = await textosDeLasPiezas(db, [...new Set(unicas.flatMap((f) => (f.pieza_id ? [f.pieza_id] : [])))])
   const conTasa = marcar(
     unicas.map((f) => ({
@@ -168,6 +181,7 @@ async function leerPublicaciones(db: Db, cuentaId: string): Promise<PublicacionC
       interacciones: f.interacciones,
       clics: f.clics,
       seguidoresNuevos: f.seguidores_nuevos,
+      deLinkedin: f.origen === "api",
     })),
   )
   return conTasa.sort((a, b) => b.publicadaEl.localeCompare(a.publicadaEl) || a.id.localeCompare(b.id))
@@ -193,12 +207,7 @@ async function leerDias(db: Db, cuentaId: string): Promise<DiaDeRendimiento[]> {
       .order("origen")
       .range(desde, hasta),
   )
-  const porDia = new Map<string, FilaDiaria>()
-  for (const f of filas) {
-    const previa = porDia.get(f.dia)
-    if (!previa || (previa.origen !== "api" && f.origen === "api")) porDia.set(f.dia, f)
-  }
-  return [...porDia.values()].map((f) => ({
+  return combinar(filas, (f) => f.dia).map((f) => ({
     dia: f.dia,
     impresiones: f.impresiones,
     interacciones: f.interacciones,
@@ -266,6 +275,62 @@ export async function rendimientoDeCuenta(db: Db, cuentaId: string): Promise<Ren
   }
 }
 
+export interface AnaliticasDeCuenta {
+  tipo: string
+  /** PostIA can read the figures from LinkedIn's API right now (same rule as analiticas_conectadas). */
+  conectada: boolean
+  /** Only the owner asks for a reading. */
+  esDueno: boolean
+  /** A reading is queued or running. */
+  leyendo: boolean
+  /** When the latest successful reading finished. */
+  actualizadaEn: string | null
+  /** Why the latest reading failed, when it was the latest one. */
+  ultimoFallo: string | null
+}
+
+const vigente = (conexion: { expira_en: string } | null, ahora: number) =>
+  conexion !== null && Date.parse(conexion.expira_en) > ahora
+
+export async function analiticasDeCuenta(db: Db, cuentaId: string): Promise<AnaliticasDeCuenta> {
+  const [cuenta, ultima, lista] = await Promise.all([
+    db
+      .from("cuentas")
+      .select("tipo, marca_id, conexiones(expira_en), conexiones_de_analiticas(expira_en)")
+      .eq("id", cuentaId)
+      .single(),
+    db
+      .from("lecturas_de_analiticas")
+      .select("estado, motivo")
+      .eq("cuenta_id", cuentaId)
+      .order("creada_en", { ascending: false })
+      .limit(1),
+    db
+      .from("lecturas_de_analiticas")
+      .select("terminada_en")
+      .eq("cuenta_id", cuentaId)
+      .eq("estado", "lista")
+      .order("terminada_en", { ascending: false })
+      .limit(1),
+  ])
+  if (cuenta.error) fallo("No pude leer la cuenta", cuenta.error)
+  if (ultima.error) fallo("No pude leer la lectura de LinkedIn", ultima.error)
+  if (lista.error) fallo("No pude leer la última lectura de LinkedIn", lista.error)
+  const { tipo, marca_id, conexiones, conexiones_de_analiticas } = cuenta.data
+  const dueno = await db.from("miembros").select("rol").eq("marca_id", marca_id).eq("rol", "dueno").limit(1)
+  if (dueno.error) fallo("No pude revisar quién es dueño de la cuenta", dueno.error)
+  const ahora = Date.now()
+  const reciente = ultima.data[0]
+  return {
+    tipo,
+    conectada: tipo === "persona" ? vigente(conexiones_de_analiticas, ahora) : vigente(conexiones, ahora),
+    esDueno: dueno.data.length > 0,
+    leyendo: reciente ? ABIERTAS.includes(reciente.estado) : false,
+    actualizadaEn: lista.data[0]?.terminada_en ?? null,
+    ultimoFallo: reciente?.estado === "fallo" ? reciente.motivo : null,
+  }
+}
+
 export interface AprendizajeLeido {
   id: string
   texto: string
@@ -285,7 +350,6 @@ export interface AprendizajesDeCuenta {
   ultimoFallo: string | null
 }
 
-const ABIERTAS = ["pendiente", "trabajando"]
 export const MAXIMO_EN_EL_CONTEXTO = 10
 
 export async function aprendizajesDeCuenta(db: Db, cuentaId: string): Promise<AprendizajesDeCuenta> {
