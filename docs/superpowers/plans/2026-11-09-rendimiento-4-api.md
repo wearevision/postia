@@ -48,7 +48,7 @@ also what the Standard-tier screencast must show.
   immediate read for that account (reuse the reading-queue pattern or call the same core from a server action if it is
   Worker-safe — decide by `tests/unit/limites-del-worker.test.ts`).
 - Retention in the nightly cleanup (`trigger/limpieza.ts` / its lib): delete `origen = 'api'` rows of persona accounts
-  older than 48 hours and of empresa accounts older than 1 year.
+  older than 24 hours (nightly sweep, so they never exceed 48 h) and of empresa accounts older than 1 year.
 - Tests first with recorded-shape fake responses taken from the docs (no real calls in tests).
 
 ## Task 3: Rendimiento
