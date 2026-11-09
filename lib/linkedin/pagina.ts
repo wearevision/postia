@@ -11,7 +11,17 @@ import { nombreDePagina, paginasQueAdministra } from "./organizaciones"
 type Entorno = Record<string, string | undefined>
 
 // «Estudio WAV», the Community Management app. It has no OpenID Connect: the member comes from r_basicprofile.
-export const SCOPES_DE_PAGINA = ["r_basicprofile", "rw_organization_admin", "w_organization_social"] as const
+// r_member_postAnalytics (the owner's own post analytics) rides on this same consent: LinkedIn keeps one valid token per
+// member and app, and a consent with other scopes invalidates the previous tokens, so a second «Estudio WAV» connection
+// for the profile's analytics broke the page's token (and the other way round).
+// https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow (checked 2026-11-09).
+// The page only needs the first three: a grant without the fourth still connects it.
+export const SCOPES_DE_PAGINA = [
+  "r_basicprofile",
+  "rw_organization_admin",
+  "w_organization_social",
+  "r_member_postAnalytics",
+] as const
 export const COOKIE_DE_ESTADO_PAGINA = "postia_linkedin_pagina_estado"
 export const RUTA_DE_ELEGIR_PAGINA = `${RUTA_DE_MARCAS}/pagina`
 
@@ -69,7 +79,7 @@ export type ResultadoDePagina = { ok: true; eleccion: string } | { ok: false; mo
 const URN_DE_ORGANIZACION = /^urn:li:organization:([0-9]+)$/
 
 /** What a log may say about an error: its kind and HTTP code, never its message (LinkedIn's or the database's words). */
-export function tipoDeError(error: unknown): string {
+function tipoDeError(error: unknown): string {
   if (error instanceof RechazoDeLinkedin) return `${error.name} HTTP ${error.http}`
   return error instanceof Error ? error.name : typeof error
 }

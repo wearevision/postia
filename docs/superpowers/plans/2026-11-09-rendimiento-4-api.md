@@ -14,10 +14,24 @@ also what the Standard-tier screencast must show.
   stored **48 hours** at most; refreshed, never accumulated.
 - API data never reaches Claude (Developer AI Policy): the learnings reader already reads only `origen = 'importacion'`
   — keep it so and add a test if missing.
-- Data minimization: the profile analytics consent asks for `r_member_postAnalytics` only.
+- Data minimization: the only extra permission is `r_member_postAnalytics`, asked in the page's consent (see the
+  2026-11-10 note in Task 1).
 - Development tier limits: 500 calls/app/day, 100/member/day. Profile: last 10 PostIA posts × 4 metrics per refresh.
 
 ## Task 1: Profile analytics connection (OAuth through «Estudio WAV»)
+
+> **Changed 2026-11-10 (production bug).** LinkedIn keeps one valid access token per member and app: a new consent
+> with a different scope invalidates the member's previous tokens (Authorization Code Flow, «Access Token Scopes and
+> Lifetime»). The separate analytics connection below used the same app and member as the page, so connecting it broke
+> the page's token (HTTP 401 on reading, publishing down for hours) and renewing the page broke it back. Now there is
+> one «Estudio WAV» connection: the page's consent asks for `r_basicprofile`, `rw_organization_admin`,
+> `w_organization_social` and `r_member_postAnalytics`, and a profile's analytics read with the token of the most
+> recently connected `estudio_wav` connection that carries `r_member_postAnalytics` and was connected by an owner of the
+> profile's brand (`conexion_de_analiticas` in `20261110120000_una_conexion_estudio_wav.sql`). The `?proposito=analiticas`
+> flow, `conexiones_de_analiticas`, `conectar_analiticas` and their `analiticas:<cuenta>` Vault secrets are gone. Ajustes
+> shows the profile's status from the page connection; to grant the permission, the owner renews the page.
+>
+> What follows is the original design, kept for history.
 
 - Reuse the page app's credentials (`LINKEDIN_PAGINA_CLIENT_ID/SECRET`) and its registered callback
   `/api/linkedin/pagina/callback`: the OAuth `state` carries the purpose (`pagina` | `analiticas`) so no new redirect

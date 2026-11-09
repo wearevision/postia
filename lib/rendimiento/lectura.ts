@@ -1,4 +1,5 @@
 import type { Db } from "@/lib/supabase/database"
+import { vencimientoDeAnaliticas } from "./analiticas-del-perfil"
 import {
   type DiaDeRendimiento,
   type FilaDePublico,
@@ -294,11 +295,7 @@ const vigente = (conexion: { expira_en: string } | null, ahora: number) =>
 
 export async function analiticasDeCuenta(db: Db, cuentaId: string): Promise<AnaliticasDeCuenta> {
   const [cuenta, ultima, lista] = await Promise.all([
-    db
-      .from("cuentas")
-      .select("tipo, marca_id, conexiones(expira_en), conexiones_de_analiticas(expira_en)")
-      .eq("id", cuentaId)
-      .single(),
+    db.from("cuentas").select("tipo, marca_id, conexiones(expira_en)").eq("id", cuentaId).single(),
     db
       .from("lecturas_de_analiticas")
       .select("estado, motivo")
@@ -316,14 +313,18 @@ export async function analiticasDeCuenta(db: Db, cuentaId: string): Promise<Anal
   if (cuenta.error) fallo("No pude leer la cuenta", cuenta.error)
   if (ultima.error) fallo("No pude leer la lectura de LinkedIn", ultima.error)
   if (lista.error) fallo("No pude leer la última lectura de LinkedIn", lista.error)
-  const { tipo, marca_id, conexiones, conexiones_de_analiticas } = cuenta.data
-  const dueno = await db.from("miembros").select("rol").eq("marca_id", marca_id).eq("rol", "dueno").limit(1)
+  const { tipo, marca_id, conexiones } = cuenta.data
+  const [dueno, delPerfil] = await Promise.all([
+    db.from("miembros").select("rol").eq("marca_id", marca_id).eq("rol", "dueno").limit(1),
+    // A profile reads through the owner's «Estudio WAV» connection (one token per member and app).
+    tipo === "persona" ? vencimientoDeAnaliticas(db, cuentaId) : null,
+  ])
   if (dueno.error) fallo("No pude revisar quién es dueño de la cuenta", dueno.error)
   const ahora = Date.now()
   const reciente = ultima.data[0]
   return {
     tipo,
-    conectada: tipo === "persona" ? vigente(conexiones_de_analiticas, ahora) : vigente(conexiones, ahora),
+    conectada: vigente(tipo === "persona" ? (delPerfil === null ? null : { expira_en: delPerfil }) : conexiones, ahora),
     esDueno: dueno.data.length > 0,
     leyendo: reciente ? ABIERTAS.includes(reciente.estado) : false,
     actualizadaEn: lista.data[0]?.terminada_en ?? null,

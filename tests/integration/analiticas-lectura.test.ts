@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, test } from "vitest"
 import {
   admin,
   cerrarLecturasDeAnaliticasAbiertas,
+  conectarAnaliticasDelPerfil,
   cuentaDe,
   enDias,
   marcaConDueno,
   personaConSesion,
   publicadaConUrn,
+  vencerConexion,
 } from "./entorno"
 
 type Persona = Awaited<ReturnType<typeof personaConSesion>>
@@ -19,13 +21,9 @@ async function duenoCon(tipo: "persona" | "empresa") {
   return { ...dueno, marca, cuenta: await cuentaDe(marca, tipo, "api") }
 }
 
+/** The owner's «Estudio WAV» connection, with r_member_postAnalytics, is what reads the profile. */
 function conectarPerfil(db: Persona["db"], cuenta: string, expira = enDias(60)) {
-  return db.rpc("conectar_analiticas", {
-    p_cuenta: cuenta,
-    p_token: "token-de-analiticas",
-    p_scopes: ["r_member_postAnalytics"],
-    p_expira_en: expira,
-  })
+  return conectarAnaliticasDelPerfil(db, cuenta, { token: "token-de-analiticas", expiraEn: expira })
 }
 
 /** A page account links to its publishing connection (the one that carries rw_organization_admin). */
@@ -76,12 +74,7 @@ describe("pedir_lectura_de_analiticas", () => {
     expect((await perfil.db.rpc("pedir_lectura_de_analiticas", { p_cuenta: perfil.cuenta })).error?.message).toBe(
       "analiticas_sin_conexion",
     )
-    await conectarPerfil(perfil.db, perfil.cuenta)
-    const vencida = await admin()
-      .from("conexiones_de_analiticas")
-      .update({ expira_en: new Date(Date.now() - 1000).toISOString() })
-      .eq("cuenta_id", perfil.cuenta)
-    expect(vencida.error).toBeNull()
+    await vencerConexion(await conectarPerfil(perfil.db, perfil.cuenta))
     expect((await perfil.db.rpc("pedir_lectura_de_analiticas", { p_cuenta: perfil.cuenta })).error?.message).toBe(
       "analiticas_sin_conexion",
     )
@@ -240,7 +233,7 @@ describe("the queue", () => {
 })
 
 describe("credencial_de_analiticas", () => {
-  test("gives the service role the token and expiry of the profile connection", async () => {
+  test("gives the service role the token and expiry of the owner's Estudio WAV connection", async () => {
     const { db, cuenta } = await duenoCon("persona")
     const expira = enDias(30)
     await conectarPerfil(db, cuenta, expira)

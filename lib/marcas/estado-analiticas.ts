@@ -1,24 +1,16 @@
 import { estadoDeConexion } from "./estado-conexion"
 
-export interface EstadoDeAnaliticas {
-  texto: string
-  /** The button that fits, or null while the connection has time left. */
-  boton: string | null
-}
-
 const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`
 
-/** The profile's analytics token lives 60 days and does not renew itself: the owner renews it with the same flow. */
-export function estadoDeAnaliticas(conexion: { expira_en: string } | null, ahora: number): EstadoDeAnaliticas {
-  const estado = estadoDeConexion(conexion?.expira_en ?? null, ahora)
-  switch (estado.estado) {
-    case "sin_conexion":
-      return { texto: "Analíticas sin conectar", boton: "Conectar analíticas de LinkedIn" }
-    case "vencida":
-      return { texto: "Las analíticas de LinkedIn vencieron", boton: "Renovar analíticas" }
-    case "por_vencer":
-      return { texto: `Analíticas conectadas · vencen en ${dias(estado.dias)}`, boton: "Renovar analíticas" }
-    default:
-      return { texto: `Analíticas conectadas · vencen en ${dias(estado.dias)}`, boton: null }
-  }
+export const RENOVAR_PAGINA_PARA_ANALITICAS = "Para leer las analíticas de tu perfil, renueva la página de WAV"
+
+/**
+ * The profile's analytics read with the token of the owner's «Estudio WAV» (page) connection: LinkedIn keeps one valid
+ * token per member and app. `expiraEn` is that connection's expiry, or null when it lacks r_member_postAnalytics
+ * (analiticas_del_perfil). Renewing the page asks for the permission again, so there is no button of its own.
+ */
+export function estadoDeAnaliticas(expiraEn: string | null, ahora: number): string {
+  const estado = estadoDeConexion(expiraEn, ahora)
+  if (estado.estado === "sin_conexion" || estado.estado === "vencida") return RENOVAR_PAGINA_PARA_ANALITICAS
+  return `Analíticas por la conexión de la página de WAV · vence en ${dias(estado.dias)}`
 }

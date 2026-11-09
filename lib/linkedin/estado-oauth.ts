@@ -31,25 +31,6 @@ export function desempacarEstado(valor: string | undefined): { estado: string; c
   return estado && esUuid(cuenta) ? { estado, cuenta } : null
 }
 
-export type PropositoDeEstudioWav = "pagina" | "analiticas"
-
-const PROPOSITOS: readonly string[] = ["pagina", "analiticas"] satisfies PropositoDeEstudioWav[]
-
-/** «Estudio WAV» has one registered redirect URL for two flows: the cookie says which one this browser started. */
-export function empacarEstadoDeEstudioWav(estado: string, cuenta: string, proposito: PropositoDeEstudioWav): string {
-  return `${empacarEstado(estado, cuenta)}:${proposito}`
-}
-
-/** A cookie written before the purpose existed has none: that was always the page flow. */
-export function desempacarEstadoDeEstudioWav(
-  valor: string | undefined,
-): { estado: string; cuenta: string; proposito: PropositoDeEstudioWav } | null {
-  const base = desempacarEstado(valor)
-  if (!base) return null
-  const proposito = valor?.split(":")[2] ?? "pagina"
-  return PROPOSITOS.includes(proposito) ? { ...base, proposito: proposito as PropositoDeEstudioWav } : null
-}
-
 export function opcionesDeLaCookieLinkedin(https: boolean) {
   return {
     httpOnly: true,
