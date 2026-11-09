@@ -1,7 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { configure, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 import { ImportarEstadisticas } from "@/app/(app)/ajustes/importar-estadisticas"
 import type { Exportacion } from "@/lib/rendimiento/exportacion"
+
+// The form awaits several promises in a row; under the full parallel suite the default 1 s wait was not enough.
+configure({ asyncUtilTimeout: 5_000 })
 
 const CUENTAS = [{ id: "c-perfil", nombre: "Federico" }]
 const EXPORTACION: Exportacion = {
