@@ -65,6 +65,9 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      read-excel-file:
+        specifier: 9.3.12
+        version: 9.3.12
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
@@ -2929,6 +2932,9 @@ packages:
   fflate@0.8.2:
     resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
+
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
     engines: {node: '>=8'}
@@ -3591,6 +3597,9 @@ packages:
       encoding:
         optional: true
 
+  node-int64@0.4.0:
+    resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
+
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
@@ -3808,6 +3817,10 @@ packages:
     resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
     engines: {node: '>=0.10.0'}
 
+  read-excel-file@9.3.12:
+    resolution: {integrity: sha512-benNAoQbe5HqoTi3qrQkR8wMeHq0gVWLt2Br73hVvmBPGdzMf9OLGsps/812AfZ+bvzVYsUyhF77Y3o4B51yCA==}
+    engines: {node: '>=18'}
+
   readdirp@3.6.0:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
@@ -3865,6 +3878,10 @@ packages:
 
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
+
+  saxen@11.2.0:
+    resolution: {integrity: sha512-2bG564AAJcm/3vyZC0Uhs/mACrH+4AHMaKHKAB2M5xMqomUZa27FQ7MYaQGFKVcJk/MVzSEQ34A8QZWW+eiWEw==}
+    engines: {node: '>= 20.12'}
 
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
@@ -4261,6 +4278,10 @@ packages:
   until-async@3.0.2:
     resolution: {integrity: sha512-IiSk4HlzAMqTUseHHe3VhIGyuFmN90zMTpD3Z3y8jeQbzLIq500MVM7Jq2vUAnTKAFPJrqwkzr6PoTcPhGcOiw==}
 
+  unzipper-esm@0.13.3:
+    resolution: {integrity: sha512-LUO6VZ6fCzkDbdMev0/fOhoIeVGKaOkTIOoYxVLE0SQjfvmAHK+oywl7lfhloSZIsdGJ25mJ18Mtd9CyTASjrA==}
+    engines: {node: '>=8.0.0'}
+
   urlpattern-polyfill@10.1.0:
     resolution: {integrity: sha512-IGjKp/o0NL3Bso1PymYURCJxMPNAf/ILOpendP9f5B6e1rTJgdgiOvgfoT8VxCAdY+Wisb9uhGaJJf3yZ2V9nw==}
 
@@ -4407,6 +4428,10 @@ packages:
     resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
     engines: {node: '>=8'}
     hasBin: true
+
+  worker-f@0.1.21:
+    resolution: {integrity: sha512-pMi7wCz3uZVxRvRSphyaIYoN7rm9bV0usifTib7u01kKU+hOo+/hFwhajYnpOCHyr0Xp3/2ulc4F+Jm2a3YIfg==}
+    engines: {node: '>=12'}
 
   workerd@1.20261023.1:
     resolution: {integrity: sha512-NeofJFyaYNpqKpFRJW3ApuonaerPd6/JWlfTtLDYf2A6ygqrDEFnYgEXmc0hhOxqnJsSM+kXJN6VebPojzRrsg==}
@@ -7514,6 +7539,8 @@ snapshots:
 
   fflate@0.8.2: {}
 
+  fflate@0.8.3: {}
+
   fill-range@7.1.1:
     dependencies:
       to-regex-range: 5.0.1
@@ -8125,6 +8152,8 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
+  node-int64@0.4.0: {}
+
   normalize-path@3.0.0: {}
 
   nypm@0.5.4:
@@ -8331,6 +8360,13 @@ snapshots:
 
   react@19.2.4: {}
 
+  read-excel-file@9.3.12:
+    dependencies:
+      fflate: 0.8.3
+      saxen: 11.2.0
+      unzipper-esm: 0.13.3
+      worker-f: 0.1.21
+
   readdirp@3.6.0:
     dependencies:
       picomatch: 2.3.2
@@ -8404,6 +8440,8 @@ snapshots:
   safe-buffer@5.2.1: {}
 
   safer-buffer@2.1.2: {}
+
+  saxen@11.2.0: {}
 
   saxes@6.0.0:
     dependencies:
@@ -8907,6 +8945,11 @@ snapshots:
 
   until-async@3.0.2: {}
 
+  unzipper-esm@0.13.3:
+    dependencies:
+      graceful-fs: 4.2.11
+      node-int64: 0.4.0
+
   urlpattern-polyfill@10.1.0: {}
 
   use-sync-external-store@1.6.0(react@19.2.4):
@@ -9010,6 +9053,8 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  worker-f@0.1.21: {}
 
   workerd@1.20261023.1:
     optionalDependencies:
