@@ -1,5 +1,6 @@
 import { z } from "zod"
 import type { Db } from "@/lib/supabase/database"
+import { encolarLectura } from "./acciones-de-aprendizajes"
 
 // Worker-safe: the XLSX is read in the browser (lector.ts); this validates what arrives and writes it in one RPC.
 
@@ -55,7 +56,15 @@ const Entrada = z.object({ cuentaId: z.uuid(), exportacion: Exportacion, confirm
 const Resumen = z.object({ publicaciones: Entero, de_postia: Entero, anteriores: Entero })
 
 export type ResultadoDeImportacion =
-  | { ok: true; publicaciones: number; dePostia: number; anteriores: number; sinIdentificar: number }
+  | {
+      ok: true
+      publicaciones: number
+      dePostia: number
+      anteriores: number
+      sinIdentificar: number
+      /** A reading of the account is queued or already open: Claude will propose learnings. */
+      leyendo: boolean
+    }
   | { ok: false; error: string; confirmar?: true }
 
 const ARCHIVO_ILEGIBLE = "No pude leer el archivo. Descárgalo de nuevo desde LinkedIn."
@@ -131,11 +140,13 @@ export async function importarEstadisticas(db: Db, entrada: unknown): Promise<Re
     return { ok: false, error: "No pude guardar las estadísticas. Inténtalo de nuevo en un rato." }
   }
   const r = Resumen.parse(data)
+  const leyendo = await encolarLectura(db, cuentaId)
   return {
     ok: true,
     publicaciones: r.publicaciones,
     dePostia: r.de_postia,
     anteriores: r.anteriores,
     sinIdentificar: e.sinIdentificar,
+    leyendo,
   }
 }

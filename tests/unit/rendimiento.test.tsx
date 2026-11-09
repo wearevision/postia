@@ -216,9 +216,28 @@ const CUENTAS = [
   { id: "pagina", nombre: "Página de WAV", tipo: "empresa", tieneDatos: false },
 ]
 
+const EXTRAS = {
+  aprendizajes: {
+    porDecidir: [{ id: "a1", texto: "Los casos con cifras rinden más.", porque: "Más enganche.", respaldo: 9 }],
+    pistas: [],
+    aprobados: [],
+    leyendo: false,
+    ultimoFallo: null,
+  },
+  acciones: { decidir: async () => ({ ok: true as const }), pedirLectura: async () => ({ ok: true as const }) },
+}
+
 describe("VistaDeRendimiento", () => {
+  test("puts «Aprendizajes» before «Publicaciones» for the account being shown", () => {
+    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} {...EXTRAS} />)
+    const aprendizajes = screen.getByRole("heading", { name: "Aprendizajes" })
+    const publicaciones = screen.getByRole("heading", { name: "Publicaciones" })
+    expect(aprendizajes.compareDocumentPosition(publicaciones) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText("Los casos con cifras rinden más.")).toBeInTheDocument()
+  })
+
   test("shows the period, the followers total and the small-sample notice", () => {
-    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} />)
+    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} {...EXTRAS} />)
     expect(screen.getByText("Datos del 10 nov 2025 al 9 nov 2026")).toBeInTheDocument()
     expect(screen.getByText(/3\.448 seguidores/)).toBeInTheDocument()
     expect(
@@ -227,12 +246,14 @@ describe("VistaDeRendimiento", () => {
   })
 
   test("hides the small-sample notice when there is enough data", () => {
-    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={{ ...DATOS, muestraChica: false }} />)
+    render(
+      <VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={{ ...DATOS, muestraChica: false }} {...EXTRAS} />,
+    )
     expect(screen.queryByText(/pocas publicaciones/)).toBeNull()
   })
 
   test("offers one link per account and marks the current one", () => {
-    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} />)
+    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} {...EXTRAS} />)
     const nav = screen.getByRole("navigation", { name: "Cuenta" })
     expect(within(nav).getByRole("link", { name: "Federico" })).toHaveAttribute("aria-current", "page")
     expect(within(nav).getByRole("link", { name: "Página de WAV" })).toHaveAttribute(
@@ -242,7 +263,7 @@ describe("VistaDeRendimiento", () => {
   })
 
   test("lists the monthly trend in a table with dashes for missing figures", () => {
-    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} />)
+    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} {...EXTRAS} />)
     const tabla = screen.getByRole("table", { name: "Tendencia por mes" })
     const filas = within(tabla).getAllByRole("row")
     expect(filas[1]?.textContent).toContain("nov 2025")
@@ -251,7 +272,7 @@ describe("VistaDeRendimiento", () => {
   })
 
   test("groups the audience with percentages, counts and change words", () => {
-    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} />)
+    render(<VistaDeRendimiento cuentas={CUENTAS} cuentaId="perfil" datos={DATOS} {...EXTRAS} />)
     const seguidores = screen.getByRole("region", { name: "Quienes te siguen" })
     expect(within(seguidores).getByText("Cargo")).toBeInTheDocument()
     expect(
@@ -279,6 +300,7 @@ describe("VistaDeRendimiento", () => {
       <VistaDeRendimiento
         cuentas={CUENTAS}
         cuentaId="pagina"
+        {...EXTRAS}
         datos={{
           ...DATOS,
           publicaciones: [],
@@ -293,5 +315,6 @@ describe("VistaDeRendimiento", () => {
     expect(screen.getByText("Todavía no hay estadísticas de esta cuenta.")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Importar estadísticas" })).toHaveAttribute("href", "/ajustes")
     expect(screen.queryByRole("list", { name: "Publicaciones" })).toBeNull()
+    expect(screen.queryByRole("heading", { name: "Aprendizajes" })).toBeNull()
   })
 })

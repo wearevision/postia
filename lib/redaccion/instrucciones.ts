@@ -7,6 +7,8 @@ export interface ContextoDeRedaccion {
   cuenta: { nombre: string; tipo: "persona" | "empresa" }
   linea: { version: number; secciones: SeccionesDeLinea; pilares: PilarDeLinea[] }
   noNombrar: string[]
+  /** Texts Federico approved from the account's own rendimiento, newest first. Empty adds nothing to any prompt. */
+  aprendizajes: string[]
 }
 
 /** Names and aliases of the clients that cannot be named today (no_nombrar and confidencial still in force). */
@@ -55,12 +57,30 @@ export function reglasDeLaCasa(c: ContextoDeRedaccion): string {
   return reglas.map((r) => `- ${r}`).join("\n")
 }
 
-/** Stable per brand, account, line version and exception list: the cache hits across requests. */
+/**
+ * Approved by Federico, but they still travel in the system prompt: one line each, so a text cannot open a section
+ * or a rule of its own. Absent (not an empty heading) when there are none, so the cached prefix does not move.
+ */
+/** The system prompt's sections: none, or the single learnings section. */
+export function loQueFunciona(c: ContextoDeRedaccion): string[] {
+  if (c.aprendizajes.length === 0) return []
+  const lineas = c.aprendizajes.map((a) => `- ${comoDatos(a).replace(/\s+/g, " ").trim()}`)
+  return [
+    [
+      "# Lo que funciona en esta cuenta",
+      "Federico aprobó estas tendencias a partir de cómo rindieron las publicaciones anteriores de esta cuenta. Son una guía, no un molde: no repitas una fórmula ni rompas las reglas de abajo.",
+      ...lineas,
+    ].join("\n"),
+  ]
+}
+
+/** Stable per brand, account, line version, exception list and approved learnings: the cache hits across requests. */
 export function instruccionesDeEscritura(c: ContextoDeRedaccion): string {
   return [
     `Escribes posts de texto para LinkedIn en la cuenta «${c.cuenta.nombre}», en español de Chile.`,
     vozDeLaMarca(c),
     `# Línea editorial (versión ${c.linea.version})\n\n${lineaEditorial(c)}`,
+    ...loQueFunciona(c),
     `# Reglas que no se rompen\n${reglasDeLaCasa(c)}`,
     "Respondes con el texto listo para publicar y una nota breve para Federico (supuestos, qué falta confirmar).",
   ].join("\n\n")

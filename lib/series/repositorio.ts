@@ -233,7 +233,7 @@ export function repositorioDeEscritura(db: Db): Omit<PuertosDeEscritura, "pedir"
     async contextoDeCuenta(cuentaId) {
       const { data, error } = await db.from("cuentas").select("nombre, tipo, marca_id").eq("id", cuentaId).single()
       if (error) fallo("No pude leer la cuenta de la asignación", error)
-      const c = await contextoDeRedaccion(db, data.marca_id, data)
+      const c = await contextoDeRedaccion(db, data.marca_id, { ...data, id: cuentaId })
       if (!c) throw new Falla("La marca de esta cuenta no tiene línea editorial. Guárdala y escribe la pieza a mano.")
       return c
     },

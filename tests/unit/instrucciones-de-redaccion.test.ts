@@ -26,6 +26,7 @@ const CONTEXTO: ContextoDeRedaccion = {
     pilares: [{ nombre: "Oficio", deQueHabla: "Cómo se monta", material: "Fotos de montaje", porSemana: 1 }],
   },
   noNombrar: ["Copec", "Anglo American"],
+  aprendizajes: [],
 }
 
 describe("nombresVetados", () => {

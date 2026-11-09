@@ -26,6 +26,7 @@ function contexto(voz: "yo" | "nosotros"): ContextoDeRedaccion {
     cuenta: { nombre: voz === "yo" ? "Federico" : "WAV", tipo: voz === "yo" ? "persona" : "empresa" },
     linea: { version: 4, secciones: SECCIONES, pilares: [] },
     noNombrar: [],
+    aprendizajes: [],
   }
 }
 

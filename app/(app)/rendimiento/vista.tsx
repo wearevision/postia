@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { periodoLegible } from "@/lib/rendimiento/formato"
-import type { CuentaConRendimiento, RendimientoDeCuenta } from "@/lib/rendimiento/lectura"
+import type { AprendizajesDeCuenta, CuentaConRendimiento, RendimientoDeCuenta } from "@/lib/rendimiento/lectura"
 import { RUTA_DE_AJUSTES, rutaDeRendimiento } from "@/lib/sesion/rutas"
+import { type AccionesDeAprendizajes, Aprendizajes } from "./aprendizajes"
 import { Publicaciones } from "./publicaciones"
 import { Publico } from "./publico"
 import { Tendencia } from "./tendencia"
@@ -12,10 +13,14 @@ export function VistaDeRendimiento({
   cuentas,
   cuentaId,
   datos,
+  aprendizajes,
+  acciones,
 }: {
   cuentas: CuentaConRendimiento[]
   cuentaId: string
   datos: RendimientoDeCuenta
+  aprendizajes: AprendizajesDeCuenta
+  acciones: AccionesDeAprendizajes
 }) {
   const sinDatos = datos.publicaciones.length === 0 && datos.meses.length === 0 && datos.publico.length === 0
   const importacion = datos.ultimaImportacion
@@ -56,6 +61,7 @@ export function VistaDeRendimiento({
               Todavía son pocas publicaciones con interacciones para sacar conclusiones.
             </output>
           )}
+          <Aprendizajes key={cuentaId} cuentaId={cuentaId} datos={aprendizajes} acciones={acciones} />
           {datos.publicaciones.length > 0 && <Publicaciones publicaciones={datos.publicaciones} />}
           <Tendencia meses={datos.meses} />
           <Publico filas={datos.publico} />
