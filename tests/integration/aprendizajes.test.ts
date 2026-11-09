@@ -197,6 +197,28 @@ describe("guardar_aprendizajes", () => {
     const { error } = await admin().rpc("guardar_aprendizajes", { p_lectura: id, p_items: [item("Tarde", 9)] })
     expect(error?.message).toBe("lectura_no_encontrada")
   })
+
+  test("a learning cannot cite a post whose figures came from LinkedIn's API (they never reach Claude)", async () => {
+    const { data: api, error: errorApi } = await admin()
+      .from("metricas_de_publicacion")
+      .insert({
+        cuenta_id: cuenta,
+        post_urn: `urn:li:share:${Date.now()}9`,
+        publicada_el: "2026-10-02",
+        impresiones: 50,
+        origen: "api",
+      })
+      .select("id")
+      .single()
+    if (errorApi) throw errorApi
+    const id = await lecturaTomada()
+    const { error } = await admin().rpc("guardar_aprendizajes", {
+      p_lectura: id,
+      p_items: [item("Con cifra de la API", 9, [api.id])],
+    })
+    expect(error?.message).toBe("datos_invalidos")
+    await admin().from("metricas_de_publicacion").delete().eq("id", api.id)
+  })
 })
 
 describe("decidir_aprendizaje", () => {

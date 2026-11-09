@@ -2189,6 +2189,10 @@ export type Database = {
         Args: { p_cuenta: string; p_datos: Json }
         Returns: Json
       }
+      lecturas_del_dia_agotadas: {
+        Args: { p_cuenta: string }
+        Returns: boolean
+      }
       liberar_gasto: {
         Args: { p_ahora?: string; p_clave: string }
         Returns: string
@@ -2461,7 +2465,7 @@ export type Database = {
         }
       }
       tomar_lecturas_de_analiticas: {
-        Args: never
+        Args: { p_arriendo_segundos: number }
         Returns: {
           arrendado_hasta: string | null
           creada_en: string

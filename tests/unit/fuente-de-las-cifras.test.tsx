@@ -62,6 +62,18 @@ describe("FuenteDeLasCifras", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("LinkedIn ya se está leyendo.")
   })
 
+  test("says the profile was already read twice today when the daily cap refuses the tap", async () => {
+    montar(
+      {},
+      vi.fn(
+        async (): Promise<Resultado> => ({ ok: false, error: "Ya se leyó LinkedIn dos veces hoy. Vuelve mañana." }),
+      ),
+    )
+    fireEvent.click(boton() as HTMLElement)
+    expect(await screen.findByRole("alert")).toHaveTextContent("Ya se leyó LinkedIn dos veces hoy. Vuelve mañana.")
+    expect(boton()).toBeEnabled()
+  })
+
   test("while a reading is open the button is disabled and says LinkedIn is being read", () => {
     montar({ leyendo: true })
     expect(boton()).toBeDisabled()

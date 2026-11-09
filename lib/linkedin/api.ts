@@ -9,7 +9,7 @@ import { esUrnDePost } from "./dominio"
 export const VERSION_DE_LINKEDIN = "202610"
 
 const BASE_API = "https://api.linkedin.com"
-const ESPERA_MS = 30_000
+export const ESPERA_MS = 30_000
 const ESPERA_SUBIDA_MS = 120_000
 
 /** 401: expired or revoked. The owner renews it in Ajustes. */

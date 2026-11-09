@@ -1,5 +1,5 @@
 import type { Db } from "@/lib/supabase/database"
-import type { PuertosDeAnaliticas } from "./sincronizar"
+import { ARRIENDO_S, type PuertosDeAnaliticas } from "./sincronizar"
 
 // Service role only (Trigger.dev): it reads tokens from Vault and writes across brands.
 
@@ -14,7 +14,7 @@ function fallo(accion: string, error: { message: string }): never {
 export function repositorioDeAnaliticas(db: Db): Omit<PuertosDeAnaliticas, "linkedin" | "ahora"> {
   return {
     async tomar() {
-      const { data, error } = await db.rpc("tomar_lecturas_de_analiticas")
+      const { data, error } = await db.rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: ARRIENDO_S })
       if (error) fallo("No pude tomar las lecturas de analíticas", error)
       return data.map((l) => ({ id: l.id, cuentaId: l.cuenta_id }))
     },

@@ -40,6 +40,14 @@ describe("pedirActualizacionDeAnaliticas", () => {
     })
   })
 
+  test("says in Spanish that a profile was already read twice today", async () => {
+    const { db } = dbQueResponde({ code: "55000", message: "lecturas_del_dia_agotadas" })
+    expect(await pedirActualizacionDeAnaliticas(db, ID)).toEqual({
+      ok: false,
+      error: "Ya se leyó LinkedIn dos veces hoy. Vuelve mañana.",
+    })
+  })
+
   test("says in Spanish that only the owner can update", async () => {
     const { db } = dbQueResponde({ code: "42501", message: "solo_el_dueno_pide_lecturas" })
     expect(await pedirActualizacionDeAnaliticas(db, ID)).toEqual({

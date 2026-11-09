@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import { LecturaDeLinkedinFallida, MENSAJE_LIMITE } from "@/lib/linkedin/analiticas"
 import { barrerAnaliticas } from "@/lib/mantenimiento/limpieza"
 import { programarLecturasDeAnaliticas, repositorioDeAnaliticas } from "@/lib/rendimiento/repositorio-de-analiticas"
-import { leerAnaliticas, type PuertosDeAnaliticas } from "@/lib/rendimiento/sincronizar"
+import { ARRIENDO_S, leerAnaliticas, type PuertosDeAnaliticas } from "@/lib/rendimiento/sincronizar"
 import {
   admin,
   cerrarLecturasDeAnaliticasAbiertas,
@@ -147,7 +147,7 @@ describe("repositorioDeAnaliticas", () => {
         ...sinLinkedin,
         cifrasDeLaPagina: async (e) => {
           token(e.token, e.organizacion)
-          return e.shares.map((u) => ({ urn: u, impresiones: 300, interacciones: 12, clics: 5 }))
+          return e.posts.map((u) => ({ urn: u, impresiones: 300, interacciones: 12, clics: 5 }))
         },
         seguidoresDeLaPagina: async () => [{ dia: "2026-11-05", seguidoresNuevos: 3 }],
       },
@@ -206,6 +206,21 @@ describe("repositorioDeAnaliticas", () => {
 })
 
 describe("programarLecturasDeAnaliticas and barrerAnaliticas", () => {
+  test("tomar leases the reading for the task's lease, long enough for its slowest run", async () => {
+    const { db, cuenta } = await conPerfilConectado()
+    const { data: id } = await db.rpc("pedir_lectura_de_analiticas", { p_cuenta: cuenta })
+    const antes = Date.now()
+    expect((await repositorioDeAnaliticas(admin()).tomar()).map((l) => l.id)).toEqual([id])
+    const { data } = await admin()
+      .from("lecturas_de_analiticas")
+      .select("arrendado_hasta")
+      .eq("id", id as string)
+      .single()
+    const arriendo = Date.parse(data?.arrendado_hasta ?? "") - antes
+    expect(arriendo).toBeGreaterThan((ARRIENDO_S - 10) * 1000)
+    expect(arriendo).toBeLessThan((ARRIENDO_S + 10) * 1000)
+  })
+
   test("the daily schedule queues the connected profile once", async () => {
     const { cuenta } = await conPerfilConectado()
     expect(await programarLecturasDeAnaliticas(admin())).toBeGreaterThanOrEqual(1)

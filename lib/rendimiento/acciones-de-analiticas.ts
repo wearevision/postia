@@ -12,6 +12,8 @@ export async function pedirActualizacionDeAnaliticas(db: Db, cuentaId: string): 
   if (!error) return { ok: true }
   if (error.message === "lectura_en_curso")
     return { ok: false, error: "LinkedIn ya se está leyendo. Espera a que termine." }
+  if (error.message === "lecturas_del_dia_agotadas")
+    return { ok: false, error: "Ya se leyó LinkedIn dos veces hoy. Vuelve mañana." }
   if (error.message === "analiticas_sin_conexion")
     return { ok: false, error: "Reconecta LinkedIn desde Ajustes para actualizar las cifras." }
   if (error.message === "solo_el_dueno_pide_lecturas")

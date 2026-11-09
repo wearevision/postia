@@ -1,6 +1,13 @@
 import { describe, expect, test, vi } from "vitest"
 import { LecturaDeLinkedinFallida, MENSAJE_LIMITE, MENSAJE_RECONECTAR } from "@/lib/linkedin/analiticas"
-import { leerAnaliticas, type PuertosDeAnaliticas } from "@/lib/rendimiento/sincronizar"
+import { ESPERA_MS } from "@/lib/linkedin/api"
+import {
+  ARRIENDO_S,
+  DURACION_MAXIMA_S,
+  LLAMADAS_MAXIMAS_POR_LECTURA,
+  leerAnaliticas,
+  type PuertosDeAnaliticas,
+} from "@/lib/rendimiento/sincronizar"
 
 const AHORA = Date.parse("2026-11-09T12:00:00Z")
 const CUENTA = "11111111-1111-4111-8111-111111111111"
@@ -25,8 +32,8 @@ function puertos(sobre: Partial<PuertosDeAnaliticas> & { tipo?: "persona" | "emp
     postsDePostia: async () => [],
     guardar,
     linkedin: {
-      cifrasDeLaPagina: async ({ shares }) =>
-        shares.map((urn) => ({ urn, impresiones: 100, interacciones: 7, clics: 3 })),
+      cifrasDeLaPagina: async ({ posts }) =>
+        posts.map((urn) => ({ urn, impresiones: 100, interacciones: 7, clics: 3 })),
       seguidoresDeLaPagina: async () => [{ dia: "2026-11-05", seguidoresNuevos: 4 }],
       cifrasDeUnPostDelPerfil: async () => ({ impresiones: 50, interacciones: 5 }),
     },
@@ -46,8 +53,8 @@ describe("the page", () => {
     const { p, guardar, terminar } = puertos({
       postsDePostia: async () => ["urn:li:share:1", "urn:li:share:2"],
       linkedin: {
-        cifrasDeLaPagina: async ({ shares }) =>
-          shares.map((urn) => ({ urn, impresiones: 100, interacciones: 7, clics: 3 })),
+        cifrasDeLaPagina: async ({ posts }) =>
+          posts.map((urn) => ({ urn, impresiones: 100, interacciones: 7, clics: 3 })),
         seguidoresDeLaPagina: seguidores,
         cifrasDeUnPostDelPerfil: async () => ({ impresiones: 0, interacciones: 0 }),
       },
@@ -70,23 +77,23 @@ describe("the page", () => {
     expect(terminar).toHaveBeenCalledWith("lectura-1", "lista", "Leí 2 publicaciones y 1 día de seguidores.")
   })
 
-  test("skips ugcPost URNs and says how many", async () => {
+  test("reads ugcPost URNs too (carousels can come back as ugcPost) and says nothing about them", async () => {
     const pedidas: string[][] = []
     const { p, terminar, guardar } = puertos({
       postsDePostia: async () => ["urn:li:share:1", "urn:li:ugcPost:9", "urn:li:ugcPost:10"],
       linkedin: {
-        cifrasDeLaPagina: async ({ shares }) => {
-          pedidas.push([...shares])
-          return shares.map((urn) => ({ urn, impresiones: 1, interacciones: 1, clics: 1 }))
+        cifrasDeLaPagina: async ({ posts }) => {
+          pedidas.push([...posts])
+          return posts.map((urn) => ({ urn, impresiones: 1, interacciones: 1, clics: 1 }))
         },
         seguidoresDeLaPagina: async () => [],
         cifrasDeUnPostDelPerfil: async () => ({ impresiones: 0, interacciones: 0 }),
       },
     })
     await leerAnaliticas(p)
-    expect(pedidas).toEqual([["urn:li:share:1"]])
-    expect(guardar.mock.calls[0]?.[1].publicaciones).toHaveLength(1)
-    expect(terminar.mock.calls[0]?.[2]).toContain("2 publicaciones de tipo ugcPost no se leen")
+    expect(pedidas).toEqual([["urn:li:share:1", "urn:li:ugcPost:9", "urn:li:ugcPost:10"]])
+    expect(guardar.mock.calls[0]?.[1].publicaciones).toHaveLength(3)
+    expect(terminar.mock.calls[0]?.[2]).not.toContain("ugcPost")
   })
 
   test("reads at most the 100 newest posts", async () => {
@@ -94,8 +101,8 @@ describe("the page", () => {
     const { p } = puertos({
       postsDePostia: async () => comparten(150),
       linkedin: {
-        cifrasDeLaPagina: async ({ shares }) => {
-          pedidas.push([...shares])
+        cifrasDeLaPagina: async ({ posts }) => {
+          pedidas.push([...posts])
           return []
         },
         seguidoresDeLaPagina: async () => [],
@@ -177,6 +184,35 @@ describe("the profile", () => {
     ])
     expect(terminar.mock.calls[0]?.[2]).toContain("1 no se pudo leer")
     registro.mockRestore()
+  })
+
+  test("when every post fails the reading closes as «fallo», not as a reading of zero posts", async () => {
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { p, guardar, terminar } = puertos({
+      tipo: "persona",
+      postsDePostia: async () => comparten(2),
+      linkedin: {
+        cifrasDeLaPagina: async () => [],
+        seguidoresDeLaPagina: async () => [],
+        cifrasDeUnPostDelPerfil: async () => {
+          throw new Error("LinkedIn respondió HTTP 500")
+        },
+      },
+    })
+    expect(await leerAnaliticas(p)).toEqual({ leidas: 0, fallidas: 1 })
+    expect(guardar).not.toHaveBeenCalled()
+    expect(terminar).toHaveBeenCalledWith(
+      "lectura-1",
+      "fallo",
+      "No pude leer ninguna publicación en LinkedIn. Inténtalo de nuevo en un rato.",
+    )
+    registro.mockRestore()
+  })
+
+  test("a profile without PostIA posts is still a reading that went well", async () => {
+    const { p, terminar } = puertos({ tipo: "persona", postsDePostia: async () => [] })
+    expect(await leerAnaliticas(p)).toEqual({ leidas: 1, fallidas: 0 })
+    expect(terminar).toHaveBeenCalledWith("lectura-1", "lista", "Leí 0 publicaciones.")
   })
 
   test("the daily limit stops the run but keeps what was already read", async () => {
@@ -266,5 +302,37 @@ describe("the queue", () => {
     const { p, guardar } = puertos({ tomar: async () => [] })
     expect(await leerAnaliticas(p)).toEqual({ leidas: 0, fallidas: 0 })
     expect(guardar).not.toHaveBeenCalled()
+  })
+})
+
+describe("the lease", () => {
+  test("covers the slowest run: every call of the costliest reading timing out, plus a margin", () => {
+    // The profile's 10 posts × 4 metrics is the costliest reading.
+    expect(LLAMADAS_MAXIMAS_POR_LECTURA).toBe(40)
+    expect(DURACION_MAXIMA_S * 1000).toBeGreaterThan(LLAMADAS_MAXIMAS_POR_LECTURA * ESPERA_MS)
+    expect(ARRIENDO_S).toBeGreaterThan(DURACION_MAXIMA_S)
+    // tomar_lecturas_de_analiticas accepts 60 to 7200 seconds.
+    expect(ARRIENDO_S).toBeLessThanOrEqual(7200)
+  })
+
+  test("a page reading never costs more calls than the bound", async () => {
+    let llamadas = 0
+    const { p } = puertos({
+      postsDePostia: async () => [...comparten(41), ...Array.from({ length: 79 }, (_, i) => `urn:li:ugcPost:${i + 1}`)],
+      linkedin: {
+        cifrasDeLaPagina: async ({ posts }) => {
+          const shares = posts.filter((u) => u.startsWith("urn:li:share:")).length
+          llamadas += Math.ceil(shares / 20) + Math.ceil((posts.length - shares) / 20)
+          return []
+        },
+        seguidoresDeLaPagina: async () => {
+          llamadas++
+          return []
+        },
+        cifrasDeUnPostDelPerfil: async () => ({ impresiones: 0, interacciones: 0 }),
+      },
+    })
+    await leerAnaliticas(p)
+    expect(llamadas).toBeLessThanOrEqual(LLAMADAS_MAXIMAS_POR_LECTURA)
   })
 })

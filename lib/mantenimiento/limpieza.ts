@@ -160,8 +160,8 @@ export async function barrerElecciones(db: Db): Promise<number> {
 }
 
 /**
- * API figures past their retention (a profile's after 48 hours, a page's after a year) and old readings: LinkedIn's
- * Data Storage Requirements (supabase/migrations/…_analiticas_api.sql).
+ * API figures past their retention (a profile's after 24 hours, so a nightly sweep keeps them within LinkedIn's 48; a
+ * page's after a year) and old readings: LinkedIn's Data Storage Requirements (supabase/migrations/…_analiticas_api.sql).
  */
 export async function barrerAnaliticas(db: Db): Promise<number> {
   const { data, error } = await db.rpc("barrer_analiticas")

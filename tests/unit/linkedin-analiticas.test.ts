@@ -32,7 +32,7 @@ describe("cifrasDeLaPagina", () => {
         return HttpResponse.json({ elements: [], paging: { count: 10, start: 0, links: [] } })
       }),
     )
-    await cifrasDeLaPagina({ token: "tok", organizacion: PAGINA, shares: ["urn:li:share:1", "urn:li:share:2"] })
+    await cifrasDeLaPagina({ token: "tok", organizacion: PAGINA, posts: ["urn:li:share:1", "urn:li:share:2"] })
     expect(url.searchParams.get("q")).toBe("organizationalEntity")
     expect(url.searchParams.get("organizationalEntity")).toBe(PAGINA)
     expect(url.searchParams.get("shares")).toBe("List(urn:li:share:1,urn:li:share:2)")
@@ -60,7 +60,7 @@ describe("cifrasDeLaPagina", () => {
         }),
       ),
     )
-    expect(await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, shares: ["urn:li:share:1000000"] })).toEqual([
+    expect(await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, posts: ["urn:li:share:1000000"] })).toEqual([
       { urn: "urn:li:share:1000000", impresiones: 5287, interacciones: 43, clics: 78 },
     ])
   })
@@ -75,7 +75,7 @@ describe("cifrasDeLaPagina", () => {
       ),
     )
     expect(
-      await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, shares: ["urn:li:share:1", "urn:li:share:2"] }),
+      await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, posts: ["urn:li:share:1", "urn:li:share:2"] }),
     ).toEqual([
       { urn: "urn:li:share:1", impresiones: 9, interacciones: 0, clics: 1 },
       { urn: "urn:li:share:2", impresiones: 0, interacciones: 0, clics: 0 },
@@ -90,7 +90,7 @@ describe("cifrasDeLaPagina", () => {
         }),
       ),
     )
-    const [cifras] = await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, shares: ["urn:li:share:1"] })
+    const [cifras] = await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, posts: ["urn:li:share:1"] })
     expect(cifras?.interacciones).toBe(0)
   })
 
@@ -103,19 +103,69 @@ describe("cifrasDeLaPagina", () => {
       }),
     )
     const shares = Array.from({ length: 45 }, (_, i) => `urn:li:share:${i + 1}`)
-    const cifras = await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, shares })
+    const cifras = await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, posts: shares })
     expect(lotes).toHaveLength(3)
     expect(lotes[0]?.split(",")).toHaveLength(20)
     expect(cifras).toHaveLength(45)
   })
 
+  test("asks for ugcPost URNs in their own ugcPosts list and reads them by the ugcPost key of the answer", async () => {
+    const consultas: URLSearchParams[] = []
+    servidor.use(
+      http.get(`${API}/rest/organizationalEntityShareStatistics`, ({ request }) => {
+        const consulta = new URL(request.url).searchParams
+        consultas.push(consulta)
+        if (!consulta.has("ugcPosts")) return HttpResponse.json({ elements: [] })
+        // Shape of «Retrieve Statistics for Specific UGC Posts» (li-lms-2026-10).
+        return HttpResponse.json({
+          elements: [
+            {
+              organizationalEntity: PAGINA,
+              ugcPost: "urn:li:ugcPost:1000000",
+              totalShareStatistics: {
+                clickCount: 78,
+                commentCount: 24,
+                engagement: 0.022886324947985624,
+                impressionCount: 5287,
+                likeCount: 14,
+                shareCount: 5,
+              },
+            },
+          ],
+          paging: { count: 10, links: [], start: 0 },
+        })
+      }),
+    )
+    const cifras = await cifrasDeLaPagina({
+      token: "t",
+      organizacion: PAGINA,
+      posts: ["urn:li:share:1", "urn:li:ugcPost:1000000", "urn:li:ugcPost:1000001"],
+    })
+    expect(consultas).toHaveLength(2)
+    expect(consultas[0]?.get("shares")).toBe("List(urn:li:share:1)")
+    expect(consultas[0]?.has("ugcPosts")).toBe(false)
+    expect(consultas[1]?.get("ugcPosts")).toBe("List(urn:li:ugcPost:1000000,urn:li:ugcPost:1000001)")
+    expect(consultas[1]?.has("shares")).toBe(false)
+    expect(cifras).toEqual([
+      { urn: "urn:li:share:1", impresiones: 0, interacciones: 0, clics: 0 },
+      { urn: "urn:li:ugcPost:1000000", impresiones: 5287, interacciones: 43, clics: 78 },
+      { urn: "urn:li:ugcPost:1000001", impresiones: 0, interacciones: 0, clics: 0 },
+    ])
+  })
+
   test("does not call LinkedIn without shares", async () => {
-    expect(await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, shares: [] })).toEqual([])
+    expect(await cifrasDeLaPagina({ token: "t", organizacion: PAGINA, posts: [] })).toEqual([])
+  })
+
+  test("refuses a URN that is not a post", async () => {
+    await expect(cifrasDeLaPagina({ token: "t", organizacion: PAGINA, posts: ["urn:li:person:1"] })).rejects.toThrow(
+      /post/,
+    )
   })
 
   test("refuses an organization that is not a urn:li:organization", async () => {
     await expect(
-      cifrasDeLaPagina({ token: "t", organizacion: "urn:li:person:1", shares: ["urn:li:share:1"] }),
+      cifrasDeLaPagina({ token: "t", organizacion: "urn:li:person:1", posts: ["urn:li:share:1"] }),
     ).rejects.toThrow(/organization/)
   })
 })
@@ -283,7 +333,7 @@ describe("errors", () => {
       const error = await cifrasDeLaPagina({
         token: "tok-secreto",
         organizacion: PAGINA,
-        shares: ["urn:li:share:1"],
+        posts: ["urn:li:share:1"],
       }).catch((e: unknown) => e)
       expect(error).toBeInstanceOf(LecturaDeLinkedinFallida)
       expect((error as LecturaDeLinkedinFallida).motivo).toBe("reconectar")

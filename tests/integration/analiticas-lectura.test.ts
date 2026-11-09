@@ -103,6 +103,41 @@ describe("pedir_lectura_de_analiticas", () => {
     expect((await ajena.db.from("lecturas_de_analiticas").select("id")).data).toEqual([])
     expect((await db.from("lecturas_de_analiticas").insert({ cuenta_id: cuenta })).error).not.toBeNull()
   })
+
+  test("a profile gets two readings a UTC day: the third tap is refused, a page is not capped", async () => {
+    const perfil = await duenoCon("persona")
+    await conectarPerfil(perfil.db, perfil.cuenta)
+    for (let i = 0; i < 2; i++) {
+      expect((await perfil.db.rpc("pedir_lectura_de_analiticas", { p_cuenta: perfil.cuenta })).error).toBeNull()
+      await cerrarLecturasDeAnaliticasAbiertas()
+    }
+    const tercera = await perfil.db.rpc("pedir_lectura_de_analiticas", { p_cuenta: perfil.cuenta })
+    expect(tercera.error?.message).toBe("lecturas_del_dia_agotadas")
+    expect(tercera.error?.code).toBe("55000")
+
+    const pagina = await duenoCon("empresa")
+    await conectarPagina(pagina.userId, pagina.cuenta)
+    for (let i = 0; i < 3; i++) {
+      expect((await pagina.db.rpc("pedir_lectura_de_analiticas", { p_cuenta: pagina.cuenta })).error).toBeNull()
+      await cerrarLecturasDeAnaliticasAbiertas()
+    }
+  })
+
+  test("readings from before today's UTC midnight do not count against the profile's two", async () => {
+    const { db, cuenta } = await duenoCon("persona")
+    await conectarPerfil(db, cuenta)
+    const medianoche = new Date()
+    medianoche.setUTCHours(0, 0, 0, 0)
+    const ayer = new Date(medianoche.getTime() - 1000).toISOString()
+    const viejas = await admin()
+      .from("lecturas_de_analiticas")
+      .insert([
+        { cuenta_id: cuenta, estado: "lista", creada_en: ayer },
+        { cuenta_id: cuenta, estado: "fallo", creada_en: ayer },
+      ])
+    expect(viejas.error).toBeNull()
+    expect((await db.rpc("pedir_lectura_de_analiticas", { p_cuenta: cuenta })).error).toBeNull()
+  })
 })
 
 describe("the queue", () => {
@@ -123,15 +158,42 @@ describe("the queue", () => {
     expect(await lecturasDe(perfil.cuenta)).toHaveLength(1)
   })
 
+  test("the daily schedule skips a profile that already had its two readings today, never a page", async () => {
+    const perfil = await duenoCon("persona")
+    await conectarPerfil(perfil.db, perfil.cuenta)
+    const pagina = await duenoCon("empresa")
+    await conectarPagina(pagina.userId, pagina.cuenta)
+    const hechas = (cuenta: string) => [
+      { cuenta_id: cuenta, estado: "lista" },
+      { cuenta_id: cuenta, estado: "lista" },
+    ]
+    expect(
+      (
+        await admin()
+          .from("lecturas_de_analiticas")
+          .insert([...hechas(perfil.cuenta), ...hechas(pagina.cuenta)])
+      ).error,
+    ).toBeNull()
+
+    await admin().rpc("programar_lecturas_de_analiticas")
+
+    expect((await lecturasDe(perfil.cuenta)).filter((l) => l.estado === "pendiente")).toHaveLength(0)
+    expect((await lecturasDe(pagina.cuenta)).filter((l) => l.estado === "pendiente")).toHaveLength(1)
+  })
+
   test("tomar leases the oldest reading, terminar closes it, and a closed one is not taken again", async () => {
     const { db, cuenta } = await duenoCon("persona")
     await conectarPerfil(db, cuenta)
     const { data: id } = await db.rpc("pedir_lectura_de_analiticas", { p_cuenta: cuenta })
 
-    const tomadas = await admin().rpc("tomar_lecturas_de_analiticas")
+    const antes = Date.now()
+    const tomadas = await admin().rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 1500 })
     expect(tomadas.data?.map((l) => l.id)).toEqual([id])
     expect(tomadas.data?.[0]?.estado).toBe("trabajando")
-    expect((await admin().rpc("tomar_lecturas_de_analiticas")).data).toEqual([])
+    const arriendo = Date.parse(tomadas.data?.[0]?.arrendado_hasta ?? "") - antes
+    expect(arriendo).toBeGreaterThan(1490_000)
+    expect(arriendo).toBeLessThan(1510_000)
+    expect((await admin().rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 1500 })).data).toEqual([])
 
     const motivo = "Leí 2 publicaciones."
     expect(
@@ -141,7 +203,7 @@ describe("the queue", () => {
     const [fila] = await lecturasDe(cuenta)
     expect(fila).toMatchObject({ estado: "lista", motivo, arrendado_hasta: null })
     expect(fila?.terminada_en).not.toBeNull()
-    expect((await admin().rpc("tomar_lecturas_de_analiticas")).data).toEqual([])
+    expect((await admin().rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 1500 })).data).toEqual([])
     // A new tap is possible again once the reading is closed.
     expect((await db.rpc("pedir_lectura_de_analiticas", { p_cuenta: cuenta })).error).toBeNull()
   })
@@ -150,12 +212,16 @@ describe("the queue", () => {
     const { db, cuenta } = await duenoCon("persona")
     await conectarPerfil(db, cuenta)
     const { data: id } = await db.rpc("pedir_lectura_de_analiticas", { p_cuenta: cuenta })
-    await admin().rpc("tomar_lecturas_de_analiticas")
+    await admin().rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 1500 })
     await admin()
       .from("lecturas_de_analiticas")
       .update({ arrendado_hasta: new Date(Date.now() - 1000).toISOString() })
       .eq("id", id as string)
-    expect((await admin().rpc("tomar_lecturas_de_analiticas")).data?.map((l) => l.id)).toEqual([id])
+    expect(
+      (await admin().rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 1500 })).data?.map((l) => l.id),
+    ).toEqual([id])
+    const corto = await admin().rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 10 })
+    expect(corto.error?.message).toBe("arriendo_invalido")
     const mala = await admin().rpc("terminar_lectura_de_analiticas", { p_id: id as string, p_estado: "pendiente" })
     expect(mala.error?.message).toBe("estado_de_lectura_invalido")
   })
@@ -164,7 +230,7 @@ describe("the queue", () => {
     const { db, cuenta } = await duenoCon("persona")
     await conectarPerfil(db, cuenta)
     expect((await db.rpc("programar_lecturas_de_analiticas")).error).not.toBeNull()
-    expect((await db.rpc("tomar_lecturas_de_analiticas")).error).not.toBeNull()
+    expect((await db.rpc("tomar_lecturas_de_analiticas", { p_arriendo_segundos: 1500 })).error).not.toBeNull()
     expect((await db.rpc("credencial_de_analiticas", { p_cuenta: cuenta })).error).not.toBeNull()
     expect(
       (await db.rpc("guardar_metricas_api", { p_cuenta: cuenta, p_datos: { publicaciones: [], dias: [] } })).error,
@@ -336,30 +402,34 @@ describe("barrer_analiticas", () => {
       (await admin().from("metricas_de_publicacion").select("id").eq("cuenta_id", cuenta)).data?.length ?? 0
   }
 
-  test("a profile's API figures go after 48 hours, a page's after a year, imports never", async () => {
-    const perfilNuevo = await conFila("persona", "api", 47)
-    const perfilViejo = await conFila("persona", "api", 49)
-    const paginaDelAno = await conFila("empresa", "api", 24 * 360)
-    const paginaVieja = await conFila("empresa", "api", 24 * 370)
+  test("a profile's API figures go after 24 hours so a nightly sweep keeps them under 48, a page's after a year, imports never", async () => {
+    // Read daily at 06:00 and swept at 03:00: a refreshed row is 21 hours old and stays.
+    const perfilDeHoy = await conFila("persona", "api", 21)
+    const perfilViejo = await conFila("persona", "api", 25)
+    const paginaDelAno = await conFila("empresa", "api", 24 * 364)
+    const paginaVieja = await conFila("empresa", "api", 24 * 366)
     const perfilImportado = await conFila("persona", "importacion", 24 * 400)
     const paginaImportada = await conFila("empresa", "importacion", 24 * 400)
 
     expect((await admin().rpc("barrer_analiticas")).error).toBeNull()
 
-    expect([await perfilNuevo(), await perfilViejo(), await paginaDelAno(), await paginaVieja()]).toEqual([1, 0, 1, 0])
+    expect([await perfilDeHoy(), await perfilViejo(), await paginaDelAno(), await paginaVieja()]).toEqual([1, 0, 1, 0])
     expect([await perfilImportado(), await paginaImportada()]).toEqual([1, 1])
   })
 
   test("daily API figures go by their day and readings older than a month are forgotten", async () => {
     const pagina = await duenoCon("empresa")
     const perfil = await duenoCon("persona")
-    const dia = (atras: number) => new Date(Date.now() - atras * 86_400_000).toISOString().slice(0, 10)
+    const dia = (atras: number) =>
+      new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Santiago" }).format(
+        new Date(Date.now() - atras * 86_400_000),
+      )
     const filas = [
       { cuenta_id: pagina.cuenta, dia: dia(100), origen: "api" },
       { cuenta_id: pagina.cuenta, dia: dia(400), origen: "api" },
       { cuenta_id: pagina.cuenta, dia: dia(400), origen: "importacion" },
       { cuenta_id: perfil.cuenta, dia: dia(1), origen: "api" },
-      { cuenta_id: perfil.cuenta, dia: dia(5), origen: "api" },
+      { cuenta_id: perfil.cuenta, dia: dia(2), origen: "api" },
     ]
     expect((await admin().from("metricas_diarias").insert(filas)).error).toBeNull()
     const vieja = await admin()

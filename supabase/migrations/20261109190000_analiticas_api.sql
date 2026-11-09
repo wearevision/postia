@@ -110,6 +110,17 @@ language sql stable security definer set search_path = '' as $$
                                              where x.id = c.conexion_id and x.expira_en > now()))))
 $$;
 
+-- Development tier: 100 calls per member per UTC day, and a profile reading costs up to 40. The page reading and the
+-- page publishing use the same member's token (same «Estudio WAV» app), so a profile gets two readings a UTC day
+-- (the 06:00 schedule and one tap, or two taps): up to 80 calls, leaving room for the page and its posts.
+create function public.lecturas_del_dia_agotadas(p_cuenta uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.cuentas c where c.id = p_cuenta and c.tipo = 'persona')
+     and (select count(*) from public.lecturas_de_analiticas l
+           where l.cuenta_id = p_cuenta
+             and l.creada_en >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') >= 2
+$$;
+
 -- «Actualizar desde LinkedIn»: the owner queues one reading for the account.
 create function public.pedir_lectura_de_analiticas(p_cuenta uuid) returns uuid
 language plpgsql security definer set search_path = '' as $$
@@ -117,12 +128,15 @@ declare
   v_marca uuid;
   v_id uuid;
 begin
-  select marca_id into v_marca from public.cuentas where id = p_cuenta;
+  select marca_id into v_marca from public.cuentas where id = p_cuenta for update;
   if v_marca is null or not public.es_dueno(v_marca) then
     raise exception using errcode = '42501', message = 'solo_el_dueno_pide_lecturas';
   end if;
   if not public.analiticas_conectadas(p_cuenta) then
     raise exception using errcode = '55000', message = 'analiticas_sin_conexion';
+  end if;
+  if public.lecturas_del_dia_agotadas(p_cuenta) then
+    raise exception using errcode = '55000', message = 'lecturas_del_dia_agotadas';
   end if;
   begin
     insert into public.lecturas_de_analiticas (cuenta_id, pedida_por) values (p_cuenta, auth.uid())
@@ -142,6 +156,7 @@ begin
   insert into public.lecturas_de_analiticas (cuenta_id)
   select c.id from public.cuentas c
    where public.analiticas_conectadas(c.id)
+     and not public.lecturas_del_dia_agotadas(c.id)
      and not exists (select 1 from public.lecturas_de_analiticas l
                       where l.cuenta_id = c.id and l.estado in ('pendiente', 'trabajando'))
   on conflict do nothing;
@@ -149,18 +164,27 @@ begin
   return v_creadas;
 end $$;
 
--- The reader (service role only). One at a time, like tomar_lecturas.
-create function public.tomar_lecturas_de_analiticas() returns setof public.lecturas_de_analiticas
-language sql security definer set search_path = '' as $$
-  update public.lecturas_de_analiticas l set estado = 'trabajando', arrendado_hasta = now() + interval '10 minutes'
+-- The reader (service role only). One at a time, like tomar_lecturas. The lease comes from the task
+-- (lib/rendimiento/sincronizar.ts, ARRIENDO_S): its worst run (calls × request timeout) plus a margin, so a slow run
+-- is never taken twice.
+create function public.tomar_lecturas_de_analiticas(p_arriendo_segundos integer)
+returns setof public.lecturas_de_analiticas
+language plpgsql security definer set search_path = '' as $$
+begin
+  if p_arriendo_segundos is null or p_arriendo_segundos not between 60 and 7200 then
+    raise exception using errcode = '22023', message = 'arriendo_invalido';
+  end if;
+  return query
+  update public.lecturas_de_analiticas l
+     set estado = 'trabajando', arrendado_hasta = now() + make_interval(secs => p_arriendo_segundos)
    where l.id in (
      select id from public.lecturas_de_analiticas
       where estado = 'pendiente' or (estado = 'trabajando' and arrendado_hasta < now())
       order by creada_en
       limit 1
       for update skip locked)
-  returning l.*
-$$;
+  returning l.*;
+end $$;
 
 create function public.terminar_lectura_de_analiticas(p_id uuid, p_estado text, p_motivo text default null) returns void
 language plpgsql security definer set search_path = '' as $$
@@ -236,6 +260,9 @@ exception
 end $$;
 
 -- Nightly (service role): API figures past their retention, and readings older than a month. Returns rows removed.
+-- Bound: a profile's figures are member activity, kept at most 48 hours. This sweep runs once a day (03:00, trigger/
+-- limpieza.ts), so a row can outlive its threshold by up to 24 hours: the threshold is 24 hours (24 + 24 <= 48).
+-- The 06:00 reading refreshes them daily, so a current row is 21 hours old at 03:00 and stays.
 create function public.barrer_analiticas() returns integer
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -244,15 +271,16 @@ declare
 begin
   delete from public.metricas_de_publicacion m using public.cuentas c
    where c.id = m.cuenta_id and m.origen = 'api'
-     and ((c.tipo = 'persona' and m.leida_en < now() - interval '48 hours')
+     and ((c.tipo = 'persona' and m.leida_en < now() - interval '24 hours')
        or (c.tipo = 'empresa' and m.leida_en < now() - interval '1 year'));
   get diagnostics v_n = row_count;
   v_borradas := v_borradas + v_n;
 
-  -- Daily figures carry no read time: they go by their day. A profile stores none today; the cap keeps it that way.
+  -- Daily figures carry no read time: they go by their day (yesterday at most for a profile: within 48 hours by the
+  -- same bound). A profile stores none today; the cap keeps it that way.
   delete from public.metricas_diarias d using public.cuentas c
    where c.id = d.cuenta_id and d.origen = 'api'
-     and ((c.tipo = 'persona' and d.dia < (now() at time zone 'America/Santiago')::date - 2)
+     and ((c.tipo = 'persona' and d.dia < (now() at time zone 'America/Santiago')::date - 1)
        or (c.tipo = 'empresa' and d.dia < (now() at time zone 'America/Santiago')::date - 365));
   get diagnostics v_n = row_count;
   v_borradas := v_borradas + v_n;
@@ -263,13 +291,56 @@ begin
   return v_borradas + v_n;
 end $$;
 
-revoke execute on function public.analiticas_conectadas(uuid), public.pedir_lectura_de_analiticas(uuid),
-  public.programar_lecturas_de_analiticas(), public.tomar_lecturas_de_analiticas(),
+revoke execute on function public.analiticas_conectadas(uuid), public.lecturas_del_dia_agotadas(uuid),
+  public.pedir_lectura_de_analiticas(uuid),
+  public.programar_lecturas_de_analiticas(), public.tomar_lecturas_de_analiticas(integer),
   public.terminar_lectura_de_analiticas(uuid, text, text), public.credencial_de_analiticas(uuid),
   public.guardar_metricas_api(uuid, jsonb), public.barrer_analiticas()
   from public, anon, authenticated;
 grant execute on function public.pedir_lectura_de_analiticas(uuid) to authenticated;
-grant execute on function public.programar_lecturas_de_analiticas(), public.tomar_lecturas_de_analiticas(),
+grant execute on function public.programar_lecturas_de_analiticas(), public.tomar_lecturas_de_analiticas(integer),
   public.terminar_lectura_de_analiticas(uuid, text, text), public.credencial_de_analiticas(uuid),
   public.guardar_metricas_api(uuid, jsonb), public.barrer_analiticas()
   to service_role;
+
+-- Learnings come from imported figures only: API figures never reach Claude (Developer AI Policy), so a learning may
+-- not cite one either. Same signature, owner and grants as in 20261109180000_aprendizajes.sql (service role only);
+-- only the origin check is new.
+create or replace function public.guardar_aprendizajes(p_lectura uuid, p_items jsonb) returns integer
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_cuenta uuid;
+  v_guardados integer;
+begin
+  select cuenta_id into v_cuenta from public.lecturas_de_rendimiento where id = p_lectura and estado = 'trabajando' for update;
+  if v_cuenta is null then
+    raise exception using errcode = 'P0002', message = 'lectura_no_encontrada';
+  end if;
+  if jsonb_typeof(p_items) <> 'array'
+     or exists (
+       select 1 from jsonb_array_elements(p_items) e
+        where jsonb_typeof(e) <> 'object'
+           or jsonb_typeof(e -> 'texto') <> 'string' or length(btrim(e ->> 'texto')) not between 1 and 400
+           or jsonb_typeof(e -> 'porque') <> 'string' or length(e ->> 'porque') > 600
+           or jsonb_typeof(e -> 'respaldo') <> 'number' or (e ->> 'respaldo') !~ '^[0-9]+$'
+           or jsonb_typeof(e -> 'publicaciones') <> 'array'
+           or exists (
+             select 1 from jsonb_array_elements(e -> 'publicaciones') p
+              where jsonb_typeof(p) <> 'string'
+                 or (p #>> '{}') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                 or not exists (select 1 from public.metricas_de_publicacion m
+                                 where m.id = (p #>> '{}')::uuid and m.cuenta_id = v_cuenta
+                                   and m.origen = 'importacion'))) then
+    raise exception using errcode = '22023', message = 'datos_invalidos';
+  end if;
+
+  update public.aprendizajes set estado = 'descartado', decidido_en = now()
+   where cuenta_id = v_cuenta and estado in ('propuesto', 'pista');
+  insert into public.aprendizajes (cuenta_id, lectura_id, texto, porque, respaldo, publicaciones, estado)
+  select v_cuenta, p_lectura, btrim(e ->> 'texto'), e ->> 'porque', (e ->> 'respaldo')::integer,
+         array(select (p #>> '{}')::uuid from jsonb_array_elements(e -> 'publicaciones') p),
+         case when (e ->> 'respaldo')::integer >= 8 then 'propuesto' else 'pista' end
+    from jsonb_array_elements(p_items) e;
+  get diagnostics v_guardados = row_count;
+  return v_guardados;
+end $$;
