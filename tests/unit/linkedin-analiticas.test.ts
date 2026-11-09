@@ -342,6 +342,24 @@ describe("errors", () => {
     }
   })
 
+  test("a rejection keeps LinkedIn's answer, without the token, as the detail for the logs", async () => {
+    servidor.use(
+      http.get(`${API}/rest/organizationalEntityShareStatistics`, () =>
+        HttpResponse.json({ message: "Not enough permissions tok-secreto", status: 403 }, { status: 403 }),
+      ),
+    )
+    const error = await cifrasDeLaPagina({
+      token: "tok-secreto",
+      organizacion: PAGINA,
+      posts: ["urn:li:share:1"],
+    }).catch((e: unknown) => e)
+    const detalle = (error as LecturaDeLinkedinFallida).detalle
+    expect(detalle).toContain("HTTP 403")
+    expect(detalle).toContain("organizationalEntityShareStatistics")
+    expect(detalle).toContain("Not enough permissions")
+    expect(detalle).not.toContain("tok-secreto")
+  })
+
   test("429 says LinkedIn limited the calls for today", async () => {
     servidor.use(http.get(`${API}/rest/memberCreatorPostAnalytics`, () => new HttpResponse("rate", { status: 429 })))
     const error = await cifrasDeUnPostDelPerfil({ token: "t", urn: "urn:li:share:1" }).catch((e: unknown) => e)

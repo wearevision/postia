@@ -135,8 +135,9 @@ async function leerUna(p: PuertosDeAnaliticas, cuentaId: string): Promise<string
 }
 
 /**
- * One reading per run, no retries: a failure the owner can act on closes it «fallo» with words for them; anything
- * else closes it with a generic notice, is logged by its kind only (never its message) and rethrown after the loop.
+ * One reading per run, no retries: a failure the owner can act on closes it «fallo» with words for them, and LinkedIn's
+ * own answer (token removed) goes to the logs; anything else closes it with a generic notice, is logged by its kind only
+ * (never its message) and rethrown after the loop.
  */
 export async function leerAnaliticas(p: PuertosDeAnaliticas): Promise<{ leidas: number; fallidas: number }> {
   const lecturas = await p.tomar()
@@ -148,6 +149,7 @@ export async function leerAnaliticas(p: PuertosDeAnaliticas): Promise<{ leidas: 
     } catch (error) {
       fallidas++
       const esperado = error instanceof LecturaDeLinkedinFallida
+      if (esperado && error.detalle) console.warn(`La lectura de analíticas ${lectura.id} falló: ${error.detalle}`)
       if (!esperado) {
         console.error(
           `La lectura de analíticas ${lectura.id} falló (${error instanceof Error ? error.name : typeof error}).`,

@@ -26,6 +26,8 @@ export class LecturaDeLinkedinFallida extends Error {
   constructor(
     readonly motivo: "reconectar" | "limite" | "sin_cifras",
     mensaje: string,
+    /** LinkedIn's own answer (status, endpoint, body; token already removed), for the logs only, never the owner. */
+    readonly detalle?: string,
   ) {
     super(mensaje)
     this.name = "LecturaDeLinkedinFallida"
@@ -46,9 +48,9 @@ async function pedir(token: string, ruta: string, consulta: string) {
     return await respuesta.json()
   } catch (error) {
     if (error instanceof TokenDeLinkedinVencido || (error instanceof RechazoDeLinkedin && error.http === 403)) {
-      throw new LecturaDeLinkedinFallida("reconectar", MENSAJE_RECONECTAR)
+      throw new LecturaDeLinkedinFallida("reconectar", MENSAJE_RECONECTAR, error.message)
     }
-    if (error instanceof LimiteDeLinkedin) throw new LecturaDeLinkedinFallida("limite", MENSAJE_LIMITE)
+    if (error instanceof LimiteDeLinkedin) throw new LecturaDeLinkedinFallida("limite", MENSAJE_LIMITE, error.message)
     throw error
   }
 }
