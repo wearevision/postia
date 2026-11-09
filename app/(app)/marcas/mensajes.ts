@@ -11,10 +11,6 @@ const MENSAJES: Record<string, string> = {
     "Tu cuenta de LinkedIn no administra ninguna página. Pide el rol de administrador en la página de WAV y vuelve a conectar.",
   cuenta_es_pagina: "Esta cuenta es una página: usa «Conectar página de LinkedIn».",
   cuenta_es_perfil: "Esta cuenta es un perfil: usa «Conectar LinkedIn».",
-  analiticas_conectada: "Analíticas de LinkedIn conectadas.",
-  permisos_analiticas:
-    "LinkedIn no dio permiso para leer las analíticas. Vuelve a conectar y acepta el permiso de estadísticas.",
-  analiticas_solo_perfil: "Las analíticas se conectan en el perfil de LinkedIn, no en la página.",
   fallo: "No pude conectar LinkedIn. Inténtalo de nuevo en un rato.",
 }
 

@@ -201,13 +201,23 @@ export async function publicadaEl(db: Db, cuentaId: string, texto: string, envia
   return pieza
 }
 
-/** Vault is out of PostgREST's reach: the test reads secret names straight from the local database. */
-export function secretosLlamados(nombre: string): number {
+function urlDeLaBaseLocal(): string {
   const url = execFileSync("supabase", ["status", "-o", "env"], { encoding: "utf8" })
     .split("\n")
     .map((linea) => /^DB_URL="?(.*?)"?$/.exec(linea.trim()))
     .find((m) => m !== null)?.[1]
   if (!url) throw new Error("Supabase local no está corriendo: pnpm db:start")
+  return url
+}
+
+/** A fixed query straight to the local database: the catalog and Vault are out of PostgREST's reach. */
+export function escalarLocal(consulta: string): string {
+  return execFileSync("psql", [urlDeLaBaseLocal(), "-tA", "-c", consulta], { encoding: "utf8" }).trim()
+}
+
+/** Vault is out of PostgREST's reach: the test reads secret names straight from the local database. */
+export function secretosLlamados(nombre: string): number {
+  const url = urlDeLaBaseLocal()
   // psql interpolates :'nombre' only in scripts read from a file or stdin, never in -c.
   const salida = execFileSync("psql", [url, "-tA", "-v", `nombre=${nombre}`, "-f", "-"], {
     encoding: "utf8",
@@ -225,5 +235,66 @@ export async function cerrarLecturasDeAnaliticasAbiertas(): Promise<void> {
     .from("lecturas_de_analiticas")
     .update({ estado: "fallo", motivo: "Cerrado entre pruebas.", arrendado_hasta: null })
     .in("estado", ["pendiente", "trabajando"])
+  if (error) throw error
+}
+
+export const SCOPES_DE_ESTUDIO_WAV = [
+  "r_basicprofile",
+  "rw_organization_admin",
+  "w_organization_social",
+  "r_member_postAnalytics",
+]
+
+/**
+ * The owner connects a page of their own brand through «Estudio WAV» (conectar_linkedin, as elegir_pagina does), with
+ * the analytics scope unless told otherwise. That one connection also reads the analytics of the owner's profile.
+ */
+export async function paginaDelDueno(
+  dueno: { db: Db; userId: string },
+  opciones: { token?: string; scopes?: string[]; expiraEn?: string } = {},
+): Promise<{ cuenta: string; conexion: string }> {
+  const cuenta = await cuentaDe(await marcaConDueno(dueno.userId, "nosotros"), "empresa")
+  const { data, error } = await dueno.db.rpc("conectar_linkedin", {
+    p_cuenta: cuenta,
+    p_token: opciones.token ?? "token-de-estudio-wav",
+    p_titular: `urn:li:person:adm${randomUUID().slice(0, 8)}`,
+    p_nombre: "",
+    p_scopes: opciones.scopes ?? SCOPES_DE_ESTUDIO_WAV,
+    p_expira_en: opciones.expiraEn ?? enDias(60),
+    p_app: "estudio_wav",
+    p_organizacion: `urn:li:organization:${Math.floor(Math.random() * 1e9)}`,
+  })
+  if (error) throw error
+  return { cuenta, conexion: data }
+}
+
+/**
+ * A profile account's analytics, the way production gets them: its brand's owner connects a page through «Estudio WAV»
+ * with r_member_postAnalytics. Returns that connection's id.
+ */
+export async function conectarAnaliticasDelPerfil(
+  db: Db,
+  cuenta: string,
+  opciones: { token?: string; expiraEn?: string } = {},
+): Promise<string> {
+  const { data: fila, error } = await admin().from("cuentas").select("marca_id").eq("id", cuenta).single()
+  if (error) throw error
+  const { data: dueno, error: errorDeDueno } = await admin()
+    .from("miembros")
+    .select("user_id")
+    .eq("marca_id", fila.marca_id)
+    .eq("rol", "dueno")
+    .limit(1)
+    .single()
+  if (errorDeDueno) throw errorDeDueno
+  return (await paginaDelDueno({ db, userId: dueno.user_id }, opciones)).conexion
+}
+
+/** The connection runs out (local test database only). */
+export async function vencerConexion(conexion: string): Promise<void> {
+  const { error } = await admin()
+    .from("conexiones")
+    .update({ expira_en: new Date(Date.now() - 1000).toISOString() })
+    .eq("id", conexion)
   if (error) throw error
 }

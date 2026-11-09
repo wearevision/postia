@@ -8,6 +8,7 @@ import { estadoDeCuenta } from "@/app/(app)/marcas/estado-de-cuenta"
 import { RitmoDeCuenta } from "@/app/(app)/marcas/ritmo-de-cuenta"
 import { RutaDeCuenta } from "@/app/(app)/marcas/ruta-de-cuenta"
 import { piezasProgramadas } from "@/lib/marcas/programadas"
+import { vencimientoDeAnaliticas } from "@/lib/rendimiento/analiticas-del-perfil"
 import { RUTA_DE_MARCAS } from "@/lib/sesion/rutas"
 import { createClient } from "@/lib/supabase/server"
 
@@ -18,14 +19,22 @@ export async function CuentasDeLinkedin() {
   const { data: marcas, error } = await db
     .from("marcas")
     .select(
-      "id, nombre, voz, cuentas(id, nombre, tipo, ruta, ritmo_semanal, conexiones(nombre, expira_en, renovacion_expira_en), conexiones_de_analiticas(expira_en))",
+      "id, nombre, voz, cuentas(id, nombre, tipo, ruta, ritmo_semanal, conexiones(nombre, expira_en, renovacion_expira_en))",
     )
     .order("creada_en")
   if (error) throw new Error(`No pude leer las marcas: ${error.message}`, { cause: error })
-  const programadas = await piezasProgramadas(
-    db,
-    marcas.flatMap((marca) => marca.cuentas.map((cuenta) => cuenta.id)),
-  )
+  const [programadas, analiticas] = await Promise.all([
+    piezasProgramadas(
+      db,
+      marcas.flatMap((marca) => marca.cuentas.map((cuenta) => cuenta.id)),
+    ),
+    Promise.all(
+      marcas
+        .flatMap((marca) => marca.cuentas)
+        .filter((cuenta) => cuenta.tipo === "persona")
+        .map(async (cuenta) => [cuenta.id, await vencimientoDeAnaliticas(db, cuenta.id)] as const),
+    ).then((pares) => new Map(pares)),
+  ])
   const ahora = Date.now()
 
   return (
@@ -76,7 +85,7 @@ export async function CuentasDeLinkedin() {
                   </div>
                 )}
                 {cuenta.tipo === "persona" && (
-                  <AnaliticasDeLinkedin cuentaId={cuenta.id} conexion={cuenta.conexiones_de_analiticas} ahora={ahora} />
+                  <AnaliticasDeLinkedin expiraEn={analiticas.get(cuenta.id) ?? null} ahora={ahora} />
                 )}
               </li>
             ))}

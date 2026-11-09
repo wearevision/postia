@@ -85,10 +85,12 @@ describe("leerAppDePagina", () => {
 })
 
 describe("urlDeAutorizacionDePagina", () => {
-  test("asks for the page scopes only", () => {
+  test("asks for the page scopes and the profile's post analytics in one consent", () => {
     const url = new URL(urlDeAutorizacionDePagina({ clientId: "c", redirectUri: APP.redirectUri, estado: "e1" }))
     expect(url.origin + url.pathname).toBe("https://www.linkedin.com/oauth/v2/authorization")
-    expect(url.searchParams.get("scope")).toBe("r_basicprofile rw_organization_admin w_organization_social")
+    expect(url.searchParams.get("scope")).toBe(
+      "r_basicprofile rw_organization_admin w_organization_social r_member_postAnalytics",
+    )
     expect(url.searchParams.get("state")).toBe("e1")
     expect(url.searchParams.get("redirect_uri")).toBe(APP.redirectUri)
   })
@@ -122,6 +124,26 @@ describe("terminarConexionDePagina", () => {
     const d = deps()
     expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: false, motivo: "permisos" })
     expect(d.guardarEleccion).not.toHaveBeenCalled()
+  })
+
+  test("a grant without the analytics scope still connects the page, with the scopes LinkedIn gave", async () => {
+    linkedin(["urn:li:organization:123"], { scope: SCOPES })
+    const d = deps()
+    expect(await terminarConexionDePagina(d, llegadaValida)).toEqual({ ok: true, eleccion: ELECCION })
+    expect(d.guardarEleccion).toHaveBeenCalledWith(
+      expect.objectContaining({ p_scopes: ["r_basicprofile", "rw_organization_admin", "w_organization_social"] }),
+    )
+  })
+
+  test("a grant with the analytics scope keeps it on the connection", async () => {
+    linkedin(["urn:li:organization:123"], { scope: `${SCOPES},r_member_postAnalytics` })
+    const d = deps()
+    await terminarConexionDePagina(d, llegadaValida)
+    expect(d.guardarEleccion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        p_scopes: ["r_basicprofile", "rw_organization_admin", "w_organization_social", "r_member_postAnalytics"],
+      }),
+    )
   })
 
   test("a member who administers no page saves nothing", async () => {

@@ -34,7 +34,7 @@ export function FuenteDeLasCifras({
       {fuente.nota && <p className="text-apagado">{fuente.nota}</p>}
       {!conectada && tipo === "persona" && (
         <Link href={RUTA_DE_AJUSTES} className="inline-block min-h-11 py-3 text-apagado underline">
-          Conecta las analíticas de LinkedIn en Ajustes
+          Para leer las analíticas de tu perfil, renueva la página de WAV en Ajustes
         </Link>
       )}
       {conectada && leyendo && <output className="block text-apagado">Leyendo LinkedIn…</output>}

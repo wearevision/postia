@@ -90,7 +90,7 @@ describe("FuenteDeLasCifras", () => {
     expect(boton()).toBeNull()
   })
 
-  test("an unconnected profile gets no button and a pointer to Ajustes", () => {
+  test("an unconnected profile gets no button and a pointer to renewing the page in Ajustes", () => {
     render(
       <FuenteDeLasCifras
         cuentaId="cuenta-1"
@@ -100,10 +100,9 @@ describe("FuenteDeLasCifras", () => {
       />,
     )
     expect(boton()).toBeNull()
-    expect(screen.getByRole("link", { name: "Conecta las analíticas de LinkedIn en Ajustes" })).toHaveAttribute(
-      "href",
-      "/ajustes",
-    )
+    expect(
+      screen.getByRole("link", { name: "Para leer las analíticas de tu perfil, renueva la página de WAV en Ajustes" }),
+    ).toHaveAttribute("href", "/ajustes")
   })
 
   test("an unconnected page gets neither the button nor the pointer", () => {

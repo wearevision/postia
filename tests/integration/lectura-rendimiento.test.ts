@@ -1,7 +1,16 @@
 import { beforeAll, describe, expect, test } from "vitest"
 import { analiticasDeCuenta, cuentasConRendimiento, rendimientoDeCuenta } from "@/lib/rendimiento/lectura"
 import type { Db } from "@/lib/supabase/database"
-import { admin, cuentaDe, enDias, marcaConDueno, personaConSesion, publicadaConUrn } from "./entorno"
+import {
+  admin,
+  conectarAnaliticasDelPerfil,
+  cuentaDe,
+  enDias,
+  marcaConDueno,
+  personaConSesion,
+  publicadaConUrn,
+  vencerConexion,
+} from "./entorno"
 
 type Persona = { db: Db; userId: string }
 let dueno: Persona
@@ -300,15 +309,13 @@ describe("rendimientoDeCuenta: RLS", () => {
   })
 })
 
-async function conectarPerfil(cuenta: string, expira = enDias(60)) {
-  const { error } = await dueno.db.rpc("conectar_analiticas", {
-    p_cuenta: cuenta,
-    p_token: "token-de-analiticas",
-    p_scopes: ["r_member_postAnalytics"],
-    p_expira_en: expira,
-  })
-  if (error) throw error
+/** A profile of its own owner: one owner's «Estudio WAV» connection reads all of that owner's profiles. */
+async function perfilPropio(): Promise<Persona & { cuenta: string }> {
+  const propio = await personaConSesion("lectura-rend-perfil")
+  return { ...propio, cuenta: await cuentaDe(await marcaConDueno(propio.userId)) }
 }
+
+const conectarPerfil = (perfil: Persona & { cuenta: string }) => conectarAnaliticasDelPerfil(perfil.db, perfil.cuenta)
 
 async function conectarPagina(cuenta: string, expira = enDias(60)) {
   const { data, error } = await admin()
@@ -337,9 +344,9 @@ async function lectura(cuenta: string, estado: string, extra: Record<string, unk
 }
 
 describe("analiticasDeCuenta", () => {
-  test("a profile without its analytics connection is not connected, and its owner is the owner", async () => {
-    const cuenta = await cuentaNueva()
-    expect(await analiticasDeCuenta(dueno.db, cuenta)).toEqual({
+  test("a profile without the owner's Estudio WAV analytics is not connected, and its owner is the owner", async () => {
+    const perfil = await perfilPropio()
+    expect(await analiticasDeCuenta(perfil.db, perfil.cuenta)).toEqual({
       tipo: "persona",
       conectada: false,
       esDueno: true,
@@ -350,25 +357,20 @@ describe("analiticasDeCuenta", () => {
   })
 
   test("a connected profile reports its latest finished reading and an open one", async () => {
-    const cuenta = await cuentaNueva()
-    await conectarPerfil(cuenta)
-    await lectura(cuenta, "lista", { terminada_en: "2026-11-08T10:00:00Z", creada_en: "2026-11-08T09:59:00Z" })
-    await lectura(cuenta, "lista", { terminada_en: "2026-11-09T10:00:00Z", creada_en: "2026-11-09T09:59:00Z" })
-    await lectura(cuenta, "pendiente")
-    const a = await analiticasDeCuenta(dueno.db, cuenta)
+    const perfil = await perfilPropio()
+    await conectarPerfil(perfil)
+    await lectura(perfil.cuenta, "lista", { terminada_en: "2026-11-08T10:00:00Z", creada_en: "2026-11-08T09:59:00Z" })
+    await lectura(perfil.cuenta, "lista", { terminada_en: "2026-11-09T10:00:00Z", creada_en: "2026-11-09T09:59:00Z" })
+    await lectura(perfil.cuenta, "pendiente")
+    const a = await analiticasDeCuenta(perfil.db, perfil.cuenta)
     expect(a).toMatchObject({ conectada: true, leyendo: true, ultimoFallo: null })
     expect(Date.parse(a.actualizadaEn ?? "")).toBe(Date.parse("2026-11-09T10:00:00Z"))
   })
 
-  test("an expired profile connection does not count", async () => {
-    const cuenta = await cuentaNueva()
-    await conectarPerfil(cuenta)
-    const { error } = await admin()
-      .from("conexiones_de_analiticas")
-      .update({ expira_en: enDias(-1) })
-      .eq("cuenta_id", cuenta)
-    expect(error).toBeNull()
-    expect((await analiticasDeCuenta(dueno.db, cuenta)).conectada).toBe(false)
+  test("an expired Estudio WAV connection does not count for the profile", async () => {
+    const perfil = await perfilPropio()
+    await vencerConexion(await conectarPerfil(perfil))
+    expect((await analiticasDeCuenta(perfil.db, perfil.cuenta)).conectada).toBe(false)
   })
 
   test("a page counts as connected through its publishing connection", async () => {
@@ -379,18 +381,18 @@ describe("analiticasDeCuenta", () => {
   })
 
   test("says why the latest reading failed, only while it is the latest", async () => {
-    const cuenta = await cuentaNueva()
-    await conectarPerfil(cuenta)
-    await lectura(cuenta, "fallo", { motivo: "LinkedIn no respondió.", creada_en: "2026-11-09T09:00:00Z" })
-    expect((await analiticasDeCuenta(dueno.db, cuenta)).ultimoFallo).toBe("LinkedIn no respondió.")
-    await lectura(cuenta, "lista", { terminada_en: "2026-11-09T11:00:00Z", creada_en: "2026-11-09T10:00:00Z" })
-    expect((await analiticasDeCuenta(dueno.db, cuenta)).ultimoFallo).toBeNull()
+    const perfil = await perfilPropio()
+    await conectarPerfil(perfil)
+    await lectura(perfil.cuenta, "fallo", { motivo: "LinkedIn no respondió.", creada_en: "2026-11-09T09:00:00Z" })
+    expect((await analiticasDeCuenta(perfil.db, perfil.cuenta)).ultimoFallo).toBe("LinkedIn no respondió.")
+    await lectura(perfil.cuenta, "lista", { terminada_en: "2026-11-09T11:00:00Z", creada_en: "2026-11-09T10:00:00Z" })
+    expect((await analiticasDeCuenta(perfil.db, perfil.cuenta)).ultimoFallo).toBeNull()
   })
 
   test("another person is neither the owner nor sees the readings", async () => {
-    const cuenta = await cuentaNueva()
-    await conectarPerfil(cuenta)
-    await lectura(cuenta, "pendiente")
-    await expect(analiticasDeCuenta(ajeno.db, cuenta)).rejects.toThrow()
+    const perfil = await perfilPropio()
+    await conectarPerfil(perfil)
+    await lectura(perfil.cuenta, "pendiente")
+    await expect(analiticasDeCuenta(ajeno.db, perfil.cuenta)).rejects.toThrow()
   })
 })

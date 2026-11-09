@@ -6,11 +6,13 @@ import { ARRIENDO_S, leerAnaliticas, type PuertosDeAnaliticas } from "@/lib/rend
 import {
   admin,
   cerrarLecturasDeAnaliticasAbiertas,
+  conectarAnaliticasDelPerfil,
   cuentaDe,
   enDias,
   marcaConDueno,
   personaConSesion,
   publicadaConUrn,
+  vencerConexion,
 } from "./entorno"
 
 const urnNueva = () => `urn:li:share:${Date.now()}${Math.floor(Math.random() * 1e6)}`
@@ -22,16 +24,11 @@ async function duenoCon(tipo: "persona" | "empresa") {
   return { ...dueno, marca, cuenta: await cuentaDe(marca, tipo, "api") }
 }
 
+/** The owner's «Estudio WAV» connection, with r_member_postAnalytics, reads the profile. */
 async function conPerfilConectado() {
   const dueno = await duenoCon("persona")
-  const conexion = await dueno.db.rpc("conectar_analiticas", {
-    p_cuenta: dueno.cuenta,
-    p_token: "token-del-perfil",
-    p_scopes: ["r_member_postAnalytics"],
-    p_expira_en: enDias(60),
-  })
-  expect(conexion.error).toBeNull()
-  return dueno
+  const conexion = await conectarAnaliticasDelPerfil(dueno.db, dueno.cuenta, { token: "token-del-perfil" })
+  return { ...dueno, conexion }
 }
 
 async function conPaginaConectada() {
@@ -185,12 +182,9 @@ describe("repositorioDeAnaliticas", () => {
   })
 
   test("an expired connection closes the reading asking to reconnect, without calling LinkedIn", async () => {
-    const { db, cuenta } = await conPerfilConectado()
+    const { db, cuenta, conexion } = await conPerfilConectado()
     expect((await db.rpc("pedir_lectura_de_analiticas", { p_cuenta: cuenta })).error).toBeNull()
-    await admin()
-      .from("conexiones_de_analiticas")
-      .update({ expira_en: new Date(Date.now() - 1000).toISOString() })
-      .eq("cuenta_id", cuenta)
+    await vencerConexion(conexion)
     // The request is already queued; the connection expires before the task takes it.
     const llamada = vi.fn()
     await leerAnaliticas({

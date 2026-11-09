@@ -320,38 +320,6 @@ export type Database = {
         }
         Relationships: []
       }
-      conexiones_de_analiticas: {
-        Row: {
-          conectada_en: string
-          conectada_por: string
-          cuenta_id: string
-          expira_en: string
-          scopes: string[]
-        }
-        Insert: {
-          conectada_en?: string
-          conectada_por: string
-          cuenta_id: string
-          expira_en: string
-          scopes: string[]
-        }
-        Update: {
-          conectada_en?: string
-          conectada_por?: string
-          cuenta_id?: string
-          expira_en?: string
-          scopes?: string[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conexiones_de_analiticas_cuenta_id_fkey"
-            columns: ["cuenta_id"]
-            isOneToOne: true
-            referencedRelation: "cuentas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cuentas: {
         Row: {
           conexion_id: string | null
@@ -1882,6 +1850,7 @@ export type Database = {
     }
     Functions: {
       analiticas_conectadas: { Args: { p_cuenta: string }; Returns: boolean }
+      analiticas_del_perfil: { Args: { p_cuenta: string }; Returns: string }
       aprobar_idea: {
         Args: { p_asignaciones: Json; p_idea: string }
         Returns: string[]
@@ -1915,15 +1884,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      conectar_analiticas: {
-        Args: {
-          p_cuenta: string
-          p_expira_en: string
-          p_scopes: string[]
-          p_token: string
-        }
-        Returns: undefined
-      }
       conectar_linkedin: {
         Args: {
           p_app?: string
@@ -1938,6 +1898,13 @@ export type Database = {
           p_token: string
         }
         Returns: string
+      }
+      conexion_de_analiticas: {
+        Args: { p_cuenta: string }
+        Returns: {
+          conexion: string
+          expira_en: string
+        }[]
       }
       confirmar_gasto: {
         Args: { p_ahora?: string; p_clave: string; p_real_micro: number }
