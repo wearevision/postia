@@ -77,7 +77,7 @@ Para bugs o tweaks rápidos: invocar `triage-lead` agent (global).
 - Voyage (voyage-4, 1024 dimensiones, con un cliente propio; el de Conidolly es solo referencia) desde la fase 1. Federico cambió voyage-3.5 por voyage-4 el 30 de octubre de 2026: mismo precio, vigente y con tokens gratis. Ubica cada hallazgo en el mapa de temas, sugiere 5 temas vecinos al pedir una investigación, busca cruces a media distancia (ni iguales ni ajenos) y detecta repetidos e ideas parecidas. La franja de similitud se calibra con datos reales y con aprobación, porque gasta.
 - Imágenes generadas con IA (D5), de preferencia con Firefly: ilustraciones, fondos, objetos o conceptos. Firefly no tiene API para planes individuales; la herramienta dentro del flujo es la decisión abierta D18.
 - Tope de gasto global: US$40 al mes en la fase 1 y US$60 con Instagram, con desglose por marca y aviso al 80 % (D11).
-- Sin métricas hasta que LinkedIn apruebe Community Management para la página de WAV; desde ahí, por API (página y r_member_postAnalytics del perfil). Sin Metricool ni entrada a mano (D12).
+- Métricas (D12, cambiada el 9 de noviembre de 2026): por API cuando LinkedIn apruebe Community Management (página y r_member_postAnalytics del perfil); como camino opcional, importar el XLSX que exporta LinkedIn. Cada número guarda su origen y la API manda. Sin Metricool. Diseño: `docs/superpowers/specs/2026-11-09-rendimiento-design.md`.
 - Solo cuentas propias; no es un producto para terceros (D14).
 - Hosting: Cloudflare Workers con @opennextjs/cloudflare (1.20.3 o más nuevo; proxy.ts es experimental, con nodejs_compat). Supabase y Trigger.dev en la nube. Se despliega desde la fase 1a (D23).
 - Plantillas: 3 de WAV, 3 de WR3 y 3 de Federico, en 1080×1350 (D24).
@@ -102,7 +102,7 @@ Para bugs o tweaks rápidos: invocar `triage-lead` agent (global).
 - La app solo publica: nunca responde comentarios ni mensajes.
 - Tope de gasto mensual que la app no puede pasar; un trabajo pagado no se cobra dos veces al reintentar.
 - Llaves y tokens nunca en el código, en pantalla ni en correos.
-- Datos de LinkedIn fuera de la IA: a Claude solo le llega el texto de publicaciones creadas por las cuentas de la app. Nunca estadísticas, perfiles ni contenido de otros miembros o páginas.
+- Datos de LinkedIn y la IA (cambiada el 9 de noviembre de 2026): lo que llega por la API de LinkedIn sigue fuera de Claude (Developer AI Policy): solo el texto de nuestras publicaciones, nunca estadísticas, perfiles ni contenido de otros. Lo que Federico importa desde el XLSX de su propia cuenta sí puede llegar a Claude: cifras de nuestras publicaciones y el público agregado, con nombres de empresa.
 - Plazos de guardado de LinkedIn: actividad de miembros 48 h, actividad de la página 6 meses, reportes de la página 1 año, identificadores sin límite.
 - Voz: WAV habla como «nosotros»; Federico como «yo» y no habla en nombre de WAV sin citarla.
 - Clientes: todos se pueden nombrar salvo excepciones (eventos privados, estudios confidenciales de WR3 y lo que Federico marque); nunca precios ni presupuestos. Una foto con personas solo con su permiso. Los clientes y casos salen de `data/casos/casos.json`: una copia corregida de wav-repository (atribución a Federico, nombres y años), que es solo de PostIA. wav-repository no se toca ni se le suben estas correcciones. PostIA guarda aparte las excepciones (D13). Años por revisar en `data/casos/revision-anos.md`.
