@@ -102,6 +102,7 @@ describe("decidirAprendizaje", () => {
     ["aprendizaje_no_encontrado", "Ese aprendizaje ya no existe."],
     ["solo_el_dueno_decide", "Solo el dueño de la marca de esa cuenta puede decidir los aprendizajes."],
     ["texto_invalido", "El aprendizaje debe tener entre 1 y 400 caracteres."],
+    ["aprendizaje_ya_decidido", "Ese aprendizaje ya se decidió o lo reemplazó una lectura nueva. Recarga la página."],
   ])("maps %s to Spanish", async (mensaje, esperado) => {
     const { db } = dbQueResponde({ code: "P0001", message: mensaje })
     expect(await decidirAprendizaje(db, { id: ID, estado: "descartado" })).toEqual({ ok: false, error: esperado })

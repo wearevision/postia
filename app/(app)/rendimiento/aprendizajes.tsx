@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react"
 import type { Resultado } from "@/lib/marcas/acciones"
-import { LARGO_MAXIMO_DEL_APRENDIZAJE } from "@/lib/rendimiento/acciones-de-aprendizajes"
 import type { AprendizajeLeido, AprendizajesDeCuenta } from "@/lib/rendimiento/lectura"
+import { LARGO_MAXIMO_DEL_APRENDIZAJE } from "@/lib/rendimiento/limites"
 
 export interface AccionesDeAprendizajes {
   decidir: (id: string, estado: "aprobado" | "descartado", texto?: string) => Promise<Resultado>

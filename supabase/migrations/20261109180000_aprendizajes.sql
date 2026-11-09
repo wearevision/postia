@@ -78,8 +78,9 @@ declare
   v_cuenta uuid;
   v_marca uuid;
   v_texto text := btrim(p_texto);
+  v_estado text;
 begin
-  select a.cuenta_id, c.marca_id into v_cuenta, v_marca
+  select a.cuenta_id, c.marca_id, a.estado into v_cuenta, v_marca, v_estado
     from public.aprendizajes a join public.cuentas c on c.id = a.cuenta_id
    where a.id = p_id;
   if v_cuenta is null then
@@ -93,6 +94,11 @@ begin
   end if;
   if p_texto is not null and length(v_texto) not between 1 and 400 then
     raise exception using errcode = '22023', message = 'texto_invalido';
+  end if;
+  -- A screen opened before a newer reading may still show a learning that reading set aside: only open ones are
+  -- approved; an approved one can still be taken back.
+  if v_estado = 'descartado' or (p_estado = 'aprobado' and v_estado = 'aprobado') then
+    raise exception using errcode = '22023', message = 'aprendizaje_ya_decidido';
   end if;
   update public.aprendizajes
      set estado = p_estado, texto = coalesce(v_texto, texto), decidido_por = auth.uid(), decidido_en = now()

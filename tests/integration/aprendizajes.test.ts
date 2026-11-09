@@ -234,6 +234,17 @@ describe("decidir_aprendizaje", () => {
     expect(data).toEqual({ texto: "Original", estado: "descartado" })
   })
 
+  test("a learning a newer reading already set aside cannot be approved from a stale screen", async () => {
+    const viejo = await propuesto(9)
+    const { data: primera } = await admin().from("aprendizajes").select("lectura_id").eq("id", viejo).single()
+    await admin().rpc("terminar_lectura", { p_id: primera?.lectura_id as string, p_estado: "lista" })
+    await propuesto(9)
+    const { data } = await admin().from("aprendizajes").select("estado").eq("id", viejo).single()
+    expect(data?.estado).toBe("descartado")
+    const { error } = await dueno.db.rpc("decidir_aprendizaje", { p_id: viejo, p_estado: "aprobado" })
+    expect(error?.message).toBe("aprendizaje_ya_decidido")
+  })
+
   test("refuses another state, empty or long text, an unknown id and a non-owner", async () => {
     const id = await propuesto(9)
     const decidir = (args: { p_id: string; p_estado: string; p_texto?: string }, db = dueno.db) =>

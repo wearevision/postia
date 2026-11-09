@@ -4,7 +4,9 @@ import type { Db } from "@/lib/supabase/database"
 
 // Worker-safe: the owner's actions on the learnings. The reading itself is done by the Trigger.dev task.
 
-export const LARGO_MAXIMO_DEL_APRENDIZAJE = 400
+import { LARGO_MAXIMO_DEL_APRENDIZAJE } from "./limites"
+
+export { LARGO_MAXIMO_DEL_APRENDIZAJE }
 
 const Id = z.uuid()
 
@@ -61,6 +63,8 @@ export async function decidirAprendizaje(db: Db, entrada: unknown): Promise<Resu
     return { ok: false, error: "Solo el dueño de la marca de esa cuenta puede decidir los aprendizajes." }
   if (error.message === "texto_invalido")
     return { ok: false, error: `El aprendizaje debe tener entre 1 y ${LARGO_MAXIMO_DEL_APRENDIZAJE} caracteres.` }
+  if (error.message === "aprendizaje_ya_decidido")
+    return { ok: false, error: "Ese aprendizaje ya se decidió o lo reemplazó una lectura nueva. Recarga la página." }
   console.error("No pude decidir el aprendizaje", error.code, error.message)
   return { ok: false, error: GENERICO_AL_DECIDIR }
 }
