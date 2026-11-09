@@ -867,7 +867,9 @@ export type Database = {
       }
       metricas_de_publicacion: {
         Row: {
+          clics: number | null
           cuenta_id: string
+          extracto: string | null
           id: string
           impresiones: number | null
           interacciones: number | null
@@ -876,9 +878,12 @@ export type Database = {
           pieza_id: string | null
           post_urn: string
           publicada_el: string
+          seguidores_nuevos: number | null
         }
         Insert: {
+          clics?: number | null
           cuenta_id: string
+          extracto?: string | null
           id?: string
           impresiones?: number | null
           interacciones?: number | null
@@ -887,9 +892,12 @@ export type Database = {
           pieza_id?: string | null
           post_urn: string
           publicada_el: string
+          seguidores_nuevos?: number | null
         }
         Update: {
+          clics?: number | null
           cuenta_id?: string
+          extracto?: string | null
           id?: string
           impresiones?: number | null
           interacciones?: number | null
@@ -898,6 +906,7 @@ export type Database = {
           pieza_id?: string | null
           post_urn?: string
           publicada_el?: string
+          seguidores_nuevos?: number | null
         }
         Relationships: [
           {
@@ -920,26 +929,32 @@ export type Database = {
         Row: {
           cuenta_id: string
           dia: string
-          impresiones: number
-          interacciones: number
+          impresiones: number | null
+          interacciones: number | null
           origen: string
           seguidores_nuevos: number | null
+          visitantes_unicos: number | null
+          visitas: number | null
         }
         Insert: {
           cuenta_id: string
           dia: string
-          impresiones: number
-          interacciones: number
+          impresiones?: number | null
+          interacciones?: number | null
           origen: string
           seguidores_nuevos?: number | null
+          visitantes_unicos?: number | null
+          visitas?: number | null
         }
         Update: {
           cuenta_id?: string
           dia?: string
-          impresiones?: number
-          interacciones?: number
+          impresiones?: number | null
+          interacciones?: number | null
           origen?: string
           seguidores_nuevos?: number | null
+          visitantes_unicos?: number | null
+          visitas?: number | null
         }
         Relationships: [
           {
@@ -1375,6 +1390,7 @@ export type Database = {
       }
       publico_de_la_cuenta: {
         Row: {
+          cantidad: number | null
           categoria: string
           id: string
           importacion_id: string
@@ -1384,6 +1400,7 @@ export type Database = {
           valor: string
         }
         Insert: {
+          cantidad?: number | null
           categoria: string
           id?: string
           importacion_id: string
@@ -1393,6 +1410,7 @@ export type Database = {
           valor: string
         }
         Update: {
+          cantidad?: number | null
           categoria?: string
           id?: string
           importacion_id?: string
@@ -2171,6 +2189,7 @@ export type Database = {
         Args: { p_estado: string; p_motivo?: string; p_trabajo: string }
         Returns: undefined
       }
+      texto_para_comparar: { Args: { p_texto: string }; Returns: string }
       tiene_acceso: { Args: never; Returns: boolean }
       tomar_asignaciones: {
         Args: { p_hasta: string; p_limite: number }

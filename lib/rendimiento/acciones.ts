@@ -28,8 +28,8 @@ const Exportacion = z.object({
     .array(
       z.object({
         dia: Dia,
-        impresiones: Entero,
-        interacciones: Entero,
+        impresiones: Entero.nullable(),
+        interacciones: Entero.nullable(),
         seguidoresNuevos: Entero.nullable(),
         visitas: Entero.nullish(),
         visitantesUnicos: Entero.nullish(),
@@ -77,8 +77,12 @@ export async function importarEstadisticas(db: Db, entrada: unknown): Promise<Re
   const leida = Entrada.safeParse(entrada)
   if (!leida.success) return { ok: false, error: ARCHIVO_ILEGIBLE }
   const { cuentaId, exportacion: e, confirmado } = leida.data
+  // The page's posts have no share/ugcPost URN to check against PostIA's sends: they are matched by day and text
+  // inside the RPC, and the summary shows how many were PostIA's.
+  const sePuedeVerificarPorUrn = e.publicaciones.every((p) => !p.extracto)
   if (
     !confirmado &&
+    sePuedeVerificarPorUrn &&
     !(await algunaEsDePostia(
       db,
       cuentaId,
@@ -97,12 +101,17 @@ export async function importarEstadisticas(db: Db, entrada: unknown): Promise<Re
         publicada_el: p.publicadaEl,
         interacciones: p.interacciones,
         impresiones: p.impresiones,
+        extracto: p.extracto ?? null,
+        clics: p.clics ?? null,
+        seguidores_nuevos: p.seguidoresNuevos ?? null,
       })),
       dias: e.dias.map((d) => ({
         dia: d.dia,
         impresiones: d.impresiones,
         interacciones: d.interacciones,
         seguidores_nuevos: d.seguidoresNuevos,
+        visitas: d.visitas ?? null,
+        visitantes_unicos: d.visitantesUnicos ?? null,
       })),
       publico: e.publico.map((p) => ({
         tipo: p.tipo,
@@ -110,6 +119,7 @@ export async function importarEstadisticas(db: Db, entrada: unknown): Promise<Re
         valor: p.valor,
         porcentaje: p.porcentaje,
         menor_a_uno: p.menorAUno,
+        cantidad: p.cantidad ?? null,
       })),
     },
   })

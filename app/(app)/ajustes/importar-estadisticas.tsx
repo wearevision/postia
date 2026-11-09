@@ -13,7 +13,7 @@ export function ImportarEstadisticas({
   leer = leerArchivosDeLinkedin,
   importar,
 }: {
-  cuentas: readonly { id: string; nombre: string }[]
+  cuentas: readonly { id: string; nombre: string; tipo?: string }[]
   /** The browser reader; a server page cannot pass it, so it is the default and tests replace it. */
   leer?: (archivos: File[]) => Promise<Resultado<Exportacion>>
   importar: (entrada: Entrada) => Promise<ResultadoDeImportacion>
@@ -56,7 +56,8 @@ export function ImportarEstadisticas({
     <form onSubmit={importarArchivo} className="space-y-3 tarjeta p-4">
       <h2 className="font-medium">Importar estadísticas</h2>
       <p className="text-sm text-apagado">
-        En LinkedIn, abre Analytics de tu perfil y exporta el último año. Sube aquí ese archivo.
+        En LinkedIn, abre Analytics y exporta el último año. Perfil: el .xlsx de Analytics. Página: los .xls de
+        contenido, seguidores y visitantes (puedes subir los tres juntos).
       </p>
       {cuentas.length > 1 && (
         <label className="block space-y-1 text-sm">
@@ -74,7 +75,8 @@ export function ImportarEstadisticas({
         <span>Archivo de LinkedIn</span>
         <input
           type="file"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          multiple
           onChange={(e) => setArchivos([...(e.target.files ?? [])])}
           className="block w-full"
         />

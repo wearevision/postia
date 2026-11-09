@@ -54,7 +54,14 @@ type Dias = Map<string, DiaExportado>
 function dia(dias: Dias, iso: string): DiaExportado {
   let d = dias.get(iso)
   if (!d) {
-    d = { dia: iso, impresiones: 0, interacciones: 0, seguidoresNuevos: null, visitas: null, visitantesUnicos: null }
+    d = {
+      dia: iso,
+      impresiones: null,
+      interacciones: null,
+      seguidoresNuevos: null,
+      visitas: null,
+      visitantesUnicos: null,
+    }
     dias.set(iso, d)
   }
   return d

@@ -78,4 +78,37 @@ describe("ImportarEstadisticas", () => {
     fireEvent.click(screen.getByRole("button", { name: "Importar" }))
     expect(screen.getByRole("alert")).toHaveTextContent("Elige el archivo que descargaste de LinkedIn.")
   })
+
+  test("lists the profile and the page, takes several files and explains which to upload", async () => {
+    const leer = vi.fn(async () => ({ ok: true as const, ...EXPORTACION }))
+    const importar = vi.fn(async () => ({
+      ok: true as const,
+      publicaciones: 2,
+      dePostia: 1,
+      anteriores: 1,
+      sinIdentificar: 0,
+    }))
+    render(
+      <ImportarEstadisticas
+        cuentas={[
+          { id: "c-perfil", nombre: "Federico", tipo: "persona" },
+          { id: "c-pagina", nombre: "WAV", tipo: "empresa" },
+        ]}
+        leer={leer}
+        importar={importar}
+      />,
+    )
+    expect(
+      screen.getByText(/Perfil: el \.xlsx de Analytics\. Página: los \.xls de contenido, seguidores y visitantes/),
+    ).toBeVisible()
+    expect(screen.getByLabelText("Archivo de LinkedIn")).toHaveAttribute("multiple")
+    expect(screen.getByLabelText("Archivo de LinkedIn").getAttribute("accept")).toContain(".xls")
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Federico", "WAV"])
+    fireEvent.change(screen.getByLabelText("Cuenta"), { target: { value: "c-pagina" } })
+    const archivos = [new File(["a"], "contenido.xls"), new File(["b"], "seguidores.xls")]
+    fireEvent.change(screen.getByLabelText("Archivo de LinkedIn"), { target: { files: archivos } })
+    fireEvent.click(screen.getByRole("button", { name: "Importar" }))
+    await waitFor(() => expect(importar).toHaveBeenCalledWith({ cuentaId: "c-pagina", exportacion: EXPORTACION }))
+    expect(leer).toHaveBeenCalledWith(archivos)
+  })
 })

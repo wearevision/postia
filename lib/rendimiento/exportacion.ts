@@ -19,8 +19,9 @@ export interface PublicacionExportada {
 
 export interface DiaExportado {
   dia: string
-  impresiones: number
-  interacciones: number
+  /** Null for a day that only the page's followers or visitors file knows: there is no content figure to store. */
+  impresiones: number | null
+  interacciones: number | null
   seguidoresNuevos: number | null
   visitas?: number | null
   visitantesUnicos?: number | null

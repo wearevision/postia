@@ -14,11 +14,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
   // A person without a brand never reaches the app shell, so a failing read is a real error and should surface.
   const supabase = await createClient()
   const resumen = await resumenDeGasto(supabase)
-  const { data: perfiles, error } = await supabase
-    .from("cuentas")
-    .select("id, nombre")
-    .eq("tipo", "persona")
-    .order("nombre")
+  const { data: cuentas, error } = await supabase.from("cuentas").select("id, nombre, tipo").order("nombre")
   if (error) throw new Error(`No pude leer las cuentas: ${error.message}`, { cause: error })
   return (
     <section className="mx-auto max-w-md space-y-6">
@@ -31,7 +27,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         probar={probarAvisoAccion}
       />
       <GastoDelMes resumen={resumen} guardar={guardarTopeAccion} />
-      <ImportarEstadisticas cuentas={perfiles} importar={importarEstadisticasAccion} />
+      <ImportarEstadisticas cuentas={cuentas} importar={importarEstadisticasAccion} />
       <nav aria-label="Más" className="space-y-2">
         <Link href={RUTA_DE_VOZ} className="boton w-full justify-start py-3">
           Voz y línea editorial

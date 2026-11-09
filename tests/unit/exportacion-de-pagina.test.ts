@@ -160,9 +160,14 @@ describe("leerExportacionDePagina: followers and visitors", () => {
     expect(r.dias.map((d) => [d.dia, d.impresiones, d.seguidoresNuevos])).toEqual([
       ["2026-08-10", 3, null],
       ["2026-08-11", 84, 2],
-      ["2026-08-12", 0, 1],
+      ["2026-08-12", null, 1],
     ])
     expect(r.hasta).toBe("2026-08-12")
+  })
+
+  test("a day that only the followers file knows carries no impressions or interactions, so it cannot overwrite real ones", () => {
+    const r = leida({ seguidores: seguidores() })
+    expect(r.dias.every((d) => d.impresiones === null && d.interacciones === null)).toBe(true)
   })
 
   test("stores follower counts as «seguidores» rows with Spanish categories", () => {

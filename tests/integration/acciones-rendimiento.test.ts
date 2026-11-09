@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from "vitest"
 import { importarEstadisticas } from "@/lib/rendimiento/acciones"
 import type { Exportacion } from "@/lib/rendimiento/exportacion"
 import type { Db } from "@/lib/supabase/database"
-import { cuentaDe, marcaConDueno, personaConSesion, publicadaConUrn } from "./entorno"
+import { cuentaDe, marcaConDueno, personaConSesion, publicadaConUrn, publicadaEl } from "./entorno"
 
 let dueno: { db: Db; userId: string }
 let cuenta: string
@@ -67,5 +67,44 @@ describe("importarEstadisticas", () => {
     expect(
       await importarEstadisticas(dueno.db, { cuentaId: cuenta, exportacion: { ...exportacion(), desde: "ayer" } }),
     ).toEqual({ ok: false, error: "No pude leer el archivo. Descárgalo de nuevo desde LinkedIn." })
+  })
+
+  test("a page export is matched by day and text, and never asks to confirm an account it cannot check by URN", async () => {
+    const pagina = await cuentaDe(await marcaConDueno(dueno.userId))
+    await publicadaEl(dueno.db, pagina, "Cerramos el año con WR3", "2026-03-10T15:00:00Z")
+    const deLaPagina = exportacion({
+      seguidoresTotal: null,
+      publicaciones: [
+        {
+          postUrn: `urn:li:activity:${Date.now()}`,
+          publicadaEl: "2026-03-10",
+          interacciones: 7,
+          impresiones: 100,
+          extracto: "Cerramos el año…",
+          clics: 5,
+          seguidoresNuevos: 2,
+        },
+      ],
+      dias: [
+        {
+          dia: "2026-03-10",
+          impresiones: null,
+          interacciones: null,
+          seguidoresNuevos: 3,
+          visitas: 10,
+          visitantesUnicos: 4,
+        },
+      ],
+      publico: [
+        { tipo: "seguidores", categoria: "Área", valor: "Ventas", porcentaje: null, menorAUno: false, cantidad: 12 },
+      ],
+    })
+    expect(await importarEstadisticas(dueno.db, { cuentaId: pagina, exportacion: deLaPagina })).toEqual({
+      ok: true,
+      publicaciones: 1,
+      dePostia: 1,
+      anteriores: 0,
+      sinIdentificar: 0,
+    })
   })
 })
