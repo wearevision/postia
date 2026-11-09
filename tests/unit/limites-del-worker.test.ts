@@ -215,6 +215,36 @@ describe("Worker boundary", () => {
     )
   })
 
+  test("nothing reachable from a route, a component or the proxy imports the LinkedIn analytics reading", () => {
+    const entradas = [
+      ...archivos("app"),
+      ...archivos("components"),
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    const soloTrigger = [
+      "lib/rendimiento/sincronizar.ts",
+      "lib/rendimiento/repositorio-de-analiticas.ts",
+      "lib/linkedin/analiticas.ts",
+    ]
+    expect([...grafo.archivos].filter((a) => soloTrigger.includes(a))).toEqual([])
+  })
+
+  test("LinkedIn API figures never reach Claude: the analytics task imports nothing from lib/ia", () => {
+    const grafo = recorrerImports(["trigger/analiticas.ts"], disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos]).toEqual(
+      expect.arrayContaining([
+        "lib/rendimiento/sincronizar.ts",
+        "lib/rendimiento/repositorio-de-analiticas.ts",
+        "lib/linkedin/analiticas.ts",
+      ]),
+    )
+    expect([...grafo.archivos].filter(esDelClienteDeClaude)).toEqual([])
+    expect([...grafo.paquetes].filter(esElSdk)).toEqual([])
+  })
+
   test("the cheap carousel poller does not reach Playwright or the renderer's task", () => {
     const grafo = recorrerImports(["trigger/vigilar-carruseles.ts"], disco)
     expect(grafo.sinResolver).toEqual([])
