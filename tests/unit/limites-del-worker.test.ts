@@ -191,6 +191,30 @@ describe("Worker boundary", () => {
     )
   })
 
+  test("nothing reachable from a route, a component or the proxy imports the learnings reader or its repository", () => {
+    const entradas = [
+      ...archivos("app"),
+      ...archivos("components"),
+      ...(disco.esArchivo("proxy.ts") ? ["proxy.ts"] : []),
+    ]
+    const grafo = recorrerImports(entradas, disco)
+    expect(grafo.sinResolver).toEqual([])
+    const soloTrigger = ["lib/rendimiento/aprendizajes.ts", "lib/rendimiento/repositorio-de-lecturas.ts"]
+    expect([...grafo.archivos].filter((a) => soloTrigger.includes(a))).toEqual([])
+  })
+
+  test("the learnings reader stays Trigger-only because it reaches the Claude client", () => {
+    const grafo = recorrerImports(["trigger/rendimiento.ts"], disco)
+    expect(grafo.sinResolver).toEqual([])
+    expect([...grafo.archivos]).toEqual(
+      expect.arrayContaining([
+        "lib/rendimiento/aprendizajes.ts",
+        "lib/rendimiento/repositorio-de-lecturas.ts",
+        "lib/ia/claude.ts",
+      ]),
+    )
+  })
+
   test("the cheap carousel poller does not reach Playwright or the renderer's task", () => {
     const grafo = recorrerImports(["trigger/vigilar-carruseles.ts"], disco)
     expect(grafo.sinResolver).toEqual([])
