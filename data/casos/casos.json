@@ -541,7 +541,7 @@
       "client": "CONVERSE",
       "title": "GATHERING",
       "year": 2022,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
       "industry": "fashion",
       "workTypes": [
@@ -1791,9 +1791,9 @@
       "client": "MISTRAL",
       "title": "BAR MODULAR AUSPICIOS",
       "year": 2015,
-      "country": null,
+      "country": "Chile",
       "city": null,
-      "industry": null,
+      "industry": "Bebidas alcohólicas",
       "workTypes": [
         "Activación de marca",
         "Montaje de barra modular"
@@ -1817,7 +1817,7 @@
       "client": "MISTRAL",
       "title": "BARRA MODULAR",
       "year": 2014,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -1843,7 +1843,7 @@
       "client": "MISTRAL",
       "title": "CARRO AUSPICIOS EVENTOS",
       "year": 2019,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -1915,7 +1915,7 @@
       "client": "MISTRAL",
       "title": "LANZAMIENTO IN AND OUT",
       "year": 2016,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
       "industry": "Bebidas",
       "workTypes": [
@@ -1963,7 +1963,7 @@
       "client": "MISTRAL",
       "title": "PLAN BTL",
       "year": 2015,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -1987,7 +1987,7 @@
       "client": "MISTRAL",
       "title": "PLAN ZORA ORIENTE",
       "year": 2012,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -2011,7 +2011,7 @@
       "client": "MISTRAL",
       "title": "PRIMAVERA FAUNA EXPERIENCE",
       "year": 2022,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -2130,7 +2130,7 @@
       "client": "OMEGA",
       "title": "NAVIDAD",
       "year": 2024,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Luxury Watches",
       "workTypes": [
@@ -2436,7 +2436,7 @@
       "client": "SCHWARZKOPF",
       "title": "LANZAMIENTO BONACURE",
       "year": 2022,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Cosmética",
       "workTypes": [
@@ -2552,9 +2552,9 @@
       "client": "SQM",
       "title": "STAND FERIA LITIO",
       "year": 2024,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
-      "industry": "null",
+      "industry": "Minería",
       "workTypes": [
         "Stand Feria"
       ],
@@ -2593,7 +2593,7 @@
       "client": "UMBRO",
       "title": "100 AÑOS",
       "year": 2024,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Deporte",
       "workTypes": [
