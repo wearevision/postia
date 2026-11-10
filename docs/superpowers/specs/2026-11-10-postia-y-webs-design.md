@@ -52,6 +52,8 @@ proyecto). Medida de éxito: visitas por pieza en la analítica y contactos con 
 
 - Un caso con `exception` distinto de `null`.
 - Un caso con `permisoFotos` distinto de `true`.
+- Un caso sin fotos (71 de los 105 no tienen fotos en wav-repository; si Federico quiere uno, manda fotos y se agrega
+  a mano), con menos de 2 o más de 3 aprendizajes, o con una foto que no está en el repo.
 - Texto con montos: `$`, `US$`, `CLP`, «presupuesto».
 - Un caso con `year` anterior a 2025 (o `era` = `trayectoria`) cuyo texto diga «WAV» como sujeto de lo hecho. Se
   revisa que `summary`, `role` y `aprendizajes` no contengan «WAV»; si un caso de trayectoria necesita nombrar a WAV,
