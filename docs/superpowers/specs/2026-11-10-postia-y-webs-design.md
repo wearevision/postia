@@ -116,8 +116,8 @@ destino). Restricción: `destino_url` empieza por `https://wr3.wearevision.cl/` 
 
 Generado en el build de cada web: `[{ "url", "titulo", "tema" }]`, con `titulo` desde `<title>` y `tema` desde
 `<meta name="description">`. Solo páginas públicas (sin 404, privacidad, demo interna). wav-web2 lo hace en
-`build.mjs`; WR3, en un script nuevo en `scripts/`. Se sirve con `Access-Control-Allow-Origin` para
-`https://postia.wearevision.cl`.
+`build.mjs`; WR3, en un script nuevo en `scripts/`. PostIA lo lee desde su servidor, así que no necesita
+encabezados CORS.
 
 ### `origen.js` (una copia por web, sin dependencias)
 
@@ -136,7 +136,8 @@ Generado en el build de cada web: `[{ "url", "titulo", "tema" }]`, con `titulo` 
 
 ### Analítica
 
-Cloudflare Web Analytics en las dos (sin cookies, sin banner). Visitas por página y por `utm_content`.
+Cloudflare Web Analytics (sin cookies, sin banner): WR3 ya lo tiene en 88 páginas; falta wearevision.cl.
+Visitas por página y por `utm_content`.
 
 ## Pruebas
 
