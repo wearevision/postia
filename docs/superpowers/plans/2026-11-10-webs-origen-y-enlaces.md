@@ -591,7 +591,7 @@ git commit -m "test(e2e): a PostIA code reaches WhatsApp, the form and paginas.j
 
 In `package.json`, add `"type": "module",` after `"private": true,` and add to `scripts`:
 ```
-"test": "node --test test/"
+"test": "node --test"
 ```
 `build.mjs` is already `.mjs`; `script.js` is browser-only and never imported by Node, so `"type": "module"` changes nothing for them.
 
@@ -640,7 +640,7 @@ test("a code in the URL wins; otherwise the stored origin is kept", () => {
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd ~/Projects/wav-web2 && node --test test/`
+Run: `cd ~/Projects/wav-web2 && node --test`
 Expected: FAIL, `Cannot find module '.../origen.js'`.
 
 - [ ] **Step 4: Write the implementation**
@@ -720,7 +720,7 @@ Note: `script.js` rewrites `document.title` when the visitor switches language; 
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `node --test test/`
+Run: `node --test`
 Expected: PASS, 5 tests.
 
 - [ ] **Step 6: Commit**
@@ -767,7 +767,7 @@ test("for now only the home is a destination (no privacy policy)", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node --test test/`
+Run: `node --test`
 Expected: FAIL, `Cannot find module '.../paginas.mjs'`.
 
 - [ ] **Step 3: Write the implementation**
@@ -793,7 +793,7 @@ export function pagina(rel, html) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `node --test test/`
+Run: `node --test`
 Expected: PASS, 8 tests in total.
 
 - [ ] **Step 5: Wire into `build.mjs`**
@@ -866,7 +866,7 @@ test("the services list names research and points to WR3", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node --test test/`
+Run: `node --test`
 Expected: FAIL on the three new tests.
 
 - [ ] **Step 3: Edit the HTML**
@@ -889,7 +889,7 @@ In `index.html`, inside `<div class="service-list">`, after the `04` Guerrilla m
 
 - [ ] **Step 4: Run tests**
 
-Run: `node --test test/`
+Run: `node --test`
 Expected: PASS, 11 tests.
 
 - [ ] **Step 5: Analytics — gate**

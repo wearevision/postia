@@ -108,6 +108,8 @@ destino). Restricción: `destino_url` empieza por `https://wr3.wearevision.cl/` 
 ### Fuera de esta versión
 
 - Registro de contactos: el código queda guardado; cuando exista el registro, «ref. K7M» se cruza con su pieza.
+  Cualquiera puede escribir un código válido en una URL: al contar contactos, PostIA solo cuenta códigos que existan
+  en sus piezas.
 - Sugerencia automática de destino por el motor de escritura.
 
 ## Parte 3 · Las dos webs
@@ -115,7 +117,8 @@ destino). Restricción: `destino_url` empieza por `https://wr3.wearevision.cl/` 
 ### `paginas.json`
 
 Generado en el build de cada web: `[{ "url", "titulo", "tema" }]`, con `titulo` desde `<title>` y `tema` desde
-`<meta name="description">`. Solo páginas públicas (sin 404, privacidad, demo interna). wav-web2 lo hace en
+`<meta name="description">`. Solo páginas públicas en español (sin `/en/`, 404, privacidad ni demo interna):
+los posts son en español. wav-web2 lo hace en
 `build.mjs`; WR3, en un script nuevo en `scripts/`. PostIA lo lee desde su servidor, así que no necesita
 encabezados CORS.
 
