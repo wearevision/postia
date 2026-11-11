@@ -179,7 +179,9 @@ async function motivoDeDestino(p: PuertosDePublicacion, pieza: PiezaParaPublicar
     return "El texto ya no lleva el enlace de destino. Elige la página de nuevo y fírmala."
   }
   const urls = await p.paginasDe(pieza.destino.web)
-  return urls && !urls.includes(pieza.destino.url) ? "La página de destino ya no existe." : null
+  // An empty list is a broken export, not a site without pages: same as one that does not answer.
+  if (!urls || urls.length === 0) return null
+  return urls.includes(pieza.destino.url) ? null : "La página de destino ya no existe."
 }
 
 /** One due piece. The reservation is written right before the only irreversible call (POST /rest/posts). */

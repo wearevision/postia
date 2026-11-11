@@ -675,6 +675,12 @@ describe("destination page check", () => {
     expect(await publicarPieza(p, conDestino())).toBe("publicada")
   })
 
+  test("publishes when paginas.json comes back empty: a site never lists no pages", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue([])
+    expect(await publicarPieza(p, conDestino())).toBe("publicada")
+  })
+
   test("publishes when the page is still listed", async () => {
     const { p, m } = puertos()
     m.paginasDe.mockResolvedValue([URL])
