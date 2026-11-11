@@ -1378,9 +1378,12 @@ export type Database = {
       piezas: {
         Row: {
           arrendada_hasta: string | null
+          codigo_ref: string | null
           creada_en: string
           creada_por: string
           cuenta_id: string
+          destino: string | null
+          destino_url: string | null
           enlace: string | null
           estado: string
           formato: string
@@ -1394,9 +1397,12 @@ export type Database = {
         }
         Insert: {
           arrendada_hasta?: string | null
+          codigo_ref?: string | null
           creada_en?: string
           creada_por: string
           cuenta_id: string
+          destino?: string | null
+          destino_url?: string | null
           enlace?: string | null
           estado?: string
           formato: string
@@ -1410,9 +1416,12 @@ export type Database = {
         }
         Update: {
           arrendada_hasta?: string | null
+          codigo_ref?: string | null
           creada_en?: string
           creada_por?: string
           cuenta_id?: string
+          destino?: string | null
+          destino_url?: string | null
           enlace?: string | null
           estado?: string
           formato?: string
@@ -2269,9 +2278,12 @@ export type Database = {
         Args: { p_pieza: string }
         Returns: {
           arrendada_hasta: string | null
+          codigo_ref: string | null
           creada_en: string
           creada_por: string
           cuenta_id: string
+          destino: string | null
+          destino_url: string | null
           enlace: string | null
           estado: string
           formato: string
@@ -2297,6 +2309,16 @@ export type Database = {
       planear_pieza: {
         Args: { p_fecha: string; p_pieza: string }
         Returns: undefined
+      }
+      poner_destino: {
+        Args: {
+          p_codigo?: string
+          p_destino?: string
+          p_destino_url?: string
+          p_pieza: string
+          p_texto: string
+        }
+        Returns: string
       }
       poner_pilar: {
         Args: { p_pieza: string; p_pilar?: string }
@@ -2454,9 +2476,12 @@ export type Database = {
         Args: never
         Returns: {
           arrendada_hasta: string | null
+          codigo_ref: string | null
           creada_en: string
           creada_por: string
           cuenta_id: string
+          destino: string | null
+          destino_url: string | null
           enlace: string | null
           estado: string
           formato: string
