@@ -15,10 +15,20 @@ export function conEnlace(texto: string, enlace: string): string {
   return `${texto.trimEnd()}\n\n${enlace}`
 }
 
-export function quitarEnlace(texto: string, enlace: string): string {
+/**
+ * Removes every link carrying this code, wherever it ended up: a correction may have moved it into a sentence or
+ * edited its page. A line left empty by the removal goes too, and so do the blank lines left at the end.
+ */
+export function quitarEnlace(texto: string, codigo: string): string {
+  const conCodigo = new RegExp(`[ \\t]*\\S*utm_content=${codigo.replace(/[^a-z0-9]/g, "")}\\S*`, "g")
   return texto
     .split("\n")
-    .filter((linea) => linea.trim() !== enlace)
+    .flatMap((linea) => {
+      const sin = linea.replace(conCodigo, "")
+      if (sin === linea) return [linea]
+      if (sin.trim() === "") return []
+      return [`${linea.match(/^[ \t]*/)?.[0] ?? ""}${sin.trim()}`]
+    })
     .join("\n")
     .trimEnd()
 }

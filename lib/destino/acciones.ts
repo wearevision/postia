@@ -31,11 +31,7 @@ async function leerPieza(db: Db, piezaId: string) {
   if (!data?.cuentas) return null
   const texto = [...data.versiones].sort((a, b) => b.numero - a.numero)[0]?.texto ?? ""
   const cuentaTipo = data.cuentas.tipo === "persona" ? ("persona" as const) : ("empresa" as const)
-  const anterior =
-    data.destino && data.destino_url && data.codigo_ref
-      ? enlaceDe({ url: data.destino_url, cuentaTipo, codigo: data.codigo_ref })
-      : null
-  return { ...data, texto, cuentaTipo, anterior }
+  return { ...data, texto, cuentaTipo }
 }
 
 export async function paginasParaPieza(
@@ -67,7 +63,7 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
   const { piezaId, web, url } = e.data
   const pieza = await leerPieza(db, piezaId)
   if (!pieza) return { ok: false, error: "No encontré la pieza." }
-  const base = pieza.anterior ? quitarEnlace(pieza.texto, pieza.anterior) : pieza.texto
+  const base = pieza.codigo_ref ? quitarEnlace(pieza.texto, pieza.codigo_ref) : pieza.texto
 
   if (web === null) {
     if (!pieza.destino) return { ok: false, error: "La pieza no tiene enlace." }

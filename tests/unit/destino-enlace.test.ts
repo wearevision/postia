@@ -21,10 +21,21 @@ describe("destination link", () => {
     expect(conEnlace("Hola\n", "https://x.cl/")).toBe("Hola\n\nhttps://x.cl/")
   })
 
-  test("quitarEnlace removes the old link wherever it is and the blank lines it leaves at the end", () => {
-    expect(quitarEnlace("Hola\n\nhttps://x.cl/", "https://x.cl/")).toBe("Hola")
-    expect(quitarEnlace("Hola\nhttps://x.cl/\nchao", "https://x.cl/")).toBe("Hola\nchao")
-    expect(quitarEnlace("Hola", "https://x.cl/")).toBe("Hola")
+  test("quitarEnlace removes the link line by its code and the blank lines it leaves at the end", () => {
+    const enlace = `${URL}?utm_content=k7m`
+    expect(quitarEnlace(`Hola\n\n${enlace}`, "k7m")).toBe("Hola")
+    expect(quitarEnlace(`Hola\n${enlace}\nchao`, "k7m")).toBe("Hola\nchao")
+    expect(quitarEnlace("Hola", "k7m")).toBe("Hola")
+  })
+
+  test("quitarEnlace removes the link when it was moved into a sentence or edited", () => {
+    expect(quitarEnlace(`Lee la guía ${URL}?utm_content=k7m y cuéntame.`, "k7m")).toBe("Lee la guía y cuéntame.")
+    expect(quitarEnlace(`Lee: ${URL}?utm_source=x&utm_content=k7m&ref=1\n\n`, "k7m")).toBe("Lee:")
+    expect(quitarEnlace(`Hola\n\nhttps://wr3.wearevision.cl/otra/?utm_content=k7m\n\n`, "k7m")).toBe("Hola")
+  })
+
+  test("quitarEnlace leaves links with another code alone", () => {
+    expect(quitarEnlace(`Hola ${URL}?utm_content=abc`, "k7m")).toBe(`Hola ${URL}?utm_content=abc`)
   })
 
   test("llevaElEnlace needs the destination URL and the reference code in the same link", () => {

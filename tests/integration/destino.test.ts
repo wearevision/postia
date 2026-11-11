@@ -18,6 +18,12 @@ const URL_WR3 = "https://wr3.wearevision.cl/guias/focus-group/"
 const conEnlace = (codigo: string) =>
   `Hola\n\n${URL_WR3}?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${codigo}`
 
+/** A correction written behind the app's back, the way a person could edit the text by hand. */
+async function nuevaVersion(piezaId: string, numero: number, texto: string) {
+  const { error } = await admin().from("versiones").insert({ pieza_id: piezaId, numero, huella: "", texto })
+  if (error) throw error
+}
+
 async function ultima(piezaId: string) {
   const { data } = await admin()
     .from("versiones")
@@ -207,6 +213,20 @@ describe("ponerDestino", () => {
     expect(v?.texto).toContain(
       `https://wr3.wearevision.cl/?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${antes}`,
     )
+  })
+
+  test("changing the page after a correction moved the link into a sentence leaves only one link", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-movido")
+    await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
+    const v = await ultima(piezaId)
+    const enlace = v?.texto.split("\n\n")[1] ?? ""
+    await nuevaVersion(piezaId, (v?.numero ?? 0) + 1, `Hola, lee ${enlace} y cuéntame.`)
+    expect(
+      await ponerDestino(db, { piezaId, web: "wr3", url: "https://wr3.wearevision.cl/" }, lector(PAGINAS_WR3)),
+    ).toEqual({ ok: true })
+    const texto = (await ultima(piezaId))?.texto ?? ""
+    expect(texto.match(/https:\/\//g)).toHaveLength(1)
+    expect(texto.startsWith("Hola, lee y cuéntame.\n\nhttps://wr3.wearevision.cl/?")).toBe(true)
   })
 
   test("no link removes it from the text", async () => {
