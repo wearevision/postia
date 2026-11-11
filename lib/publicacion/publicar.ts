@@ -175,7 +175,7 @@ async function clienteConExcepcionNueva(p: PuertosDePublicacion, pieza: PiezaPar
 /** Spec «Errores»: a page that left the site sends the piece back; a site that does not answer does not stop it. */
 async function motivoDeDestino(p: PuertosDePublicacion, pieza: PiezaParaPublicar): Promise<string | null> {
   if (!pieza.destino) return null
-  if (!llevaElEnlace(pieza.version.texto, pieza.destino.codigo)) {
+  if (!llevaElEnlace(pieza.version.texto, pieza.destino.url, pieza.destino.codigo)) {
     return "El texto ya no lleva el enlace de destino. Elige la página de nuevo y fírmala."
   }
   const urls = await p.paginasDe(pieza.destino.web)

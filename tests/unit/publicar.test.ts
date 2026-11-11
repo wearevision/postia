@@ -693,6 +693,17 @@ describe("destination page check", () => {
     )
   })
 
+  test("sends back a piece whose text keeps the code but not the destination page", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue([URL])
+    const otraPagina = pieza({
+      destino: { web: "wr3", url: URL, codigo: "k7m" },
+      version: { ...pieza().version, texto: "Hola\n\nhttps://wr3.wearevision.cl/?utm_content=k7m" },
+    })
+    expect(await publicarPieza(p, otraPagina)).toBe("por_aprobar")
+    expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+  })
+
   test("does not look at paginas.json for a piece without destination", async () => {
     const { p, m } = puertos()
     expect(await publicarPieza(p, pieza())).toBe("publicada")

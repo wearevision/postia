@@ -27,8 +27,15 @@ describe("destination link", () => {
     expect(quitarEnlace("Hola", "https://x.cl/")).toBe("Hola")
   })
 
-  test("llevaElEnlace looks for the reference code in the text", () => {
-    expect(llevaElEnlace(`Hola\n\n${URL}?utm_content=k7m`, "k7m")).toBe(true)
-    expect(llevaElEnlace("Hola", "k7m")).toBe(false)
+  test("llevaElEnlace needs the destination URL and the reference code in the same link", () => {
+    expect(llevaElEnlace(`Hola\n\n${URL}?utm_content=k7m`, URL, "k7m")).toBe(true)
+    expect(llevaElEnlace(`Lee ${URL}?utm_source=linkedin&utm_content=k7m.`, URL, "k7m")).toBe(true)
+    expect(llevaElEnlace("Hola", URL, "k7m")).toBe(false)
+  })
+
+  test("llevaElEnlace refuses the code alone or the code on another page", () => {
+    expect(llevaElEnlace("Hola utm_content=k7m", URL, "k7m")).toBe(false)
+    expect(llevaElEnlace("Hola https://wr3.wearevision.cl/?utm_content=k7m", URL, "k7m")).toBe(false)
+    expect(llevaElEnlace(`Hola ${URL} y https://x.cl/?utm_content=k7m`, URL, "k7m")).toBe(false)
   })
 })

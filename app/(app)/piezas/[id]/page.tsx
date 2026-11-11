@@ -244,7 +244,9 @@ export default async function Pieza({
         <DestinoDePieza
           piezaId={pieza.id}
           destino={pieza.destino && { web: pieza.destino.web, url: pieza.destino.url }}
-          enlacePerdido={pieza.destino !== null && !llevaElEnlace(version.texto, pieza.destino.codigo)}
+          enlacePerdido={
+            pieza.destino !== null && !llevaElEnlace(version.texto, pieza.destino.url, pieza.destino.codigo)
+          }
           cargar={paginasAccion}
           poner={ponerDestinoAccion}
         />

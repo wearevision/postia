@@ -23,6 +23,9 @@ export function quitarEnlace(texto: string, enlace: string): string {
     .trimEnd()
 }
 
-export function llevaElEnlace(texto: string, codigo: string): boolean {
-  return texto.includes(`utm_content=${codigo}`)
+/** The same link must start with the destination page and carry the code: the code alone could sit on another page. */
+export function llevaElEnlace(texto: string, url: string, codigo: string): boolean {
+  return texto
+    .split(/\s+/)
+    .some((palabra) => palabra.startsWith(`${url}?`) && palabra.includes(`utm_content=${codigo}`))
 }
