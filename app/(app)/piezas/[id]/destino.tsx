@@ -16,34 +16,69 @@ interface Props {
 const CAMPO = "campo w-full"
 
 export function DestinoDePieza({ piezaId, destino, enlacePerdido, cargar, poner }: Props) {
-  const [web, setWeb] = useState<Web | "">(destino?.web ?? "")
+  const guardada: Web | "" = destino?.web ?? ""
+  const [web, setWeb] = useState<Web | "">(guardada)
   const [paginas, setPaginas] = useState<Pagina[] | null>(null)
+  const [pagina, setPagina] = useState("")
+  const [quitando, setQuitando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
 
-  function elegirWeb(nueva: Web | "") {
+  /** Any failure leaves the selects showing what the database holds. */
+  function fallar(mensaje: string) {
+    setError(mensaje)
+    setWeb(guardada)
+    setPaginas(null)
+    setPagina("")
+    setQuitando(false)
+  }
+
+  function cargarPaginas(nueva: Web) {
     setWeb(nueva)
     setError(null)
     setPaginas(null)
+    setPagina("")
+    setQuitando(false)
     iniciar(async () => {
-      if (nueva === "") {
-        if (!destino) return
-        const r = await poner({ piezaId, web: null, url: null })
-        if (!r.ok) setError(r.error)
-        return
-      }
       const r = await cargar({ piezaId, web: nueva })
-      if (!r.ok) return setError(r.error)
+      if (!r.ok) return fallar(r.error)
       setPaginas(r.paginas)
+    })
+  }
+
+  function elegirWeb(nueva: Web | "") {
+    if (nueva !== "") return cargarPaginas(nueva)
+    setWeb("")
+    setError(null)
+    setPaginas(null)
+    setPagina("")
+    // Removing the link writes a new text version: it waits for a second, explicit tap.
+    setQuitando(destino !== null)
+  }
+
+  function cancelarQuitar() {
+    setQuitando(false)
+    setWeb(guardada)
+  }
+
+  function quitar() {
+    setError(null)
+    iniciar(async () => {
+      const r = await poner({ piezaId, web: null, url: null })
+      if (!r.ok) return fallar(r.error)
+      setQuitando(false)
     })
   }
 
   function elegirPagina(url: string) {
     if (!url || web === "") return
+    setPagina(url)
     setError(null)
     iniciar(async () => {
       const r = await poner({ piezaId, web, url })
-      if (!r.ok) setError(r.error)
+      if (!r.ok) return fallar(r.error)
+      setPaginas(null)
+      setPagina("")
     })
   }
 
@@ -62,14 +97,34 @@ export function DestinoDePieza({ piezaId, destino, enlacePerdido, cargar, poner 
           <option value="wav">wearevision.cl</option>
         </select>
       </label>
-      {destino && !paginas && <p className="text-sm text-apagado break-all">Enlaza a {destino.url}</p>}
+      {destino && !paginas && !quitando && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-apagado break-all">Enlaza a {destino.url}</p>
+          <button type="button" className="boton" disabled={pendiente} onClick={() => cargarPaginas(destino.web)}>
+            Cambiar página
+          </button>
+        </div>
+      )}
+      {quitando && (
+        <div className="space-y-2 tarjeta p-3">
+          <p className="text-sm">¿Quitar el enlace del texto?</p>
+          <div className="flex gap-2">
+            <button type="button" className="boton-primario flex-1" disabled={pendiente} onClick={cancelarQuitar}>
+              Cancelar
+            </button>
+            <button type="button" className="boton flex-1" disabled={pendiente} onClick={quitar}>
+              Quitar el enlace
+            </button>
+          </div>
+        </div>
+      )}
       {enlacePerdido && (
         <p className="text-sm text-peligro">El texto ya no lleva el enlace de destino. Elige la página de nuevo.</p>
       )}
       {paginas && (
         <label className="block space-y-1">
           <span className="text-sm">Página</span>
-          <select className={CAMPO} defaultValue="" disabled={pendiente} onChange={(e) => elegirPagina(e.target.value)}>
+          <select className={CAMPO} value={pagina} disabled={pendiente} onChange={(e) => elegirPagina(e.target.value)}>
             <option value="" disabled>
               Elige una página
             </option>
