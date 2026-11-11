@@ -28,6 +28,30 @@ describe("site pages", () => {
     await expect(leerPaginas("wav")).rejects.toThrow("paginas.json de wearevision.cl no es válido")
   })
 
+  test.each([
+    ["a query string", "https://wr3.wearevision.cl/guia/?x=1"],
+    ["a fragment", "https://wr3.wearevision.cl/guia/#parte"],
+    ["whitespace", "https://wr3.wearevision.cl/guia uno/"],
+    ["a look-alike host", "https://wr3.wearevision.cl.evil.example/"],
+  ])("refuses a page URL with %s", async (_, url) => {
+    servidor.use(
+      http.get("https://wr3.wearevision.cl/paginas.json", () => HttpResponse.json([{ url, titulo: "x", tema: "y" }])),
+    )
+    await expect(leerPaginas("wr3")).rejects.toThrow("no es válido")
+  })
+
+  test("trims titles and themes and keeps at most 500 pages", async () => {
+    const muchas = Array.from({ length: 600 }, (_, i) => ({
+      url: `https://wr3.wearevision.cl/p${i}/`,
+      titulo: `  Página ${i}  `,
+      tema: " tema ",
+    }))
+    servidor.use(http.get("https://wr3.wearevision.cl/paginas.json", () => HttpResponse.json(muchas)))
+    const paginas = await leerPaginas("wr3")
+    expect(paginas).toHaveLength(500)
+    expect(paginas[0]).toEqual({ url: "https://wr3.wearevision.cl/p0/", titulo: "Página 0", tema: "tema" })
+  })
+
   test("a failed answer throws", async () => {
     servidor.use(http.get("https://wr3.wearevision.cl/paginas.json", () => new HttpResponse(null, { status: 503 })))
     await expect(leerPaginas("wr3")).rejects.toThrow("503")

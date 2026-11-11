@@ -13,16 +13,23 @@ export interface Pagina {
 }
 
 const ESPERA_MS = 8_000
+/** Enough for both sites with room to grow; a runaway list must not flood the picker. */
+const PAGINAS_MAXIMAS = 500
 
 export async function leerPaginas(web: Web): Promise<Pagina[]> {
   const { nombre, base } = WEBS[web]
   const respuesta = await fetch(`${base}paginas.json`, { signal: AbortSignal.timeout(ESPERA_MS), cache: "no-store" })
   if (!respuesta.ok) throw new Error(`paginas.json de ${nombre} respondió ${respuesta.status}`)
+  // The URL goes into a signed text and gets «?utm_…» appended: no query, fragment or space of its own.
+  const url = z
+    .url()
+    .startsWith(base)
+    .refine((u) => !/[\s?#]/.test(u))
   const lista = z
-    .array(z.object({ url: z.string().startsWith(base), titulo: z.string(), tema: z.string() }))
+    .array(z.object({ url, titulo: z.string().trim(), tema: z.string().trim() }))
     .safeParse(await respuesta.json())
   if (!lista.success) throw new Error(`paginas.json de ${nombre} no es válido`)
-  return lista.data
+  return lista.data.slice(0, PAGINAS_MAXIMAS)
 }
 
 /** Words of 4 or more letters, lowercase and without accents: cheap enough to rank without AI or cost (spec). */
