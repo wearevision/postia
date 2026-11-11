@@ -229,6 +229,21 @@ describe("ponerDestino", () => {
     expect(texto.startsWith("Hola, lee y cuéntame.\n\nhttps://wr3.wearevision.cl/?")).toBe(true)
   })
 
+  test("choosing the same page again puts back a link the text lost, and refuses it while the link is there", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-otra-vez")
+    await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
+    expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))).toEqual({
+      ok: false,
+      error: "Ya tiene ese destino.",
+    })
+    const v = await ultima(piezaId)
+    await nuevaVersion(piezaId, (v?.numero ?? 0) + 1, "Hola sin enlace")
+    expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))).toEqual({ ok: true })
+    expect((await ultima(piezaId))?.texto).toMatch(
+      /^Hola sin enlace\n\nhttps:\/\/wr3\.wearevision\.cl\/guias\/focus-group\/\?/,
+    )
+  })
+
   test("no link removes it from the text", async () => {
     const { db, piezaId } = await piezaDeTexto("pd-sin")
     await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { codigoNuevo, conEnlace, enlaceDe, quitarEnlace } from "@/lib/destino/enlace"
+import { codigoNuevo, conEnlace, enlaceDe, llevaElEnlace, quitarEnlace } from "@/lib/destino/enlace"
 import { leerPaginas, ordenarPorTexto, type Pagina, WEBS, type Web } from "@/lib/destino/paginas"
 import type { Resultado } from "@/lib/marcas/acciones"
 import type { Db } from "@/lib/supabase/database"
@@ -71,7 +71,10 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
     return error ? falla(error) : { ok: true }
   }
 
-  if (pieza.destino === web && pieza.destino_url === url) return { ok: false, error: "Ya tiene ese destino." }
+  // The same page again is how a person puts back a link that a correction dropped from the text.
+  const yaLoLleva = pieza.codigo_ref !== null && llevaElEnlace(pieza.texto, url, pieza.codigo_ref)
+  if (pieza.destino === web && pieza.destino_url === url && yaLoLleva)
+    return { ok: false, error: "Ya tiene ese destino." }
   let paginas: Pagina[]
   try {
     paginas = await leer(web)
