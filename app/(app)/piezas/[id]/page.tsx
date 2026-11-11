@@ -237,7 +237,7 @@ export default async function Pieza({
 
       {/* The piece as it goes out comes first. FinDelTexto must follow the text: reaching it unlocks signing. */}
       {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
-      <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>
+      <p className="whitespace-pre-wrap wrap-anywhere tarjeta p-3">{version.texto}</p>
       {porFirmar && !armando && <FinDelTexto />}
       {/* Same condition as CorregirTexto: choosing a page writes a new text version, so it comes before the signature. */}
       {puedeElegirDestino({ porFirmar, formato: pieza.formato, armando, redaccionLista }) && (
