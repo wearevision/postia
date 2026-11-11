@@ -11,6 +11,7 @@ const MENSAJES: Record<string, string> = {
   pieza_no_editable: "Esta pieza ya no se puede cambiar.",
   codigo_cambiado: "La pieza cambió mientras elegías. Recarga y vuelve a elegir.",
   falta_el_enlace: "No pude poner el enlace en el texto. Inténtalo de nuevo.",
+  version_cambiada: "El texto cambió mientras elegías. Recarga y vuelve a elegir.",
 }
 
 function falla(error: { code?: string; message: string }): { ok: false; error: string } {
@@ -29,9 +30,9 @@ async function leerPieza(db: Db, piezaId: string) {
     .maybeSingle()
   if (error) throw new Error(`No pude leer la pieza: ${error.message}`, { cause: error })
   if (!data?.cuentas) return null
-  const texto = [...data.versiones].sort((a, b) => b.numero - a.numero)[0]?.texto ?? ""
+  const ultima = [...data.versiones].sort((a, b) => b.numero - a.numero)[0]
   const cuentaTipo = data.cuentas.tipo === "persona" ? ("persona" as const) : ("empresa" as const)
-  return { ...data, texto, cuentaTipo }
+  return { ...data, texto: ultima?.texto ?? "", numero: ultima?.numero ?? 0, cuentaTipo }
 }
 
 export async function paginasParaPieza(
@@ -67,7 +68,11 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
 
   if (web === null) {
     if (!pieza.destino) return { ok: false, error: "La pieza no tiene enlace." }
-    const { error } = await db.rpc("poner_destino", { p_pieza: piezaId, p_texto: base })
+    const { error } = await db.rpc("poner_destino", {
+      p_pieza: piezaId,
+      p_texto: base,
+      p_numero_esperado: pieza.numero,
+    })
     return error ? falla(error) : { ok: true }
   }
 
@@ -95,6 +100,7 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
     const { error } = await db.rpc("poner_destino", {
       p_pieza: piezaId,
       p_texto: texto,
+      p_numero_esperado: pieza.numero,
       p_destino: web,
       p_destino_url: url,
       p_codigo: codigo,

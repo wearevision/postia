@@ -2315,6 +2315,7 @@ export type Database = {
           p_codigo?: string
           p_destino?: string
           p_destino_url?: string
+          p_numero_esperado: number
           p_pieza: string
           p_texto: string
         }

@@ -40,6 +40,7 @@ describe("poner_destino", () => {
     const { db, piezaId } = await piezaDeTexto("dst-ok")
     const { error } = await db.rpc("poner_destino", {
       p_pieza: piezaId,
+      p_numero_esperado: 1,
       p_texto: conEnlace("k7m"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -59,6 +60,7 @@ describe("poner_destino", () => {
     const { db, piezaId } = await piezaDeTexto("dst-mal")
     const otraWeb = await db.rpc("poner_destino", {
       p_pieza: piezaId,
+      p_numero_esperado: 1,
       p_texto: conEnlace("k7m"),
       p_destino: "wav",
       p_destino_url: URL_WR3,
@@ -67,6 +69,7 @@ describe("poner_destino", () => {
     expect(otraWeb.error?.code).toBe("23514")
     const malCodigo = await db.rpc("poner_destino", {
       p_pieza: piezaId,
+      p_numero_esperado: 1,
       p_texto: conEnlace("k1m"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -75,6 +78,7 @@ describe("poner_destino", () => {
     expect(malCodigo.error?.code).toBe("23514")
     const sinCodigo = await db.rpc("poner_destino", {
       p_pieza: piezaId,
+      p_numero_esperado: 1,
       p_texto: "Hola",
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -83,11 +87,68 @@ describe("poner_destino", () => {
     expect(sinCodigo.error?.message).toBe("falta_el_enlace")
   })
 
+  test("refuses a destination without its page or code, and a code that sits on another page", async () => {
+    const { db, piezaId } = await piezaDeTexto("dst-incompleto")
+    const sinUrl = await db.rpc("poner_destino", {
+      p_pieza: piezaId,
+      p_texto: conEnlace("k7m"),
+      p_numero_esperado: 1,
+      p_destino: "wr3",
+      p_codigo: "k7m",
+    })
+    expect(sinUrl.error?.message).toBe("destino_incompleto")
+    const sinCodigo = await db.rpc("poner_destino", {
+      p_pieza: piezaId,
+      p_texto: conEnlace("k7m"),
+      p_numero_esperado: 1,
+      p_destino: "wr3",
+      p_destino_url: URL_WR3,
+    })
+    expect(sinCodigo.error?.message).toBe("destino_incompleto")
+    const otraPagina = await db.rpc("poner_destino", {
+      p_pieza: piezaId,
+      p_texto: "Hola https://wr3.wearevision.cl/?utm_content=k7m",
+      p_numero_esperado: 1,
+      p_destino: "wr3",
+      p_destino_url: URL_WR3,
+      p_codigo: "k7m",
+    })
+    expect(otraPagina.error?.message).toBe("falta_el_enlace")
+  })
+
+  test("the table refuses a destination with a missing column", async () => {
+    const { piezaId } = await piezaDeTexto("dst-check")
+    for (const fila of [
+      { destino: "wr3", destino_url: URL_WR3, codigo_ref: null },
+      { destino: "wr3", destino_url: null, codigo_ref: "k7m" },
+      { destino: null, destino_url: URL_WR3, codigo_ref: "k7m" },
+    ]) {
+      const { error } = await admin().from("piezas").update(fila).eq("id", piezaId)
+      expect(error?.code).toBe("23514")
+    }
+  })
+
+  test("refuses a text written over a version that is no longer the latest", async () => {
+    const { db, piezaId } = await piezaDeTexto("dst-carrera")
+    await nuevaVersion(piezaId, 2, "Hola, corregido")
+    const { error } = await db.rpc("poner_destino", {
+      p_pieza: piezaId,
+      p_texto: conEnlace("k7m"),
+      p_numero_esperado: 1,
+      p_destino: "wr3",
+      p_destino_url: URL_WR3,
+      p_codigo: "k7m",
+    })
+    expect(error?.message).toBe("version_cambiada")
+    expect((await ultima(piezaId))?.texto).toBe("Hola, corregido")
+  })
+
   test("keeps the code once chosen and two pieces cannot share one", async () => {
     const a = await piezaDeTexto("dst-a")
     const b = await piezaDeTexto("dst-b")
     await a.db.rpc("poner_destino", {
       p_pieza: a.piezaId,
+      p_numero_esperado: 1,
       p_texto: conEnlace("abc"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -95,6 +156,7 @@ describe("poner_destino", () => {
     })
     const otro = await a.db.rpc("poner_destino", {
       p_pieza: a.piezaId,
+      p_numero_esperado: 2,
       p_texto: conEnlace("abd"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -103,6 +165,7 @@ describe("poner_destino", () => {
     expect(otro.error?.message).toBe("codigo_cambiado")
     const repetido = await b.db.rpc("poner_destino", {
       p_pieza: b.piezaId,
+      p_numero_esperado: 1,
       p_texto: conEnlace("abc"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -115,12 +178,13 @@ describe("poner_destino", () => {
     const { db, piezaId } = await piezaDeTexto("dst-sin")
     await db.rpc("poner_destino", {
       p_pieza: piezaId,
+      p_numero_esperado: 1,
       p_texto: conEnlace("pqr"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
       p_codigo: "pqr",
     })
-    const { error } = await db.rpc("poner_destino", { p_pieza: piezaId, p_texto: "Hola" })
+    const { error } = await db.rpc("poner_destino", { p_pieza: piezaId, p_texto: "Hola", p_numero_esperado: 2 })
     expect(error).toBeNull()
     const { data: p } = await admin()
       .from("piezas")
@@ -151,6 +215,7 @@ describe("poner_destino", () => {
     expect(ins.error).toBeNull()
     await db.rpc("poner_destino", {
       p_pieza: piezaId,
+      p_numero_esperado: 2,
       p_texto: conEnlace("xyz"),
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -176,7 +241,11 @@ describe("poner_destino", () => {
   test("only the brand owner can call it", async () => {
     const { piezaId } = await piezaDeTexto("dst-dueno")
     const extrano = await personaConSesion("dst-extrano")
-    const { error } = await extrano.db.rpc("poner_destino", { p_pieza: piezaId, p_texto: "Hola" })
+    const { error } = await extrano.db.rpc("poner_destino", {
+      p_pieza: piezaId,
+      p_texto: "Hola",
+      p_numero_esperado: 1,
+    })
     expect(error?.message).toBe("solo_el_dueno_cambia_piezas")
   })
 })
@@ -263,6 +332,19 @@ describe("ponerDestino", () => {
       ok: false,
       error: "No pude leer las páginas de WR3.",
     })
+  })
+
+  test("says the text changed when a correction lands while the page is being chosen", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-carrera")
+    const corregirMientras = async (_: Web) => {
+      await nuevaVersion(piezaId, 2, "Hola, corregido")
+      return PAGINAS_WR3
+    }
+    expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, corregirMientras)).toEqual({
+      ok: false,
+      error: "El texto cambió mientras elegías. Recarga y vuelve a elegir.",
+    })
+    expect((await ultima(piezaId))?.texto).toBe("Hola, corregido")
   })
 
   test("refuses a text that would pass 3000 characters with the link", async () => {
