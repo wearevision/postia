@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { describe, expect, test } from "vitest"
+import { paginasParaPieza, ponerDestino } from "@/lib/destino/acciones"
+import type { Pagina, Web } from "@/lib/destino/paginas"
 import { crearPieza } from "@/lib/piezas/acciones"
 import { admin, cuentaDe, marcaConDueno, personaConSesion } from "./entorno"
 
@@ -170,5 +172,69 @@ describe("poner_destino", () => {
     const extrano = await personaConSesion("dst-extrano")
     const { error } = await extrano.db.rpc("poner_destino", { p_pieza: piezaId, p_texto: "Hola" })
     expect(error?.message).toBe("solo_el_dueno_cambia_piezas")
+  })
+})
+
+const PAGINAS_WR3: Pagina[] = [
+  { url: "https://wr3.wearevision.cl/", titulo: "WR3", tema: "Investigación" },
+  { url: URL_WR3, titulo: "Focus group", tema: "Hola focus" },
+]
+const lector = (paginas: Pagina[] | Error) => async (_: Web) => {
+  if (paginas instanceof Error) throw paginas
+  return paginas
+}
+
+describe("ponerDestino", () => {
+  test("appends the link with a new code and lists pages ranked by the text", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-ok", "Hola, hablemos de focus group")
+    const lista = await paginasParaPieza(db, { piezaId, web: "wr3" }, lector(PAGINAS_WR3))
+    expect(lista.ok && lista.paginas[0].url).toBe(URL_WR3)
+    const r = await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
+    expect(r.ok).toBe(true)
+    const v = await ultima(piezaId)
+    expect(v?.texto).toMatch(
+      /^Hola, hablemos de focus group\n\nhttps:\/\/wr3\.wearevision\.cl\/guias\/focus-group\/\?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=[23456789abcdefghjkmnpqrstuvwxyz]{3}$/,
+    )
+  })
+
+  test("changing the page replaces the link and keeps the code", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-cambio")
+    await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
+    const antes = (await admin().from("piezas").select("codigo_ref").eq("id", piezaId).single()).data?.codigo_ref
+    await ponerDestino(db, { piezaId, web: "wr3", url: "https://wr3.wearevision.cl/" }, lector(PAGINAS_WR3))
+    const v = await ultima(piezaId)
+    expect(v?.texto.match(/https:\/\//g)).toHaveLength(1)
+    expect(v?.texto).toContain(
+      `https://wr3.wearevision.cl/?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${antes}`,
+    )
+  })
+
+  test("no link removes it from the text", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-sin")
+    await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
+    expect(await ponerDestino(db, { piezaId, web: null, url: null }, lector(PAGINAS_WR3))).toEqual({ ok: true })
+    expect((await ultima(piezaId))?.texto).toBe("Hola")
+  })
+
+  test("refuses a URL that is not in paginas.json and says when the list cannot be read", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-mal")
+    expect(
+      await ponerDestino(db, { piezaId, web: "wr3", url: "https://wr3.wearevision.cl/otra/" }, lector(PAGINAS_WR3)),
+    ).toEqual({
+      ok: false,
+      error: "Esa página no está en la lista de WR3.",
+    })
+    expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(new Error("503")))).toEqual({
+      ok: false,
+      error: "No pude leer las páginas de WR3.",
+    })
+  })
+
+  test("refuses a text that would pass 3000 characters with the link", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-largo", "a".repeat(2950))
+    expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))).toEqual({
+      ok: false,
+      error: "Con el enlace, el texto pasa los 3000 caracteres de LinkedIn. Acórtalo primero.",
+    })
   })
 })
