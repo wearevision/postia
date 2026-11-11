@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
 import { llevaElEnlace } from "@/lib/destino/enlace"
+import { puedeElegirDestino } from "@/lib/destino/puerta"
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
 import { bloqueoDeFirma, DISENO_ILEGIBLE } from "@/lib/piezas/bloqueo"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
@@ -239,7 +240,7 @@ export default async function Pieza({
       <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>
       {porFirmar && !armando && <FinDelTexto />}
       {/* Same condition as CorregirTexto: choosing a page writes a new text version, so it comes before the signature. */}
-      {redaccionLista && (
+      {puedeElegirDestino({ porFirmar, formato: pieza.formato, armando, redaccionLista }) && (
         <DestinoDePieza
           piezaId={pieza.id}
           destino={pieza.destino && { web: pieza.destino.web, url: pieza.destino.url }}
