@@ -285,6 +285,8 @@ export interface DetalleDePieza {
   pilarId: string | null
   /** Shown even when the pillar left the editorial line. */
   pilarNombre: string | null
+  /** The page the text links to (step 3 of «PostIA y las webs»); null without a link. */
+  destino: { web: "wr3" | "wav"; url: string; codigo: string } | null
   version: {
     id: string
     origen: "persona" | "claude"
@@ -348,7 +350,7 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
   const { data: p, error } = await db
     .from("piezas")
     .select(
-      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(id, origen, numero, texto, titulo, huella, archivo_ruta, tema, diseno)",
+      "id, estado, formato, motivo, enlace, programada_para, planeada_para, pilar_id, destino, destino_url, codigo_ref, pilares(nombre), cuentas(id, nombre, tipo, ruta, marca_id, marcas(voz)), versiones(id, origen, numero, texto, titulo, huella, archivo_ruta, tema, diseno)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -401,6 +403,10 @@ export async function detalle(db: Db, id: string, ahora = Date.now()): Promise<D
     },
     pilarId: p.pilar_id,
     pilarNombre: p.pilares?.nombre ?? null,
+    destino:
+      (p.destino === "wr3" || p.destino === "wav") && p.destino_url && p.codigo_ref
+        ? { web: p.destino, url: p.destino_url, codigo: p.codigo_ref }
+        : null,
     version: {
       id: v.id,
       origen: v.origen === "claude" ? "claude" : "persona",
