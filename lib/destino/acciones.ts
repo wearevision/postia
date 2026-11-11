@@ -28,11 +28,14 @@ async function leerPieza(db: Db, piezaId: string) {
     .select("destino, destino_url, codigo_ref, cuentas(tipo), versiones(numero, texto)")
     .eq("id", piezaId)
     .maybeSingle()
-  if (error) throw new Error(`No pude leer la pieza: ${error.message}`, { cause: error })
-  if (!data?.cuentas) return null
+  if (error) {
+    console.error("No pude leer la pieza", piezaId, error.message)
+    return { ok: false as const, error: "No pude leer la pieza. Inténtalo de nuevo." }
+  }
+  if (!data?.cuentas) return { ok: false as const, error: "No encontré la pieza." }
   const ultima = [...data.versiones].sort((a, b) => b.numero - a.numero)[0]
   const cuentaTipo = data.cuentas.tipo === "persona" ? ("persona" as const) : ("empresa" as const)
-  return { ...data, texto: ultima?.texto ?? "", numero: ultima?.numero ?? 0, cuentaTipo }
+  return { ok: true as const, pieza: { ...data, texto: ultima?.texto ?? "", numero: ultima?.numero ?? 0, cuentaTipo } }
 }
 
 export async function paginasParaPieza(
@@ -42,8 +45,9 @@ export async function paginasParaPieza(
 ): Promise<Resultado<{ paginas: Pagina[] }>> {
   const e = z.object({ piezaId: z.uuid(), web: WebSchema }).safeParse(entrada)
   if (!e.success) return { ok: false, error: "Revisa el destino." }
-  const pieza = await leerPieza(db, e.data.piezaId)
-  if (!pieza) return { ok: false, error: "No encontré la pieza." }
+  const leida = await leerPieza(db, e.data.piezaId)
+  if (!leida.ok) return leida
+  const { pieza } = leida
   try {
     return { ok: true, paginas: ordenarPorTexto(await leer(e.data.web), pieza.texto) }
   } catch (error) {
@@ -62,8 +66,9 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
   const e = Destino.safeParse(entrada)
   if (!e.success) return { ok: false, error: "Revisa el destino." }
   const { piezaId, web, url } = e.data
-  const pieza = await leerPieza(db, piezaId)
-  if (!pieza) return { ok: false, error: "No encontré la pieza." }
+  const leida = await leerPieza(db, piezaId)
+  if (!leida.ok) return leida
+  const { pieza } = leida
   const base = pieza.codigo_ref ? quitarEnlace(pieza.texto, pieza.codigo_ref) : pieza.texto
 
   if (web === null) {
