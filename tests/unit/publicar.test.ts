@@ -29,6 +29,7 @@ function pieza(cambios: Partial<PiezaParaPublicar> = {}): PiezaParaPublicar {
     formato: "texto",
     programadaPara: "2026-11-03T14:00:00Z",
     ventanaMinutos: 30,
+    destino: null,
     version: { id: "v1", texto: "Hola (mundo)", titulo: null, archivoRuta: null, archivoSha256: null, huella: HUELLA },
     firma: { id: "f1", huella: HUELLA, firmadaEn: FIRMADA_EN },
     ...cambios,
@@ -90,6 +91,7 @@ function puertos(cambios: Partial<PuertosDePublicacion> = {}, enCurso: Record<st
     anotarAviso: vi.fn(async () => {}),
     registrarFallaDeEspacio: vi.fn(async (): Promise<boolean> => true),
     excepcionesPuestasDespues: vi.fn(async (): Promise<Excepcion[]> => []),
+    paginasDe: vi.fn(async (): Promise<string[] | null> => null),
     linkedin: {
       crearPost: vi.fn(async () => {
         orden.push("crearPost")
@@ -648,5 +650,69 @@ describe("client exceptions marked after the signature", () => {
     expect(m.linkedin.crearPost).not.toHaveBeenCalled()
     expect(m.mover).not.toHaveBeenCalled()
     registro.mockRestore()
+  })
+})
+
+describe("destination page check", () => {
+  const URL = "https://wr3.wearevision.cl/guias/focus-group/"
+  const conDestino = () =>
+    pieza({
+      destino: { web: "wr3", url: URL, codigo: "k7m" },
+      version: { ...pieza().version, texto: `Hola\n\n${URL}?utm_content=k7m` },
+    })
+
+  test("sends back a piece whose page left paginas.json", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue(["https://wr3.wearevision.cl/"])
+    expect(await publicarPieza(p, conDestino())).toBe("por_aprobar")
+    expect(m.paginasDe).toHaveBeenCalledWith("wr3")
+    expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+    expect(m.mover).toHaveBeenCalledWith("pieza-1", "por_aprobar", "La página de destino ya no existe.")
+  })
+
+  test("publishes when paginas.json does not answer: the page was checked at signing", async () => {
+    const { p } = puertos()
+    expect(await publicarPieza(p, conDestino())).toBe("publicada")
+  })
+
+  test("publishes when paginas.json comes back empty: a site never lists no pages", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue([])
+    expect(await publicarPieza(p, conDestino())).toBe("publicada")
+  })
+
+  test("publishes when the page is still listed", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue([URL])
+    expect(await publicarPieza(p, conDestino())).toBe("publicada")
+  })
+
+  test("sends back a piece whose text lost the link", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue([URL])
+    const sinEnlace = pieza({ destino: { web: "wr3", url: URL, codigo: "k7m" } })
+    expect(await publicarPieza(p, sinEnlace)).toBe("por_aprobar")
+    expect(m.mover).toHaveBeenCalledWith(
+      "pieza-1",
+      "por_aprobar",
+      "El texto ya no lleva el enlace de destino. Elige la página de nuevo y fírmala.",
+    )
+  })
+
+  test("sends back a piece whose text keeps the code but not the destination page", async () => {
+    const { p, m } = puertos()
+    m.paginasDe.mockResolvedValue([URL])
+    const otraPagina = pieza({
+      destino: { web: "wr3", url: URL, codigo: "k7m" },
+      version: { ...pieza().version, texto: "Hola\n\nhttps://wr3.wearevision.cl/?utm_content=k7m" },
+    })
+    expect(await publicarPieza(p, otraPagina)).toBe("por_aprobar")
+    expect(m.linkedin.crearPost).not.toHaveBeenCalled()
+  })
+
+  test("does not look at paginas.json for a piece without destination", async () => {
+    const { p, m } = puertos()
+    expect(await publicarPieza(p, pieza())).toBe("publicada")
+    expect(m.paginasDe).not.toHaveBeenCalled()
   })
 })

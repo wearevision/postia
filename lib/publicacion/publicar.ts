@@ -1,5 +1,6 @@
 import type { MensajePush } from "@/lib/avisos/tipos"
 import { type Excepcion, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
+import { llevaElEnlace } from "@/lib/destino/enlace"
 import {
   type crearPost,
   type estadoDelDocumento,
@@ -25,6 +26,8 @@ export interface PiezaParaPublicar {
   formato: "texto" | "carrusel_pdf"
   programadaPara: string
   ventanaMinutos: number
+  /** The website page the text links to; checked again right before sending. */
+  destino: { web: "wr3" | "wav"; url: string; codigo: string } | null
   version: {
     id: string
     texto: string
@@ -77,6 +80,8 @@ export interface PuertosDePublicacion {
   registrarFallaDeEspacio(piezaId: string, motivo: string): Promise<boolean>
   /** Client exceptions (D13) still active and marked after `desde`. A failure throws: the piece is not sent this run. */
   excepcionesPuestasDespues(desde: string): Promise<Excepcion[]>
+  /** The URLs in a site's paginas.json, or null when it cannot be read: then the piece goes out (spec). */
+  paginasDe(web: "wr3" | "wav"): Promise<string[] | null>
   linkedin: {
     crearPost: typeof crearPost
     subirDocumento: typeof subirDocumento
@@ -167,6 +172,18 @@ async function clienteConExcepcionNueva(p: PuertosDePublicacion, pieza: PiezaPar
   return nombrado?.tipo === "cliente" ? nombrado.cliente : null
 }
 
+/** Spec «Errores»: a page that left the site sends the piece back; a site that does not answer does not stop it. */
+async function motivoDeDestino(p: PuertosDePublicacion, pieza: PiezaParaPublicar): Promise<string | null> {
+  if (!pieza.destino) return null
+  if (!llevaElEnlace(pieza.version.texto, pieza.destino.url, pieza.destino.codigo)) {
+    return "El texto ya no lleva el enlace de destino. Elige la página de nuevo y fírmala."
+  }
+  const urls = await p.paginasDe(pieza.destino.web)
+  // An empty list is a broken export, not a site without pages: same as one that does not answer.
+  if (!urls || urls.length === 0) return null
+  return urls.includes(pieza.destino.url) ? null : "La página de destino ya no existe."
+}
+
 /** One due piece. The reservation is written right before the only irreversible call (POST /rest/posts). */
 export async function publicarPieza(
   p: PuertosDePublicacion,
@@ -187,6 +204,8 @@ export async function publicarPieza(
       `Nombra a ${cliente}, que ahora tiene una excepción. Revisa el texto y fírmala de nuevo.`,
     )
   }
+  const destino = await motivoDeDestino(p, pieza)
+  if (destino) return devolver(p, pieza, "por_aprobar", destino)
   // revisarAntesDeEnviar already refuses a missing connection; this only narrows the type for what follows.
   if (!credencial) return devolver(p, pieza, "a_mano", "No encontré la conexión de LinkedIn de esta cuenta.")
 

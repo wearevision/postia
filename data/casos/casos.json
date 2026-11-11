@@ -109,7 +109,7 @@
       "exception": null
     },
     {
-      "slug": "angloamerican-transformacion-y-resultados-2029",
+      "slug": "angloamerican-transformacion-y-resultados-2021",
       "client": "ANGLOAMERICAN",
       "title": "TRANSFORMACIÓN Y RESULTADOS",
       "year": 2021,
@@ -270,7 +270,7 @@
       "exception": null
     },
     {
-      "slug": "bomo-bolivia-moda-fashion-show-2015",
+      "slug": "bomo-bolivia-moda-fashion-show-2018",
       "client": "BOMO",
       "title": "BOLIVIA MODA FASHION SHOW",
       "year": 2018,
@@ -541,7 +541,7 @@
       "client": "CONVERSE",
       "title": "GATHERING",
       "year": 2022,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
       "industry": "fashion",
       "workTypes": [
@@ -1463,10 +1463,10 @@
       "exception": null
     },
     {
-      "slug": "johnson-johnson-convencion-2019",
+      "slug": "johnson-johnson-convencion-2015",
       "client": "JOHNSON & JOHNSON",
       "title": "CONVENCIÓN",
-      "year": 2019,
+      "year": 2015,
       "country": "México",
       "city": null,
       "industry": "Farmacéutica / Salud corporativa",
@@ -1791,9 +1791,9 @@
       "client": "MISTRAL",
       "title": "BAR MODULAR AUSPICIOS",
       "year": 2015,
-      "country": null,
+      "country": "Chile",
       "city": null,
-      "industry": null,
+      "industry": "Bebidas alcohólicas",
       "workTypes": [
         "Activación de marca",
         "Montaje de barra modular"
@@ -1817,7 +1817,7 @@
       "client": "MISTRAL",
       "title": "BARRA MODULAR",
       "year": 2014,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -1843,7 +1843,7 @@
       "client": "MISTRAL",
       "title": "CARRO AUSPICIOS EVENTOS",
       "year": 2019,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -1915,7 +1915,7 @@
       "client": "MISTRAL",
       "title": "LANZAMIENTO IN AND OUT",
       "year": 2016,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
       "industry": "Bebidas",
       "workTypes": [
@@ -1963,7 +1963,7 @@
       "client": "MISTRAL",
       "title": "PLAN BTL",
       "year": 2015,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -1987,7 +1987,7 @@
       "client": "MISTRAL",
       "title": "PLAN ZORA ORIENTE",
       "year": 2012,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -2011,7 +2011,7 @@
       "client": "MISTRAL",
       "title": "PRIMAVERA FAUNA EXPERIENCE",
       "year": 2022,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Bebidas alcohólicas",
       "workTypes": [
@@ -2130,7 +2130,7 @@
       "client": "OMEGA",
       "title": "NAVIDAD",
       "year": 2024,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Luxury Watches",
       "workTypes": [
@@ -2436,7 +2436,7 @@
       "client": "SCHWARZKOPF",
       "title": "LANZAMIENTO BONACURE",
       "year": 2022,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Cosmética",
       "workTypes": [
@@ -2552,9 +2552,9 @@
       "client": "SQM",
       "title": "STAND FERIA LITIO",
       "year": 2024,
-      "country": "null",
+      "country": "Chile",
       "city": "null",
-      "industry": "null",
+      "industry": "Minería",
       "workTypes": [
         "Stand Feria"
       ],
@@ -2593,7 +2593,7 @@
       "client": "UMBRO",
       "title": "100 AÑOS",
       "year": 2024,
-      "country": null,
+      "country": "Chile",
       "city": null,
       "industry": "Deporte",
       "workTypes": [
@@ -2707,6 +2707,133 @@
       "summary": "En 2017, Federico Elgueta colaboró con la empresa WOM para crear una campaña de activación de marca bajo el título 'WOMERS WELCOME TO CASINO'. La iniciativa incluyó diseños visuales inspirados en videojuegos retro y eventos interactivos para ganar la atención en redes sociales. Se utilizaron activaciones de marca ingeniosas y contenido social creativo para fortalecer la presencia de WOM en el mercado chileno.",
       "role": "Federico Elgueta lideró la creatividad y la producción integral, desarrollando la campaña desde la conceptualización hasta la ejecución. Se encargó de la producción de eventos, el contenido digital y la interacción social.",
       "citableClaim": "Federico Elgueta transformó la experiencia de WOM en un evento interactivo, atrayendo audiencias con ingenio creativo y participación social innovadora.",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-summit-2022",
+      "client": "MG MOTOR",
+      "title": "MG SUMMIT",
+      "year": 2022,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Evento corporativo",
+        "Convención de concesionarios",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Ambientación de fachada con logo de neón y cortinas de luz",
+        "Montaje de cena con mesas temáticas en rojo",
+        "Pantallas de gran formato para presentaciones",
+        "Coordinación de anfitrionas",
+        "Video resumen en 4K"
+      ],
+      "summary": "Encuentro anual de MG Motor en 2022, en un recinto con fachada intervenida con el logo de la marca en neón y cortinas de luz. La noche combinó recepción en el jardín, cena con ambientación en rojo, presentaciones en pantallas de gran formato y anfitrionas de la marca.",
+      "role": "Federico Elgueta participó en la producción del evento y su registro audiovisual.",
+      "citableClaim": "",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-test-drive-rx5-2023",
+      "client": "MG MOTOR",
+      "title": "TEST DRIVE MG RX5",
+      "year": 2023,
+      "country": "Chile",
+      "city": null,
+      "industry": "Automotriz",
+      "workTypes": [
+        "Test drive",
+        "Experiencia de producto",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Presentación de producto con invitados",
+        "Ruta de manejo con paradas programadas",
+        "Visita guiada a viña",
+        "Almuerzo de cierre",
+        "Registro audiovisual del recorrido"
+      ],
+      "summary": "Test drive del MG RX5 en 2023. La jornada partió con una presentación del modelo, siguió con una ruta de manejo entre viñedos y terminó con una visita guiada a una viña y un almuerzo con los invitados.",
+      "role": "Federico Elgueta participó en la producción del evento y su registro audiovisual.",
+      "citableClaim": "",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-test-drive-mg-gt-2023",
+      "client": "MG MOTOR",
+      "title": "TEST DRIVE MG GT",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Test drive",
+        "Activación de marca",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Ambientación de autódromo con banderas y letras corpóreas",
+        "Coordinación de anfitrionas",
+        "Pruebas de manejo en pista",
+        "Video de marca del evento"
+      ],
+      "summary": "Test drive del MG GT en un autódromo en 2023. La pista se ambientó con banderas de la marca y letras corpóreas del modelo, con anfitrionas y vueltas de prueba en pista para los invitados.",
+      "role": "Federico Elgueta participó en la producción del evento y su registro audiovisual.",
+      "citableClaim": "",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-stand-experiencia-e-2022",
+      "client": "MG MOTOR",
+      "title": "STAND EXPERIENCIA E 2022",
+      "year": 2022,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Stand ferial",
+        "Activación de marca",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Stand de autos eléctricos con puntos de carga",
+        "Exhibición de modelos MG Marvel R y ZS EV",
+        "Señalética «Recharge yourself»",
+        "Video de marca del stand"
+      ],
+      "summary": "Stand de MG en la feria Experiencia E 2022, dedicado a sus modelos eléctricos. Los visitantes podían recorrer el MG Marvel R y el ZS EV, ver de cerca sus puntos de carga y subirse a los autos, bajo el mensaje «Recharge yourself».",
+      "role": "Federico Elgueta participó en la producción del evento y su registro audiovisual.",
+      "citableClaim": "",
+      "era": "trayectoria",
+      "exception": null
+    },
+    {
+      "slug": "mg-motor-lanzamiento-mg4-2023",
+      "client": "MG MOTOR",
+      "title": "LANZAMIENTO MG4 ELECTRIC",
+      "year": 2023,
+      "country": "Chile",
+      "city": "Santiago",
+      "industry": "Automotriz",
+      "workTypes": [
+        "Lanzamiento de producto",
+        "Evento nocturno",
+        "Producción audiovisual"
+      ],
+      "capabilities": [
+        "Ambientación nocturna en jardín con iluminación escénica",
+        "Pantalla con visuales de marca",
+        "Exhibición del MG4 Electric",
+        "Video de lanzamiento en 4K"
+      ],
+      "summary": "Lanzamiento del MG4 Electric en un jardín, con un evento nocturno de iluminación escénica, pantalla con visuales de la marca y el auto como centro de la noche para los invitados.",
+      "role": "Federico Elgueta participó en la producción del evento y su registro audiovisual.",
+      "citableClaim": "",
       "era": "trayectoria",
       "exception": null
     }

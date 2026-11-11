@@ -1,6 +1,8 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { paginasParaPieza, ponerDestino } from "@/lib/destino/acciones"
+import type { Pagina, Web } from "@/lib/destino/paginas"
 import type { Resultado } from "@/lib/marcas/acciones"
 import {
   cerrarAMano,
@@ -82,4 +84,16 @@ export async function pedirReescrituraAccion(entrada: { piezaId: string; instruc
 
 export async function pedirRevisionAccion(piezaId: string): Promise<Resultado> {
   return despues(piezaId, await pedirRevision(await createActionClient(), piezaId))
+}
+
+export async function paginasAccion(entrada: { piezaId: string; web: Web }): Promise<Resultado<{ paginas: Pagina[] }>> {
+  return paginasParaPieza(await createActionClient(), entrada)
+}
+
+export async function ponerDestinoAccion(entrada: {
+  piezaId: string
+  web: Web | null
+  url: string | null
+}): Promise<Resultado> {
+  return despues(entrada.piezaId, await ponerDestino(await createActionClient(), entrada))
 }

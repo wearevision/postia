@@ -2,6 +2,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { leerExcepciones } from "@/lib/clientes/lectura"
 import { type Excepcion, type Hallazgo, prepararRevision, textoARevisar } from "@/lib/clientes/revision"
+import { llevaElEnlace } from "@/lib/destino/enlace"
+import { puedeElegirDestino } from "@/lib/destino/puerta"
 import { type DisenoDePieza, disenoDePieza } from "@/lib/disenos/lectura"
 import { bloqueoDeFirma, DISENO_ILEGIBLE } from "@/lib/piezas/bloqueo"
 import { diaEnSantiago } from "@/lib/piezas/calendario"
@@ -27,14 +29,17 @@ import {
   dudosoAManoAccion,
   firmarAccion,
   firmarParaReservaAccion,
+  paginasAccion,
   pedirReescrituraAccion,
   pedirRevisionAccion,
   planearAccion,
+  ponerDestinoAccion,
   ponerPilarAccion,
   sacarDeReservaAccion,
 } from "./acciones"
 import { FirmaCaida } from "./caida"
 import { CambiarFechaProgramada, Descartar, Desprogramar, EnvioDudoso, SacarDeReserva } from "./controles"
+import { DestinoDePieza } from "./destino"
 import { FirmaDePieza } from "./firma"
 import { DespuesDeFirmar, FirmaConfirmada } from "./firmada"
 import { FinDelTexto, LecturaDePieza } from "./lectura"
@@ -232,8 +237,20 @@ export default async function Pieza({
 
       {/* The piece as it goes out comes first. FinDelTexto must follow the text: reaching it unlocks signing. */}
       {version.vistas.length > 0 && <VistasDelCarrusel vistas={version.vistas} />}
-      <p className="whitespace-pre-wrap tarjeta p-3">{version.texto}</p>
+      <p className="whitespace-pre-wrap wrap-anywhere tarjeta p-3">{version.texto}</p>
       {porFirmar && !armando && <FinDelTexto />}
+      {/* Same condition as CorregirTexto: choosing a page writes a new text version, so it comes before the signature. */}
+      {puedeElegirDestino({ porFirmar, formato: pieza.formato, armando, redaccionLista }) && (
+        <DestinoDePieza
+          piezaId={pieza.id}
+          destino={pieza.destino && { web: pieza.destino.web, url: pieza.destino.url }}
+          enlacePerdido={
+            pieza.destino !== null && !llevaElEnlace(version.texto, pieza.destino.url, pieza.destino.codigo)
+          }
+          cargar={paginasAccion}
+          poner={ponerDestinoAccion}
+        />
+      )}
       {rearmable && avisosDelCarrusel()}
       {!porFirmar && editable && editarCarrusel()}
 
