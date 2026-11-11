@@ -116,6 +116,7 @@ describe("repositorioDePublicacion", () => {
       formato: "texto" as const,
       programadaPara: HACE(31),
       ventanaMinutos: 30,
+      destino: null,
       version: { id: c.version, texto: "t", titulo: null, archivoRuta: null, archivoSha256: null, huella: "h" },
     }
     await expect(

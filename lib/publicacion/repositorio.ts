@@ -1,5 +1,6 @@
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
 import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
+import { leerPaginas } from "@/lib/destino/paginas"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
@@ -22,6 +23,7 @@ type PuertosDeBase = Pick<
   | "anotarAviso"
   | "registrarFallaDeEspacio"
   | "excepcionesPuestasDespues"
+  | "paginasDe"
 >
 
 const LARGO_DE_EXTRACTO = 40
@@ -96,7 +98,7 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
       const { data: piezas, error: errorDeLectura } = await db
         .from("piezas")
         .select(
-          "id, formato, programada_para, ventana_minutos, cuentas!inner(id, nombre, ruta, marca_id), versiones(id, numero, texto, titulo, archivo_ruta, archivo_sha256, huella), firmas(id, huella, vigente, firmada_en)",
+          "id, formato, programada_para, ventana_minutos, destino, destino_url, codigo_ref, cuentas!inner(id, nombre, ruta, marca_id), versiones(id, numero, texto, titulo, archivo_ruta, archivo_sha256, huella), firmas(id, huella, vigente, firmada_en)",
         )
         .in(
           "id",
@@ -120,6 +122,10 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
             formato: comoFormato(p.formato),
             programadaPara: p.programada_para,
             ventanaMinutos: p.ventana_minutos,
+            destino:
+              (p.destino === "wr3" || p.destino === "wav") && p.destino_url && p.codigo_ref
+                ? { web: p.destino, url: p.destino_url, codigo: p.codigo_ref }
+                : null,
             version: {
               id: ultima.id,
               texto: ultima.texto,
@@ -235,6 +241,15 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
     anotarAviso: (marcaId, aviso) => anotarAviso(db, marcaId, aviso),
 
     excepcionesPuestasDespues: (desde) => excepcionesPuestasDespues(db, desde),
+
+    paginasDe: async (web) => {
+      try {
+        return (await leerPaginas(web)).map((pagina) => pagina.url)
+      } catch (error) {
+        console.error(`paginas.json de ${web} no respondió al publicar`, error instanceof Error ? error.message : error)
+        return null
+      }
+    },
 
     async registrarFallaDeEspacio(piezaId, motivo) {
       const { data, error } = await db.rpc("registrar_falla_de_espacio", { p_pieza: piezaId, p_motivo: motivo })
