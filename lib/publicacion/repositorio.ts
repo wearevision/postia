@@ -1,6 +1,6 @@
 import { anotarAviso } from "@/lib/avisos/repositorio-de-avisos"
 import { excepcionesPuestasDespues } from "@/lib/clientes/lectura"
-import { leerPaginas } from "@/lib/destino/paginas"
+import { leerPaginas, type Web } from "@/lib/destino/paginas"
 import { horariosOcupados, leerTipo } from "@/lib/piezas/lectura"
 import { BYTES_MAXIMOS_DEL_CARRUSEL } from "@/lib/piezas/limites"
 import type { Db } from "@/lib/supabase/database"
@@ -51,6 +51,15 @@ function comoFormato(valor: string): PiezaParaPublicar["formato"] {
   throw new Error(`Formato de pieza desconocido: ${valor}`)
 }
 
+async function urlsDePaginas(web: Web): Promise<string[] | null> {
+  try {
+    return (await leerPaginas(web)).map((pagina) => pagina.url)
+  } catch (error) {
+    console.error(`paginas.json de ${web} no respondió al publicar`, error instanceof Error ? error.message : error)
+    return null
+  }
+}
+
 /** The publisher's ports over the service role. The state guard still applies: an illegal move throws. */
 export function repositorioDePublicacion(db: Db): PuertosDeBase {
   async function devolver(
@@ -89,6 +98,9 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
     if (error) fallo(`No pude mover la pieza a ${a}`, error)
     return "movida"
   }
+
+  // One run builds these ports once (trigger/publicar.ts): each site's list is fetched once per run, not per piece.
+  const paginasPorWeb = new Map<Web, Promise<string[] | null>>()
 
   return {
     async tomarPendientes() {
@@ -242,13 +254,13 @@ export function repositorioDePublicacion(db: Db): PuertosDeBase {
 
     excepcionesPuestasDespues: (desde) => excepcionesPuestasDespues(db, desde),
 
-    paginasDe: async (web) => {
-      try {
-        return (await leerPaginas(web)).map((pagina) => pagina.url)
-      } catch (error) {
-        console.error(`paginas.json de ${web} no respondió al publicar`, error instanceof Error ? error.message : error)
-        return null
+    paginasDe(web) {
+      let urls = paginasPorWeb.get(web)
+      if (!urls) {
+        urls = urlsDePaginas(web)
+        paginasPorWeb.set(web, urls)
       }
+      return urls
     },
 
     async registrarFallaDeEspacio(piezaId, motivo) {
