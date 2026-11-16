@@ -6,9 +6,17 @@ export function codigoNuevo(): string {
   return Array.from(azar, (n) => ALFABETO[n % ALFABETO.length]).join("")
 }
 
-export function enlaceDe(d: { url: string; cuentaTipo: "persona" | "empresa"; codigo: string }): string {
-  const campana = d.cuentaTipo === "persona" ? "federico" : "wav"
-  return `${d.url}?utm_source=linkedin&utm_medium=social&utm_campaign=${campana}&utm_content=${d.codigo}`
+/**
+ * The page plus the code alone: LinkedIn shows the whole URL, and four UTM params made it unreadable. Account and
+ * network come back from the code, which belongs to one piece. Links signed before 2026-11-16 carry
+ * `utm_content=<code>` instead; the helpers below accept both.
+ */
+export function enlaceDe(d: { url: string; codigo: string }): string {
+  return `${d.url}?ref=${d.codigo}`
+}
+
+function limpio(codigo: string): string {
+  return codigo.replace(/[^a-z0-9]/g, "")
 }
 
 export function conEnlace(texto: string, enlace: string): string {
@@ -20,7 +28,7 @@ export function conEnlace(texto: string, enlace: string): string {
  * edited its page. A line left empty by the removal goes too, and so do the blank lines left at the end.
  */
 export function quitarEnlace(texto: string, codigo: string): string {
-  const conCodigo = new RegExp(`[ \\t]*\\S*utm_content=${codigo.replace(/[^a-z0-9]/g, "")}\\S*`, "g")
+  const conCodigo = new RegExp(`[ \\t]*\\S*[?&](?:ref|utm_content)=${limpio(codigo)}\\S*`, "g")
   return texto
     .split("\n")
     .flatMap((linea) => {
@@ -35,7 +43,6 @@ export function quitarEnlace(texto: string, codigo: string): string {
 
 /** The same link must start with the destination page and carry the code: the code alone could sit on another page. */
 export function llevaElEnlace(texto: string, url: string, codigo: string): boolean {
-  return texto
-    .split(/\s+/)
-    .some((palabra) => palabra.startsWith(`${url}?`) && palabra.includes(`utm_content=${codigo}`))
+  const conCodigo = new RegExp(`[?&](?:ref|utm_content)=${limpio(codigo)}(?![a-z0-9])`)
+  return texto.split(/\s+/).some((palabra) => palabra.startsWith(`${url}?`) && conCodigo.test(palabra))
 }
