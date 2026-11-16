@@ -279,9 +279,7 @@ describe("ponerDestino", () => {
     await ponerDestino(db, { piezaId, web: "wr3", url: "https://research.wearevision.cl/" }, lector(PAGINAS_WR3))
     const v = await ultima(piezaId)
     expect(v?.texto.match(/https:\/\//g)).toHaveLength(1)
-    expect(v?.texto).toContain(
-      `https://research.wearevision.cl/?ref=${antes}`,
-    )
+    expect(v?.texto).toContain(`https://research.wearevision.cl/?ref=${antes}`)
   })
 
   test("changing the page after a correction moved the link into a sentence leaves only one link", async () => {
