@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { codigoNuevo, conEnlace, enlaceDe, llevaElEnlace, quitarEnlace } from "@/lib/destino/enlace"
+import { codigoNuevo, conEnlace, enlaceDe, quitarEnlace } from "@/lib/destino/enlace"
 import { leerPaginas, ordenarPorTexto, type Pagina, WEBS, type Web } from "@/lib/destino/paginas"
 import type { Resultado } from "@/lib/marcas/acciones"
 import type { Db } from "@/lib/supabase/database"
@@ -34,8 +34,7 @@ async function leerPieza(db: Db, piezaId: string) {
   }
   if (!data?.cuentas) return { ok: false as const, error: "No encontré la pieza." }
   const ultima = [...data.versiones].sort((a, b) => b.numero - a.numero)[0]
-  const cuentaTipo = data.cuentas.tipo === "persona" ? ("persona" as const) : ("empresa" as const)
-  return { ok: true as const, pieza: { ...data, texto: ultima?.texto ?? "", numero: ultima?.numero ?? 0, cuentaTipo } }
+  return { ok: true as const, pieza: { ...data, texto: ultima?.texto ?? "", numero: ultima?.numero ?? 0 } }
 }
 
 export async function paginasParaPieza(
@@ -81,8 +80,10 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
     return error ? falla(error) : { ok: true }
   }
 
-  // The same page again is how a person puts back a link that a correction dropped from the text.
-  const yaLoLleva = pieza.codigo_ref !== null && llevaElEnlace(pieza.texto, url, pieza.codigo_ref)
+  // The same page again is how a person puts back a link that a correction dropped from the text, or turns a link
+  // signed in the old UTM format into the short one: only the current link, exactly, counts as already there.
+  const yaLoLleva =
+    pieza.codigo_ref !== null && pieza.texto.split(/\s+/).includes(enlaceDe({ url, codigo: pieza.codigo_ref }))
   if (pieza.destino === web && pieza.destino_url === url && yaLoLleva)
     return { ok: false, error: "Ya tiene ese destino." }
   let paginas: Pagina[]
@@ -98,7 +99,7 @@ export async function ponerDestino(db: Db, entrada: unknown, leer: LectorDePagin
   // A new code can collide with another piece's (31³ ≈ 30 000 codes): retry a few times with a fresh one.
   for (let intento = 0; intento < 5; intento++) {
     const codigo = pieza.codigo_ref ?? codigoNuevo()
-    const texto = conEnlace(base, enlaceDe({ url, cuentaTipo: pieza.cuentaTipo, codigo }))
+    const texto = conEnlace(base, enlaceDe({ url, codigo }))
     if ([...texto].length > 3000) {
       return { ok: false, error: "Con el enlace, el texto pasa los 3000 caracteres de LinkedIn. Acórtalo primero." }
     }

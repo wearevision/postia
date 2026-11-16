@@ -268,7 +268,7 @@ describe("ponerDestino", () => {
     expect(r.ok).toBe(true)
     const v = await ultima(piezaId)
     expect(v?.texto).toMatch(
-      /^Hola, hablemos de focus group\n\nhttps:\/\/research\.wearevision\.cl\/guias\/focus-group\/\?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=[23456789abcdefghjkmnpqrstuvwxyz]{3}$/,
+      /^Hola, hablemos de focus group\n\nhttps:\/\/research\.wearevision\.cl\/guias\/focus-group\/\?ref=[23456789abcdefghjkmnpqrstuvwxyz]{3}$/,
     )
   })
 
@@ -280,7 +280,7 @@ describe("ponerDestino", () => {
     const v = await ultima(piezaId)
     expect(v?.texto.match(/https:\/\//g)).toHaveLength(1)
     expect(v?.texto).toContain(
-      `https://research.wearevision.cl/?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${antes}`,
+      `https://research.wearevision.cl/?ref=${antes}`,
     )
   })
 
@@ -311,6 +311,16 @@ describe("ponerDestino", () => {
     expect((await ultima(piezaId))?.texto).toMatch(
       /^Hola sin enlace\n\nhttps:\/\/research\.wearevision\.cl\/guias\/focus-group\/\?/,
     )
+  })
+
+  test("choosing the same page again turns a link signed with the old UTM format into the short one", async () => {
+    const { db, piezaId } = await piezaDeTexto("pd-utm")
+    await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
+    const v = await ultima(piezaId)
+    const codigo = (await admin().from("piezas").select("codigo_ref").eq("id", piezaId).single()).data?.codigo_ref ?? ""
+    await nuevaVersion(piezaId, (v?.numero ?? 0) + 1, conEnlace(codigo))
+    expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))).toEqual({ ok: true })
+    expect((await ultima(piezaId))?.texto).toBe(`Hola\n\n${URL_WR3}?ref=${codigo}`)
   })
 
   test("no link removes it from the text", async () => {
