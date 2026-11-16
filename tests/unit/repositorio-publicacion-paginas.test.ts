@@ -13,9 +13,9 @@ describe("publisher ports: paginasDe", () => {
   test("reads each site's paginas.json once per run", async () => {
     const lecturas = { wr3: 0, wav: 0 }
     servidor.use(
-      http.get("https://wr3.wearevision.cl/paginas.json", () => {
+      http.get("https://research.wearevision.cl/paginas.json", () => {
         lecturas.wr3++
-        return HttpResponse.json([{ url: "https://wr3.wearevision.cl/", titulo: "WR3", tema: "x" }])
+        return HttpResponse.json([{ url: "https://research.wearevision.cl/", titulo: "WR3", tema: "x" }])
       }),
       http.get("https://wearevision.cl/paginas.json", () => {
         lecturas.wav++
@@ -24,11 +24,11 @@ describe("publisher ports: paginasDe", () => {
     )
     const corrida = repositorioDePublicacion(db())
     expect(await Promise.all([corrida.paginasDe("wr3"), corrida.paginasDe("wr3")])).toEqual([
-      ["https://wr3.wearevision.cl/"],
-      ["https://wr3.wearevision.cl/"],
+      ["https://research.wearevision.cl/"],
+      ["https://research.wearevision.cl/"],
     ])
     expect(await corrida.paginasDe("wav")).toEqual(["https://wearevision.cl/"])
-    expect(await corrida.paginasDe("wr3")).toEqual(["https://wr3.wearevision.cl/"])
+    expect(await corrida.paginasDe("wr3")).toEqual(["https://research.wearevision.cl/"])
     expect(lecturas).toEqual({ wr3: 1, wav: 1 })
 
     await repositorioDePublicacion(db()).paginasDe("wr3")

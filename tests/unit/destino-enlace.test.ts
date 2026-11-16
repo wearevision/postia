@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { ALFABETO, codigoNuevo, conEnlace, enlaceDe, llevaElEnlace, quitarEnlace } from "@/lib/destino/enlace"
 
-const URL = "https://wr3.wearevision.cl/guias/focus-group/"
+const URL = "https://research.wearevision.cl/guias/focus-group/"
 
 describe("destination link", () => {
   test("handles the campaign by account type and puts the code last", () => {
@@ -31,7 +31,7 @@ describe("destination link", () => {
   test("quitarEnlace removes the link when it was moved into a sentence or edited", () => {
     expect(quitarEnlace(`Lee la guía ${URL}?utm_content=k7m y cuéntame.`, "k7m")).toBe("Lee la guía y cuéntame.")
     expect(quitarEnlace(`Lee: ${URL}?utm_source=x&utm_content=k7m&ref=1\n\n`, "k7m")).toBe("Lee:")
-    expect(quitarEnlace(`Hola\n\nhttps://wr3.wearevision.cl/otra/?utm_content=k7m\n\n`, "k7m")).toBe("Hola")
+    expect(quitarEnlace(`Hola\n\nhttps://research.wearevision.cl/otra/?utm_content=k7m\n\n`, "k7m")).toBe("Hola")
   })
 
   test("quitarEnlace leaves links with another code alone", () => {
@@ -46,7 +46,7 @@ describe("destination link", () => {
 
   test("llevaElEnlace refuses the code alone or the code on another page", () => {
     expect(llevaElEnlace("Hola utm_content=k7m", URL, "k7m")).toBe(false)
-    expect(llevaElEnlace("Hola https://wr3.wearevision.cl/?utm_content=k7m", URL, "k7m")).toBe(false)
+    expect(llevaElEnlace("Hola https://research.wearevision.cl/?utm_content=k7m", URL, "k7m")).toBe(false)
     expect(llevaElEnlace(`Hola ${URL} y https://x.cl/?utm_content=k7m`, URL, "k7m")).toBe(false)
   })
 })

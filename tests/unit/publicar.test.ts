@@ -654,7 +654,7 @@ describe("client exceptions marked after the signature", () => {
 })
 
 describe("destination page check", () => {
-  const URL = "https://wr3.wearevision.cl/guias/focus-group/"
+  const URL = "https://research.wearevision.cl/guias/focus-group/"
   const conDestino = () =>
     pieza({
       destino: { web: "wr3", url: URL, codigo: "k7m" },
@@ -663,7 +663,7 @@ describe("destination page check", () => {
 
   test("sends back a piece whose page left paginas.json", async () => {
     const { p, m } = puertos()
-    m.paginasDe.mockResolvedValue(["https://wr3.wearevision.cl/"])
+    m.paginasDe.mockResolvedValue(["https://research.wearevision.cl/"])
     expect(await publicarPieza(p, conDestino())).toBe("por_aprobar")
     expect(m.paginasDe).toHaveBeenCalledWith("wr3")
     expect(m.linkedin.crearPost).not.toHaveBeenCalled()
@@ -704,7 +704,7 @@ describe("destination page check", () => {
     m.paginasDe.mockResolvedValue([URL])
     const otraPagina = pieza({
       destino: { web: "wr3", url: URL, codigo: "k7m" },
-      version: { ...pieza().version, texto: "Hola\n\nhttps://wr3.wearevision.cl/?utm_content=k7m" },
+      version: { ...pieza().version, texto: "Hola\n\nhttps://research.wearevision.cl/?utm_content=k7m" },
     })
     expect(await publicarPieza(p, otraPagina)).toBe("por_aprobar")
     expect(m.linkedin.crearPost).not.toHaveBeenCalled()

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export type Web = "wr3" | "wav"
 export const WEBS: Record<Web, { nombre: string; base: string }> = {
-  wr3: { nombre: "WR3", base: "https://wr3.wearevision.cl/" },
+  wr3: { nombre: "WR3", base: "https://research.wearevision.cl/" },
   wav: { nombre: "wearevision.cl", base: "https://wearevision.cl/" },
 }
 
