@@ -3,8 +3,8 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 import { DestinoDePieza } from "@/app/(app)/piezas/[id]/destino"
 
 const PAGINAS = [
-  { url: "https://wr3.wearevision.cl/guias/focus-group/", titulo: "Focus group", tema: "x" },
-  { url: "https://wr3.wearevision.cl/", titulo: "WR3", tema: "y" },
+  { url: "https://research.wearevision.cl/guias/focus-group/", titulo: "Focus group", tema: "x" },
+  { url: "https://research.wearevision.cl/", titulo: "WR3", tema: "y" },
 ]
 
 const GUARDADO = { web: "wr3" as const, url: PAGINAS[0].url }

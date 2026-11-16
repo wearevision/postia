@@ -4,9 +4,9 @@ import { leerPaginas, ordenarPorTexto, WEBS } from "@/lib/destino/paginas"
 import { servidor } from "../msw"
 
 const PAGINAS = [
-  { url: "https://wr3.wearevision.cl/", titulo: "WR3", tema: "Investigación de mercado" },
+  { url: "https://research.wearevision.cl/", titulo: "WR3", tema: "Investigación de mercado" },
   {
-    url: "https://wr3.wearevision.cl/guias/focus-group/",
+    url: "https://research.wearevision.cl/guias/focus-group/",
     titulo: "Focus group presencial u online",
     tema: "Cómo elegir",
   },
@@ -14,7 +14,7 @@ const PAGINAS = [
 
 describe("site pages", () => {
   test("reads paginas.json of the chosen site", async () => {
-    servidor.use(http.get("https://wr3.wearevision.cl/paginas.json", () => HttpResponse.json(PAGINAS)))
+    servidor.use(http.get("https://research.wearevision.cl/paginas.json", () => HttpResponse.json(PAGINAS)))
     expect(await leerPaginas("wr3")).toEqual(PAGINAS)
     expect(WEBS.wav.base).toBe("https://wearevision.cl/")
   })
@@ -29,31 +29,35 @@ describe("site pages", () => {
   })
 
   test.each([
-    ["a query string", "https://wr3.wearevision.cl/guia/?x=1"],
-    ["a fragment", "https://wr3.wearevision.cl/guia/#parte"],
-    ["whitespace", "https://wr3.wearevision.cl/guia uno/"],
-    ["a look-alike host", "https://wr3.wearevision.cl.evil.example/"],
+    ["a query string", "https://research.wearevision.cl/guia/?x=1"],
+    ["a fragment", "https://research.wearevision.cl/guia/#parte"],
+    ["whitespace", "https://research.wearevision.cl/guia uno/"],
+    ["a look-alike host", "https://research.wearevision.cl.evil.example/"],
   ])("refuses a page URL with %s", async (_, url) => {
     servidor.use(
-      http.get("https://wr3.wearevision.cl/paginas.json", () => HttpResponse.json([{ url, titulo: "x", tema: "y" }])),
+      http.get("https://research.wearevision.cl/paginas.json", () =>
+        HttpResponse.json([{ url, titulo: "x", tema: "y" }]),
+      ),
     )
     await expect(leerPaginas("wr3")).rejects.toThrow("no es válido")
   })
 
   test("trims titles and themes and keeps at most 500 pages", async () => {
     const muchas = Array.from({ length: 600 }, (_, i) => ({
-      url: `https://wr3.wearevision.cl/p${i}/`,
+      url: `https://research.wearevision.cl/p${i}/`,
       titulo: `  Página ${i}  `,
       tema: " tema ",
     }))
-    servidor.use(http.get("https://wr3.wearevision.cl/paginas.json", () => HttpResponse.json(muchas)))
+    servidor.use(http.get("https://research.wearevision.cl/paginas.json", () => HttpResponse.json(muchas)))
     const paginas = await leerPaginas("wr3")
     expect(paginas).toHaveLength(500)
-    expect(paginas[0]).toEqual({ url: "https://wr3.wearevision.cl/p0/", titulo: "Página 0", tema: "tema" })
+    expect(paginas[0]).toEqual({ url: "https://research.wearevision.cl/p0/", titulo: "Página 0", tema: "tema" })
   })
 
   test("a failed answer throws", async () => {
-    servidor.use(http.get("https://wr3.wearevision.cl/paginas.json", () => new HttpResponse(null, { status: 503 })))
+    servidor.use(
+      http.get("https://research.wearevision.cl/paginas.json", () => new HttpResponse(null, { status: 503 })),
+    )
     await expect(leerPaginas("wr3")).rejects.toThrow("503")
   })
 

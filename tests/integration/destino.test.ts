@@ -14,7 +14,7 @@ async function piezaDeTexto(prefijo: string, texto = "Hola") {
   return { db, piezaId: creada.piezaId, marca }
 }
 
-const URL_WR3 = "https://wr3.wearevision.cl/guias/focus-group/"
+const URL_WR3 = "https://research.wearevision.cl/guias/focus-group/"
 const conEnlace = (codigo: string) =>
   `Hola\n\n${URL_WR3}?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${codigo}`
 
@@ -107,7 +107,7 @@ describe("poner_destino", () => {
     expect(sinCodigo.error?.message).toBe("destino_incompleto")
     const otraPagina = await db.rpc("poner_destino", {
       p_pieza: piezaId,
-      p_texto: "Hola https://wr3.wearevision.cl/?utm_content=k7m",
+      p_texto: "Hola https://research.wearevision.cl/?utm_content=k7m",
       p_numero_esperado: 1,
       p_destino: "wr3",
       p_destino_url: URL_WR3,
@@ -251,7 +251,7 @@ describe("poner_destino", () => {
 })
 
 const PAGINAS_WR3: Pagina[] = [
-  { url: "https://wr3.wearevision.cl/", titulo: "WR3", tema: "Investigación" },
+  { url: "https://research.wearevision.cl/", titulo: "WR3", tema: "Investigación" },
   { url: URL_WR3, titulo: "Focus group", tema: "Hola focus" },
 ]
 const lector = (paginas: Pagina[] | Error) => async (_: Web) => {
@@ -268,7 +268,7 @@ describe("ponerDestino", () => {
     expect(r.ok).toBe(true)
     const v = await ultima(piezaId)
     expect(v?.texto).toMatch(
-      /^Hola, hablemos de focus group\n\nhttps:\/\/wr3\.wearevision\.cl\/guias\/focus-group\/\?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=[23456789abcdefghjkmnpqrstuvwxyz]{3}$/,
+      /^Hola, hablemos de focus group\n\nhttps:\/\/research\.wearevision\.cl\/guias\/focus-group\/\?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=[23456789abcdefghjkmnpqrstuvwxyz]{3}$/,
     )
   })
 
@@ -276,11 +276,11 @@ describe("ponerDestino", () => {
     const { db, piezaId } = await piezaDeTexto("pd-cambio")
     await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))
     const antes = (await admin().from("piezas").select("codigo_ref").eq("id", piezaId).single()).data?.codigo_ref
-    await ponerDestino(db, { piezaId, web: "wr3", url: "https://wr3.wearevision.cl/" }, lector(PAGINAS_WR3))
+    await ponerDestino(db, { piezaId, web: "wr3", url: "https://research.wearevision.cl/" }, lector(PAGINAS_WR3))
     const v = await ultima(piezaId)
     expect(v?.texto.match(/https:\/\//g)).toHaveLength(1)
     expect(v?.texto).toContain(
-      `https://wr3.wearevision.cl/?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${antes}`,
+      `https://research.wearevision.cl/?utm_source=linkedin&utm_medium=social&utm_campaign=federico&utm_content=${antes}`,
     )
   })
 
@@ -291,11 +291,11 @@ describe("ponerDestino", () => {
     const enlace = v?.texto.split("\n\n")[1] ?? ""
     await nuevaVersion(piezaId, (v?.numero ?? 0) + 1, `Hola, lee ${enlace} y cuéntame.`)
     expect(
-      await ponerDestino(db, { piezaId, web: "wr3", url: "https://wr3.wearevision.cl/" }, lector(PAGINAS_WR3)),
+      await ponerDestino(db, { piezaId, web: "wr3", url: "https://research.wearevision.cl/" }, lector(PAGINAS_WR3)),
     ).toEqual({ ok: true })
     const texto = (await ultima(piezaId))?.texto ?? ""
     expect(texto.match(/https:\/\//g)).toHaveLength(1)
-    expect(texto.startsWith("Hola, lee y cuéntame.\n\nhttps://wr3.wearevision.cl/?")).toBe(true)
+    expect(texto.startsWith("Hola, lee y cuéntame.\n\nhttps://research.wearevision.cl/?")).toBe(true)
   })
 
   test("choosing the same page again puts back a link the text lost, and refuses it while the link is there", async () => {
@@ -309,7 +309,7 @@ describe("ponerDestino", () => {
     await nuevaVersion(piezaId, (v?.numero ?? 0) + 1, "Hola sin enlace")
     expect(await ponerDestino(db, { piezaId, web: "wr3", url: URL_WR3 }, lector(PAGINAS_WR3))).toEqual({ ok: true })
     expect((await ultima(piezaId))?.texto).toMatch(
-      /^Hola sin enlace\n\nhttps:\/\/wr3\.wearevision\.cl\/guias\/focus-group\/\?/,
+      /^Hola sin enlace\n\nhttps:\/\/research\.wearevision\.cl\/guias\/focus-group\/\?/,
     )
   })
 
@@ -323,7 +323,11 @@ describe("ponerDestino", () => {
   test("refuses a URL that is not in paginas.json and says when the list cannot be read", async () => {
     const { db, piezaId } = await piezaDeTexto("pd-mal")
     expect(
-      await ponerDestino(db, { piezaId, web: "wr3", url: "https://wr3.wearevision.cl/otra/" }, lector(PAGINAS_WR3)),
+      await ponerDestino(
+        db,
+        { piezaId, web: "wr3", url: "https://research.wearevision.cl/otra/" },
+        lector(PAGINAS_WR3),
+      ),
     ).toEqual({
       ok: false,
       error: "Esa página no está en la lista de WR3.",

@@ -85,7 +85,7 @@ describe("EditorDeCarrusel", () => {
     const cierre = () => laminas().at(-1) as HTMLElement
     expect(within(cierre()).getByLabelText("Enlace")).toHaveValue("wearevision.cl")
     fireEvent.click(screen.getByRole("radio", { name: "WR3 oscura" }))
-    expect(within(cierre()).getByLabelText("Enlace")).toHaveValue("wr3.wearevision.cl")
+    expect(within(cierre()).getByLabelText("Enlace")).toHaveValue("research.wearevision.cl")
     expect(within(cierre()).getByLabelText("Título")).toHaveValue("Lee la guía completa")
   })
 

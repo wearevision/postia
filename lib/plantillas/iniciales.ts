@@ -71,7 +71,7 @@ const CUERPO: Lamina[] = [
 
 // Each family's call to action (wr3-web build-carousels.mjs `retarget`).
 const CIERRES: Record<Familia, { antetitulo: string; titulo: string; enlace: string }> = {
-  wr3: { antetitulo: "Plantilla · Carrusel WR3", titulo: "Lee la guía completa", enlace: "wr3.wearevision.cl" },
+  wr3: { antetitulo: "Plantilla · Carrusel WR3", titulo: "Lee la guía completa", enlace: "research.wearevision.cl" },
   wav: { antetitulo: "Plantilla · Carrusel WAV", titulo: "Conversemos", enlace: "wearevision.cl" },
   personal: { antetitulo: "Plantilla · Carrusel personal", titulo: "Sígueme para más", enlace: PERFIL_DE_FEDERICO },
 }
